@@ -1,21 +1,25 @@
 # Development
 
-This is part of the developer [getting started guide](./README.md). 
+This is part of the developer [getting started guide](./README.md).
 
 ## API
+
 See [APIs](../../../README.md#apis).
 
 The older Norman API is served on `/v3`. The newer Steve API (see [here](https://github.com/rancher/api-spec/blob/master/specification.md) for spec) is served on `/v1` .
 
-In both cases the schemas returned dictate 
+In both cases the schemas returned dictate
+
 - Which resources are shown
 - What operations (create, update, delete, etc) can be made against resource/s
 - What actions (archive, change password, etc) can be made against resource/s
 
-In addition the resources themselves can dictate 
+In addition the resources themselves can dictate
+
 - What actions can be made against the collection
 
 The above, plus other factors, will effect what is shown by the UI
+
 - Resources in the cluster explorer
 - Edit resource buttons
 - Delete resource
@@ -28,9 +32,10 @@ There are other factors that assist in this, namely values from the `type-map`. 
 > If you need to add an endpoint to an unauthenticated route for loading from the store before login, you will need to add it [here](https://github.com/rancher/rancher/blob/cb7de4e6c3d7e783828dc662b1142c1f9ae5edbe/pkg/multiclustermanager/routes.go#L69).
 
 ## Store
+
 State is cached locally via [Vuex](https://vuex.vuejs.org/). See the Model section for retrieving information from the store.
 
-See [README#vuex-stores](../../../README.md#what-is-it) for the basics. The most important concepts are described first i.e. the three store parts `management`, `cluster` and `rancher`. These sections contain schema information for each supported type and, per type, the resource instance and list data. 
+See [README#vuex-stores](../../../README.md#what-is-it) for the basics. The most important concepts are described first i.e. the three store parts `management`, `cluster` and `rancher`. These sections contain schema information for each supported type and, per type, the resource instance and list data.
 
 Store objects are accessed in different ways, below are common ways they are referenced by models and components
 
@@ -51,9 +56,11 @@ Store objects are accessed in different ways, below are common ways they are ref
 > Bad - Does not trim text, issues when resource type contains "`.`" - ``store.getters['i18n/t'](`typeLabel.${ NORMAN.SPOOFED.GROUP_PRINCIPAL }`, { count: 2 })``
 
 ## Resources
-A resource is an instance of a schema e.g. the `admin` user is an instance of type `management.cattle.io.user` from the `Steve` API. 
+
+A resource is an instance of a schema e.g. the `admin` user is an instance of type `management.cattle.io.user` from the `Steve` API.
 
 ### Schemas
+
 Schemas are provided in bulk via the APIs and cached locally in the relevant store (`management`, `rancher`, etc).
 
 A schema can be fetched synchronously via store getter
@@ -65,7 +72,7 @@ this.$store.getters['cluster/schemaFor'](POD)`
 ```
 
 > Troubleshooting: Cannot find new schema
-> 
+>
 > Ensure that your schema text in `/config/types.js` is singular, not plural
 
 As mentioned before a schema dictates the functionality available to that type and what is shown for the type in the UI.
@@ -80,7 +87,6 @@ Spoofed Types, like virtual types, add menu items but also define a spoofed sche
 
 ### Model Architecture
 
-
 The ES6 class models in the `models` directory are used to represent Kubernetes resources. The class applies properties and methods to the resource, which defines how the resource can function in the UI and what other components can do with it. Different APIs return models in different structures, but the implementation of the models allows some common functionality to be available for any of them, such as `someModel.name`, `someModel.description`, `setLabels` or `setAnnotations`.
 
 Much of the reused functionality for each model is taken from the Steve plugin. The class-based models use functionality from `plugins/steve/resource-class.js`.
@@ -91,7 +97,7 @@ The `Resource` class in `plugins/steve/resource-class.js` should not have any fi
 
 The `Resource` class in `plugins/steve/resource-class.js` is the base class for everything and should not be directly extended. (There is a proxy-based counterpart of `Resource` which is the default export from `plugins/steve/resource-instance.js` as well.) If a model needs to extend the basic functionality of a resource, it should extend one of these three models:
 
-- `NormanModel`: For a Rancher management type being loaded via the Norman API (/v3, the Rancher store). These have names, descriptions and labels at the root of the object. 
+- `NormanModel`: For a Rancher management type being loaded via the Norman API (/v3, the Rancher store). These have names, descriptions and labels at the root of the object.
 - `HybridModel`: This model is used for old Rancher types, such as a Project (mostly in management.cattle.io), that are loaded with the Steve API (/v1, the cluster/management stores). These have the name and description at the root, but labels under metadata.
 - `SteveModel`: Use this model for normal Kubernetes types such as workloads and secrets. The name, description and labels are under metadata.
 
@@ -124,12 +130,13 @@ $store.getters['<store type>/schemaFor'](<resource type>)`
 SSR causes certain NUXT component functions to execute server side, for example `async fetch`, `asyncData` and `nuxtServerInit`. State returned by these and the core Vuex store is transferred back to the client by the `window.__NUXT__` property. As these contain resources that should be Proxy objects the Dashboard rehydrates them as such via `plugins/steve/index.js`. There you can see any resource tagged with `__rehydrate` or array with  `__rehydrateAll__<x>` will be converted into back into a Proxy object in the client.
 
 ## Products & Side Nav
+
 Products are top level features that are reached via the header top left menu. Some are built in (`Cluster Explorer`, `Apps & Marketplace`, `Users & Authentication`) and some are enabled after installing the required helm charts via `Apps & Marketplace` (see 'Rancher' charts in the `Charts` page ).
 
 Configuration for each product can be found in `/config/product`. These define the product itself, menu items in side nav, spoofed types, etc. These settings are stored in the `type-map` section of the store and manipulated with functions in `/store/type-map.js`. Some stand out functions include
 
 - `basicType` - Defines a type or group of types that will show in the side nav
--  `weightGroup`/`weightType` - Set the position of the group/tye for this product. Pay attention to the `forBasic` boolean which should be true if the menu item is classed as basic.
+- `weightGroup`/`weightType` - Set the position of the group/tye for this product. Pay attention to the `forBasic` boolean which should be true if the menu item is classed as basic.
 - `configureType` - Provider/Override UI features for the type (is creatable, show state in header/table, etc). These are accessible via the `type-map/optionsFor` action
 
 > There's some docs for these functions are the top of the `type-map.js` file
@@ -149,8 +156,8 @@ By default only the table and, if enabled by the resource type, viewing/editing 
 
 The top level list page is defined in `./components/ResourceList`. This displays a common masthead and table for the given resource type. Without any customisation the columns are restricted to a base set of `state`, `nameDisplay`, `namespace` and `ages`. More information can be found in function `/store/type-map.js headersFor`.
 
-
 #### Customisation
+
 Customising columns and actions in a table can be done via changing the resources type's configuration. This is found in either the product's configuration or the resource types `model`, read on for more details. At this level the default `ResourceList` component is used and no additional pages have to be defined. T
 
 More complicated customisation can be done via overriding the ResourceList component with a per resource type component defined in `/list`, e.g. `/list/catalog.cattle.io.app.vue` is used whenever the user clicks on the side nav for the Apps type. These components replace `ResourceList` but often use the same underlying table component `/components/ResourceTable`.
@@ -167,9 +174,9 @@ export const SIMPLE_NAME = {
 };
 ```
 
-Column definitions will determine what is shown in it's section of the row. This will either be a property from the row (`value`), a component (`formatter`, which links to a component in `/components/formatter`) or an inline formatter (defined in the `ResourceTables` contents, see example below, requires custom list component). 
+Column definitions will determine what is shown in it's section of the row. This will either be a property from the row (`value`), a component (`formatter`, which links to a component in `/components/formatter`) or an inline formatter (defined in the `ResourceTables` contents, see example below, requires custom list component).
 
-``` 
+```
 <ResourceTable ...>
   <template #cell:workspace="{row}">
     <span v-if="row.type !== MANAGEMENT_CLUSTER && row.metadata.namespace">{{ row.metadata.namespace }}</span>
@@ -178,13 +185,13 @@ Column definitions will determine what is shown in it's section of the row. This
 </ResourceTable>
 ```
 
-Column definitions are grouped together and applied per resource type via `/store/type-map.js headers`. 
+Column definitions are grouped together and applied per resource type via `/store/type-map.js headers`.
 
 ```
 headers(CONFIG_MAP, [NAME_COL, NAMESPACE_COL, KEYS, AGE]);
 ```
 
-When providing a custom list these default headers can be accessed via 
+When providing a custom list these default headers can be accessed via
 
 ```
 $store.getters['type-map/headersFor'](<schema>)
@@ -221,10 +228,10 @@ For more information about CreateEditView and how to add new create/edit forms, 
 | `edit` | falsy | Shows the Customised Edit component|
 | `edit` | `yaml` | Shows the Edit Yaml component|
 
-In addition the Create process (assessable with the same url + `/create`) is also managed by the resource detail page with similar param options. 
+In addition the Create process (assessable with the same url + `/create`) is also managed by the resource detail page with similar param options.
 
 | `mode` | `as` | Content |
-|------------|----------|-------| 
+|------------|----------|-------|
 | falsy | `yaml` | Show the Edit YAML component in create mode
 | `edit` | falsy | Show the Customised Edit component in create mode
 | `clone` | falsy | Shows the Customised Edit component in create mode pre-populated with an existing resource
@@ -251,17 +258,17 @@ The following pages contain example components and their styling
 - Form Controls - `<dashboard url>/design-system/form-controls`
 - Provider Images - `<dashboard url>/design-system/provider-images`
 
-
 ## Internationalisation i18n / Localisation i10n
 
 ### i18n
+
 All on screen text should be localised and implemented in the default `en-US` locale. There are different ways to access localised text
 
 > `t` can be exposed via adding the i18n getter as a computed property with `...mapGetters({ t: 'i18n/t' })`
 
 In HTML
 
-```
+```html
 <t k="<path to localisation>" />
 {{ t("<path to localisation>") }}
 ```
@@ -270,13 +277,13 @@ Many components will also accept a localisation path via a `value-key` property,
 
 In JS
 
-```
+```ts
 this.t('<path to localisation>')
 ```
 
 A localisation can be checked with
 
-```
+```ts
 this.$store.getters['i18n/exists']('<path to localisation>')
 
 this.$store.getters['i18n/withFallback']('<path to localisation>', null, '<fallback>'))
@@ -288,7 +295,7 @@ In Javascript files, variables in localisation paths must be wrapped in quotatio
 
 For example, if we want to dynamically fill in the description of a resource based on its type, we can use a `type` variable when referencing the localisation path to the description:
 
-```
+```ts
 {
   description: this.t(`secret.typeDescriptions.'${ type }'.description`),
 }
@@ -296,7 +303,7 @@ For example, if we want to dynamically fill in the description of a resource bas
 
 In this case, the quotation marks are required because some Secret types, such as `kubernetes.io/basic-auth`, include a slash.
 
-### i10n 
+### i10n
 
 Localisation files can be found in `./assets/translations/en-us.yaml`.
 
@@ -304,7 +311,7 @@ Please follow precedents in file to determine where new translations should be p
 
 Form fields are conventionally defined in translations as <some prefix>.<field name>.{label,description,enum options if applicable} e.g.
 
-```
+```yml
 account:
   apiKey:
     description:
@@ -312,7 +319,7 @@ account:
       placeholder: Optionally enter a description to help you identify this API Key
 ```
 
-## Forms 
+## Forms
 
 ### UX
 
@@ -327,7 +334,7 @@ Example:
   />
 ```
 
-### Custom Form Validators 
+### Custom Form Validators
 
 Adding custom validation logic to forms and models requires changes to three different parts of Dashboard:
 
@@ -337,7 +344,7 @@ Adding custom validation logic to forms and models requires changes to three dif
 
 #### 1. Create a new validation function
 
-Custom validators are stored under `utils/validators`. Validation functions should define positional parameters of `value, getters, errors, validatorArgs` with an optional fifth `displayKey` parameter: 
+Custom validators are stored under `utils/validators`. Validation functions should define positional parameters of `value, getters, errors, validatorArgs` with an optional fifth `displayKey` parameter:
 
 ```javascript
 export function exampleValidator(value, getters, errors, validatorArgs, displayKey) {
@@ -347,7 +354,7 @@ export function exampleValidator(value, getters, errors, validatorArgs, displayK
 
 Make sure the validation function pushes a value to the `error` collection in order to display error messages on the form:
 
-> In this example, we're making use of i18n getters to produce a localized error message. 
+> In this example, we're making use of i18n getters to produce a localized error message.
 
 ```javascript
 export function exampleValidator(value, getters, errors, validatorArgs, displayKey) {
@@ -400,18 +407,18 @@ customValidationRules() {
 }
 ```
 
-> ##### A validation rule can contain the following keys:
-> 
+> ##### A validation rule can contain the following keys
+>
 > `path` {string}: the model property to validate
-> 
+>
 > `nullable` {boolean}: asserts if property accepts `null` value
-> 
+>
 > `required` {boolean}: asserts if property requires a value
-> 
+>
 > `translationKey` {string}: path to validation key in `assets/translations`
-> 
+>
 > `type` {string}: name of built-in validation rule to assert
-> 
+>
 > `validators` {string}: name of custom validation rule to assert
 
 Add `:${arg}` to pass custom arguments to a validation function:
@@ -440,19 +447,23 @@ The forms for creating and editing resources are in the `edit` directory. Common
 If a form element was repeated for every row in a table, it would make the UI slower. To increase performance, components such as `ActionMenu` and `PromptModal` are not repeated for every row in a table, and they don't directly interact with the data from a table row. Instead, they communicate with each row indirectly through the store. All the information about the actions that should be available for a certain resource is contained in a model, and the `ActionMenu` or `PromptModal` components take that information about the selected resource from the store. Modals and menus are opened by telling the store that they should be opened. For example, this call to the store  `this.$store.commit('action-menu/togglePromptModal');` is used to open the action menu. Then each component uses the `dispatch` method to get all the information it needs from the store.
 
 ### Customize Deletion Warnings
+
 To warn users about deleting a certain resource, you can customize the message that is shown to the user when they attempt to delete a resource.
 You can add the error message to the resource class model in this format:
-```
+
+```ts
 get warnDeletionMessage() {
   return this.t('path.to.delete.warning');
 }
 ```
 
 ## Other UI Features
-### Icons 
+
+### Icons
+
 Icons are font based and can be shown via the icon class
 
-```
+```html
 <i class="icon icon-fw icon-gear" /></a>
 ```
 
@@ -461,13 +472,14 @@ Icons can be browsed via `assets/fonts/icons/demo.html`.
 Additional icon styles can be found in via `assets/styles/fonts/_icons.scss`.
 
 ### Date
+
 The Dashboard uses the [dayjs](https://day.js.org/) library to handle dates, times and date algebra. However when showing a date and time they should take into account the date and time format. Therefore it's advised to use a formatter such as `/components/formatter/Date.vue` to display them.
 
 ### Loading Indicator
 
 When a component uses `async fetch` it's best practise to gate the component template on fetch's `$fetchState.pending`. When the component is page based this should be applied to the `/components/Loading` component
 
-```
+```html
 <template>
   <Loading v-if="$fetchState.pending" />
   <div v-else>
@@ -476,11 +488,11 @@ When a component uses `async fetch` it's best practise to gate the component tem
 </template>
 ```
 
-### Keyboard shortcuts 
+### Keyboard shortcuts
 
 Shortcuts are implemented via [`vue-shortkey`](https://github.com/iFgR/vue-shortkey)
 
-```
+```html
 <button v-shortkey.once="['n']" class="hide" @shortkey="focus()" />
 ```
 
@@ -494,14 +506,15 @@ Changes to these files should be kept to a minimum to avoid regression for seldo
 
 Changes to `./yarn.lock` should be reviewed carefully, specifically to ensure no rogue dependency url is introduced.
 
-
 ## Testing
 
 ### E2E Tests
-This repo is configured for end-to-end testing with [Cypress](https://docs.cypress.io/api/table-of-contents). 
+
+This repo is configured for end-to-end testing with [Cypress](https://docs.cypress.io/api/table-of-contents).
 
 #### Initial Setup
-For the cypress test runner to consume the UI, you must specify two environment variables, `TEST_USERNAME` and `TEST_PASSWORD`. By default the test runner will attempt to visit a locally running dashboard at `https://localhost:8005`. This may be overwritten with the `DEV_UI` environment variable. Run `yarn e2e:dev` to start the dashboard in SSR mode and open the cypress test runner. Run tests through the cypress GUI once the UI is built. Cypress tests will automatically re-run if they are altered (hot reloading). Alternatively the dashboard ui and cypress may be run separately with `yarn dev` and `yarn cypress open`. 
+
+For the cypress test runner to consume the UI, you must specify two environment variables, `TEST_USERNAME` and `TEST_PASSWORD`. By default the test runner will attempt to visit a locally running dashboard at `https://localhost:8005`. This may be overwritten with the `DEV_UI` environment variable. Run `yarn e2e:dev` to start the dashboard in SSR mode and open the cypress test runner. Run tests through the cypress GUI once the UI is built. Cypress tests will automatically re-run if they are altered (hot reloading). Alternatively the dashboard ui and cypress may be run separately with `yarn dev` and `yarn cypress open`.
 
 #### Writing tests
 
@@ -510,7 +523,8 @@ Test specs should be grouped logically, normally by page or area of the Dashboar
 Tests should make use of common Page Object (PO) components. These can be pages or individual components which expose a useful set of tools, but most importantly contain the selectors for the DOM elements that need to be used. These will ensure changes to the underlying components don't require a rewrite of many many tests. They also allow parent components to easily search for children (for example easily finding all anchors in a section instead of the whole page). Given that tests are typescript it should be easy to explore the functionality.
 
 Some examples of PO functionality
-```
+
+```ts
 HomePage.gotTo()
 new HomePagePo().checkIsCurrentPage()
 new BurgerMenuPo().clusters()
@@ -523,13 +537,22 @@ POs all inherit a root `component.po`. Common component functionality can be add
 There are a large number of pages and components in the Dashboard and only a small set of POs. These will be expanded as the tests grow.
 
 #### Tips
+
 The Cypress UI is very much your friend. There you can click pick tests to run, easily visually track the progress of the test, see the before/after state of each cypress command (specifically good for debugging failed steps), see https requests, etc.
 
 Tests can also be restricted before cypress runs, or at run time, by prepending `.only` to the run.
-```
+
+```ts
 describe.only('Burger Side Nav Menu', () => {
   beforeEach
 ```
-```
+
+```ts
 it.only('Opens and closes on menu icon click', () => {
 ```
+
+### Unit tests
+
+The dashboard is configured to run unit tests with Jest. The `yarn test` command will run every test — anything in a `__tests__` directory, and all js/ts files suffixed with `.test` or `.spec` — and output a coverage report to `/coverage`.
+
+Example tests can be found in `/components/__tests__`. For more information about testing vue components, see the [vue test utils](https://vue-test-utils.vuejs.org/) and [jest](https://jestjs.io/docs/getting-started) docs.
