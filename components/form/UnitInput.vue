@@ -7,8 +7,10 @@ export default {
   components: { LabeledInput },
 
   props: {
-    // Convert output to string
-    // Output will also be a string regardless of this prop if outputModifier = true
+    /**
+     * Convert output to string
+     * Output will also be a string regardless of this prop if outputModifier = true
+     */
     outputAs: {
       type:    String,
       default: 'number',
@@ -48,21 +50,26 @@ export default {
       default: false
     },
 
-    // If set to 1024, binary modifier will be used eg MiB instead of MB
+    /**
+     * If set to 1024, binary modifier will be used eg MiB instead of MB
+     */
     increment: {
       type:    Number,
       default: 1000,
     },
 
-    /* Ignore baseUnit and inputExponent in favor of a display-only suffix
-        display/emit integers without SI conversion
-    */
+    /**
+     * Ignore baseUnit and inputExponent in favor of a display-only suffix
+     * display/emit integers without SI conversion
+     */
     suffix: {
       type:    String,
       default: null,
     },
 
-    // LabeledInput props
+    /**
+     * LabeledInput props
+     */
     mode: {
       type:    String,
       default: _EDIT
@@ -110,14 +117,6 @@ export default {
   },
 
   computed: {
-    addon() {
-      if (!this.suffix) {
-        return false;
-      }
-
-      return this.unit + this.suffix;
-    },
-
     unit() {
       let out;
 
@@ -133,12 +132,16 @@ export default {
       return out;
     },
 
-    // Parse string with unit modifier to base unit eg "1m" -> 0.001
+    /**
+     * Parse string with unit modifier to base unit eg "1m" -> 0.001
+     */
     parsedValue() {
       return typeof this.value === 'string' ? parseSi(this.value) : this.value;
     },
 
-    // Convert integer value
+    /**
+     * Convert integer value
+     */
     displayValue() {
       let displayValue = '';
 
