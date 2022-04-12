@@ -1,4 +1,6 @@
-import { clone, get, getter, isEmpty } from '~/utils/object';
+import {
+  clone, get, getter, isEmpty, cleanUp
+} from '~/utils/object';
 
 describe('fx: get', () => {
   describe('should return value of an object', () => {
@@ -148,5 +150,15 @@ describe('fx: isEmpty', () => {
     const result = isEmpty(enumerable);
 
     expect(result).toBe(expected);
+  });
+});
+
+describe('fx: cleanUp', () => {
+  it.each([
+    { limitGpu: '096' }
+  ])('should keep valid values unchanged', (value) => {
+    const result = cleanUp(value);
+
+    expect(result).toStrictEqual(value);
   });
 });
