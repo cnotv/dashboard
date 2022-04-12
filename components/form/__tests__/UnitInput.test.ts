@@ -148,4 +148,36 @@ describe('unitInput', () => {
     expect(addonText).toBe(suffix);
     expect(wrapper.emitted('input')![0][0]).not.toContain(suffix);
   });
+
+  it('should not delete values while typing', async() => {
+    const value = '096';
+    const wrapper = mount(UnitInput, { propsData: { value: '' } });
+    const input = wrapper.find('input');
+
+    await input.setValue(value);
+
+    expect((input.element as HTMLInputElement).value).toBe(value);
+  });
+
+  it.each([
+    {}, // default case
+    {
+      inputExponent:  2,
+      increment:      1024,
+      outputModifier: true
+    },
+  ])('should not delete values while typing', async(props) => {
+    const value = '096';
+    const wrapper = mount(UnitInput, {
+      propsData: {
+        value: '',
+        ...props
+      }
+    });
+    const input = wrapper.find('input');
+
+    await input.setValue(value);
+
+    expect((input.element as HTMLInputElement).value).toBe(value);
+  });
 });
