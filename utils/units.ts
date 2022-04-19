@@ -1,7 +1,32 @@
 export const UNITS = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
 export const FRACTIONAL = ['', 'm', 'u', 'n', 'p', 'f', 'a', 'z', 'y']; // milli micro nano pico femto
 
-export function formatSi(inValue, {
+interface FormatOptions {
+  addSuffix?: boolean,
+  addSuffixSpace?: boolean,
+  canRoundToZero?: boolean,
+  firstSuffix?: string | null,
+  increment?: number,
+  maxExponent?: number,
+  maxPrecision?: number,
+  minExponent?: number,
+  startingExponent?: number,
+  suffix?: string,
+}
+
+interface ParseOptions {
+  allowFractional?: boolean,
+  increment?: number,
+}
+
+/**
+ * Format number to given parameters and return string including pre/suffix
+ * This includes conversion from bits/bytes
+ * @param {*} inValue initial value
+ * @param {*} param1 formatting options
+ * @returns
+ */
+export function formatSi(inValue: number, {
   increment = 1000,
   addSuffix = true,
   addSuffixSpace = true,
@@ -12,7 +37,7 @@ export function formatSi(inValue, {
   maxExponent = 99,
   maxPrecision = 2,
   canRoundToZero = true,
-} = {}) {
+}: FormatOptions): string {
   let val = inValue;
   let exp = startingExponent;
   const divide = maxExponent >= 0;
@@ -69,7 +94,7 @@ export function formatSi(inValue, {
   return out;
 }
 
-export function exponentNeeded(val, increment = 1000) {
+export function exponentNeeded(val: number, increment = 1000): number {
   let exp = 0;
 
   while ( val >= increment ) {
@@ -80,7 +105,13 @@ export function exponentNeeded(val, increment = 1000) {
   return exp;
 }
 
-export function parseSi(inValue, opt) {
+/**
+ * Convert string to integer in bits/bytes, formatting with given options
+ * @param inValue Initial value
+ * @param opt Parsing options
+ * @returns
+ */
+export function parseSi(inValue: string, opt?: ParseOptions): number {
   opt = opt || {};
   let increment = opt.increment;
   const allowFractional = opt.allowFractional !== false;
@@ -92,7 +123,7 @@ export function parseSi(inValue, opt) {
   inValue = inValue.replace(/,/g, '');
 
   // eslint-disable-next-line prefer-const
-  let [, valStr, unit, incStr] = inValue.match(/^([0-9.-]+)\s*([^0-9.-]?)([^0-9.-]?)/);
+  let [, valStr, unit, incStr] = inValue.match(/^([0-9.-]+)\s*([^0-9.-]?)([^0-9.-]?)/) as RegExpMatchArray;
   const val = parseFloat(valStr);
 
   if ( !unit ) {
@@ -147,7 +178,7 @@ export const MEMORY_PARSE_RULES = {
   }
 };
 
-export function createMemoryFormat(n) {
+export function createMemoryFormat(n: number): FormatOptions {
   const exponent = exponentNeeded(n, MEMORY_PARSE_RULES.memory.format.increment);
 
   return {
@@ -157,13 +188,13 @@ export function createMemoryFormat(n) {
   };
 }
 
-function createMemoryUnits(n) {
+function createMemoryUnits(n: number): string {
   const exponent = exponentNeeded(n, MEMORY_PARSE_RULES.memory.format.increment);
 
   return `${ UNITS[exponent] }${ MEMORY_PARSE_RULES.memory.format.suffix }`;
 }
 
-export function createMemoryValues(total, useful) {
+export function createMemoryValues(total: number, useful: boolean) {
   const parsedTotal = parseSi((total || '0').toString());
   const parsedUseful = parseSi((useful || '0').toString());
   const format = createMemoryFormat(parsedTotal);
