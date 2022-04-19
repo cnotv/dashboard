@@ -151,7 +151,7 @@ describe('unitInput', () => {
 
   it('should not delete values while typing', async() => {
     const value = '096';
-    const wrapper = mount(UnitInput, { propsData: { value: '' } });
+    const wrapper = mount(UnitInput);
     const input = wrapper.find('input');
 
     await input.setValue(value);
@@ -162,22 +162,15 @@ describe('unitInput', () => {
   it.each([
     {}, // default case
     {
-      inputExponent:  2,
       increment:      1024,
-      outputModifier: true
+      outputModifier: true,
     },
-  ])('should not delete values while typing', async(props) => {
+  ])('should emit the same value', (props) => {
     const value = '096';
-    const wrapper = mount(UnitInput, {
-      propsData: {
-        value: '',
-        ...props
-      }
-    });
-    const input = wrapper.find('input');
+    const wrapper = mount(UnitInput, { propsData: { ...props } });
 
-    await input.setValue(value);
+    wrapper.find('input').setValue(value);
 
-    expect((input.element as HTMLInputElement).value).toBe(value);
+    expect(wrapper.emitted('input')![0][0]).toBe(value);
   });
 });
