@@ -1,5 +1,5 @@
 <script>
-import { parseSi, formatSi, UNITS, FRACTIONAL } from '@/utils/units';
+import { parseSi, formatSi, UNITS, FRACTIONAL } from '~/utils/units';
 import LabeledInput from '@/components/form/LabeledInput';
 import { _EDIT } from '@/config/query-params';
 
@@ -138,20 +138,15 @@ export default {
     },
 
     /**
-     * Parse string with unit modifier to base unit eg "1m" -> 0.001
-     */
-    parsedValue() {
-      return typeof this.value === 'string' ? parseSi(this.value) : this.value;
-    },
-
-    /**
-     * Convert integer value
+     * Format string to integer value
      */
     displayValue() {
       let displayValue = '';
+      const parsedValue = typeof this.value === 'string' ? parseSi(this.value) : this.value;
+      const isValidInteger = parsedValue || parsedValue === 0;
 
-      if ( this.parsedValue || this.parsedValue === 0) {
-        displayValue = formatSi(this.parsedValue, {
+      if (isValidInteger) {
+        displayValue = formatSi(parsedValue, {
           increment:        this.increment,
           addSuffix:        false,
           maxExponent:      this.inputExponent,
