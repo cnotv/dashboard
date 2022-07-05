@@ -9,6 +9,7 @@ declare global {
       login(username?: string, password?: string, cacheSession?: boolean): Chainable<Element>;
       byLabel(label: string,): Chainable<Element>;
       getId(id: string, matcher?: Matcher): Chainable<Element>;
+      findId(id: string, matcher?: Matcher): Chainable<Element>;
     }
   }
 }
