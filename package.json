@@ -188,11 +188,5 @@
     "worker-loader": "^3.0.8",
     "yaml-lint": "^1",
     "yarn": "^1.22.11"
-  },
-  "nyc": {
-    "reporter": [
-      "json"
-    ],
-    "report-dir": "coverage/e2e"
   }
 }
