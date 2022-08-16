@@ -200,11 +200,5 @@
     "@storybook/vue": "^6.3.8",
     "storybook-dark-mode": "^1.0.8",
     "storybook-auto-events": "^0.1.1"
-  },
-  "nyc": {
-    "reporter": [
-      "json"
-    ],
-    "report-dir": "coverage/e2e"
   }
 }
