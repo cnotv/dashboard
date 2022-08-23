@@ -1,6 +1,6 @@
 # Rancher Dashboard
 [![Build Status](http://drone-publish.rancher.io/api/badges/rancher/dashboard/status.svg)](http://drone-publish.rancher.io/rancher/dashboard)
-
+ 
 Rancher Dashboard UI, a.k.a Cluster Explorer.
 For the other Rancher UI (Cluster Manager) see [rancher/ui](https://github.com/rancher/ui).
 
