@@ -1,5 +1,6 @@
 name: Tests
 on:
+  push:
   pull_request:
       branches:
         - master
@@ -19,95 +20,108 @@ env:
   CYPRESS_API_URL: http://139.59.134.103:1234/
   TEST_RUN_ID: ${{github.event.pull_request.title}}_${{github.run_number}}_id_${{github.run_id}}
 jobs:
-  e2e-test:
-    if: "!contains( github.event.pull_request.labels.*.name, 'ci/skip-e2e')"
+  echo_cnotv:
     runs-on: ubuntu-latest
+    if: "!contains( github.event.repository.url, 'https://github.com/rancher/dashboard')"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup node
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14.x'
-      
-      - name: Install packages
-        run: yarn install
-      
-      - name: Prepare build
-        run: yarn e2e:pre-prod
-      
-      - name: Run tests
-        run: yarn e2e:prod
-
-      - name: Upload screenshots
-        uses: actions/upload-artifact@v2
-        if: ${{ failure() }}
-        with:
-          name: run_${{github.run_number}}_id_${{github.run_id}}_screenshots
-          path: cypress/screenshots
-
-      # Disabled due freezing issues related to the CI machine resources
-      # - name: Upload videos
-      #   uses: actions/upload-artifact@v2
-      #   if: ${{ failure() }}
-      #   with:
-      #     name: run_${{github.run_number}}_id_${{github.run_id}}_videos
-      #     path: cypress/videos
-
-  unit-test:
+      - name: Echo cnotv
+        run: echo "${{github.event.repository.url}}
+  echo_rancher:
     runs-on: ubuntu-latest
+    if: "contains( github.event.repository.url, 'https://github.com/rancher/dashboard')"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Echo rancher
+        run: echo "${{github.event.repository.url}}
 
-      - name: Setup node
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14.x'
-      
-      - name: Install packages
-        run: yarn install
-      
-      - name: Run tests
-        run: yarn test:ci
+  # e2e-test:
+  #   if: "!contains( github.event.pull_request.labels.*.name, 'ci/skip-e2e')"
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
 
-      - name: Upload coverage
-        uses: actions/upload-artifact@v3
-        with:
-          name: run_${{github.run_number}}_id_${{github.run_id}}_coverage
-          path: coverage/**/*
-
-  i18n:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup node
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14.x'
+  #     - name: Setup node
+  #       uses: actions/setup-node@v2
+  #       with:
+  #         node-version: '14.x'
       
-      - name: Install packages
-        run: yarn install
+  #     - name: Install packages
+  #       run: yarn install
       
-      - name: Run i18n linters
-        run: yarn lint-l10n
+  #     - name: Prepare build
+  #       run: yarn e2e:pre-prod
+      
+  #     - name: Run tests
+  #       run: yarn e2e:prod
 
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+  #     - name: Upload screenshots
+  #       uses: actions/upload-artifact@v2
+  #       if: ${{ failure() }}
+  #       with:
+  #         name: run_${{github.run_number}}_id_${{github.run_id}}_screenshots
+  #         path: cypress/screenshots
 
-      - name: Setup node
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14.x'
+  #     # Disabled due freezing issues related to the CI machine resources
+  #     # - name: Upload videos
+  #     #   uses: actions/upload-artifact@v2
+  #     #   if: ${{ failure() }}
+  #     #   with:
+  #     #     name: run_${{github.run_number}}_id_${{github.run_id}}_videos
+  #     #     path: cypress/videos
+
+  # unit-test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+
+  #     - name: Setup node
+  #       uses: actions/setup-node@v2
+  #       with:
+  #         node-version: '14.x'
       
-      - name: Install packages
-        run: yarn install
+  #     - name: Install packages
+  #       run: yarn install
       
-      - name: Run linters
-        run: yarn lint
+  #     - name: Run tests
+  #       run: yarn test:ci
+
+  #     - name: Upload coverage
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: run_${{github.run_number}}_id_${{github.run_id}}_coverage
+  #         path: coverage/**/*
+
+  # i18n:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+
+  #     - name: Setup node
+  #       uses: actions/setup-node@v2
+  #       with:
+  #         node-version: '14.x'
+      
+  #     - name: Install packages
+  #       run: yarn install
+      
+  #     - name: Run i18n linters
+  #       run: yarn lint-l10n
+
+  # lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+
+  #     - name: Setup node
+  #       uses: actions/setup-node@v2
+  #       with:
+  #         node-version: '14.x'
+      
+  #     - name: Install packages
+  #       run: yarn install
+      
+  #     - name: Run linters
+  #       run: yarn lint
