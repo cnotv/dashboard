@@ -49,17 +49,6 @@ export function init(store) {
     route:      { name: 'c-cluster-manager-cloudCredential' },
   });
 
-  basicType({
-    labelKey:   'management.cattle.io.podsecurityadmissionconfigurationtemplate',
-    name:       'pod-security-admission',
-    group:      'Root',
-    namespaced: false,
-    weight:     0,
-    icon:       'folder',
-    route:      { name: 'c-cluster-manager-pages-page', params: { cluster: 'local', page: 'management.cattle.io.podsecurityadmissionconfigurationtemplate' } },
-    exact:      true
-  });
-
   virtualType({
     labelKey:   'legacy.psps',
     name:       'pod-security-policies',
@@ -76,6 +65,7 @@ export function init(store) {
     'cloud-credentials',
     'drivers',
     'pod-security-policies',
+    'management.cattle.io.podsecurityadmissionconfigurationtemplate'
   ]);
 
   configureType(CAPI.RANCHER_CLUSTER, {
