@@ -4,10 +4,8 @@ import CruResource from '@shell/components/CruResource';
 import PodSecurityAdmission from '@shell/components/PodSecurityAdmission';
 import Loading from '@shell/components/Loading';
 import Banner from '@components/Banner/Banner.vue';
-import { mapKeys } from 'lodash';
 import { MANAGEMENT } from '@shell/config/types';
 
-import { PSALabelPrefix } from '@shell/config/pod-security-admission';
 export default {
   mixins:     [CreateEditView],
   components: {
@@ -49,12 +47,8 @@ export default {
     },
 
     setDefaults(labels) {
-      this.value.configuration.defaults = mapKeys(labels, label => label.replace(PSALabelPrefix, ''));
+      this.value.configuration.defaults = labels;
     },
-
-    mapExemptions() {
-      return mapKeys(this.exemptions, label => `${ PSALabelPrefix }${ label }`);
-    }
   },
   created() {}
 };

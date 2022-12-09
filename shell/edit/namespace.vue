@@ -17,6 +17,7 @@ import Loading from '@shell/components/Loading';
 import { HARVESTER_TYPES, RANCHER_TYPES } from '@shell/components/form/ResourceQuota/shared';
 import { HARVESTER_NAME as HARVESTER } from '@shell/config/product/harvester-manager';
 import LabelsPSA from '@shell/components/LabelsPSA';
+import { PSALabelPrefix } from '@shell/config/pod-security-admission';
 
 export default {
   components: {
@@ -53,6 +54,7 @@ export default {
     const projectName = this.value?.metadata?.labels?.[PROJECT] || this.$route.query[PROJECT_ID];
 
     return {
+      labelsPrefix:            PSALabelPrefix,
       originalQuotaId,
       project:                 null,
       projects:                null,
@@ -247,6 +249,7 @@ export default {
         <PodSecurityAdmission
           :labels="labels"
           :mode="mode"
+          :labels-prefix="labelsPrefix"
           @updateLabels="value.setLabels($event)"
         />
       </Tab>

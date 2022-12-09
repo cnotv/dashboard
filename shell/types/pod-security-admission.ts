@@ -18,4 +18,4 @@ export type PSALevel = 'privileged' | 'baseline' | 'restricted';
  * RuntimeClassNames: pods and workload resources specifying an exempt runtime class name are ignored.
  * Namespaces:        pods and workload resources in an exempt namespace are ignored.
  */
-export type PSADimension = 'Usernames' | 'RuntimeClassNames' | 'Namespaces'
+export type PSADimension = 'usernames' | 'runtimeClasses' | 'namespaces'
