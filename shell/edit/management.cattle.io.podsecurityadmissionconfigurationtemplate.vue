@@ -1,27 +1,26 @@
-<script>
+<script lang="ts">
 import CreateEditView from '@shell/mixins/create-edit-view';
 import CruResource from '@shell/components/CruResource';
 import PodSecurityAdmission from '@shell/components/PodSecurityAdmission';
 import Loading from '@shell/components/Loading';
-import Banner from '@components/Banner/Banner.vue';
+import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { MANAGEMENT } from '@shell/config/types';
+import { PSAConfig } from '@shell/types/pod-security-admission';
+import { PSADimensions } from '~/shell/config/pod-security-admission';
 
 export default {
   mixins:     [CreateEditView],
   components: {
     CruResource,
     Loading,
+    NameNsDescription,
     PodSecurityAdmission,
-    Banner
   },
 
   async fetch() {
     await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PSA });
   },
 
-  data() {
-    return {};
-  },
   props: {
     value: {
       type:     Object,
@@ -50,7 +49,14 @@ export default {
       this.value.configuration.defaults = labels;
     },
   },
-  created() {}
+  created() {
+    if (!this.value.configuration) {
+      this.value.configuration = {
+        defaults:   {},
+        exemptions: Object.assign({}, ...PSADimensions.map(dimension => ({ [dimension]: [] }))),
+      } as PSAConfig;
+    }
+  }
 };
 </script>
 
@@ -67,12 +73,11 @@ export default {
     @finish="save"
     @cancel="done()"
   >
-    <Banner
-      icon="icon-pod_security"
-      color="error"
-    >
-      PSA error message
-    </Banner>
+    <NameNsDescription
+      :value="value"
+      :namespaced="false"
+      :mode="mode"
+    />
     <PodSecurityAdmission
       :labels="defaults"
       :exemptions="exemptions"
