@@ -2,11 +2,13 @@
 import CreateEditView from '@shell/mixins/create-edit-view';
 import FormValidation from '@shell/mixins/form-validation';
 import WorkLoadMixin from '@shell/edit/workload/mixins/workload';
+import Banner from '@components/Banner/Banner.vue';
 
 export default {
-  name:   'Workload',
-  mixins: [CreateEditView, FormValidation, WorkLoadMixin], // The order here is important since WorkLoadMixin contains some FormValidation configuration
-  props:  {
+  name:       'Workload',
+  components: { Banner },
+  mixins:     [CreateEditView, FormValidation, WorkLoadMixin], // The order here is important since WorkLoadMixin contains some FormValidation configuration
+  props:      {
     value: {
       type:     Object,
       required: true,
@@ -53,6 +55,12 @@ export default {
       @select-type="selectType"
       @error="e=>errors = e"
     >
+      <Banner
+        icon="icon-pod_security"
+        color="error"
+      >
+        PSA error message
+      </Banner>
       <!-- <pre>{{ JSON.stringify(allContainers, null, 2) }}</pre> -->
       <NameNsDescription
         :value="value"
