@@ -19,3 +19,8 @@ export type PSALevel = 'privileged' | 'baseline' | 'restricted';
  * Namespaces:        pods and workload resources in an exempt namespace are ignored.
  */
 export type PSADimension = 'usernames' | 'runtimeClasses' | 'namespaces'
+
+export interface PSAConfig {
+  defaults: Record<PSAMode, PSALevel>,
+  exemptions: Record<PSADimension, string[]>
+}
