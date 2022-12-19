@@ -136,9 +136,8 @@ export default {
         hash.allPSPs = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.POD_SECURITY_POLICY_TEMPLATE });
       }
 
-      // TODO: Check if getters and resources are right
-      if ( this.$store.getters['management/canList'](MANAGEMENT.POD_SECURITY_ADMISSION_TEMPLATE) ) {
-        hash.allPSAs = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.POD_SECURITY_ADMISSION_TEMPLATE });
+      if ( this.$store.getters['management/canList'](MANAGEMENT.PSA) ) {
+        hash.allPSAs = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PSA });
       }
 
       // Get the latest versions from the global settings if possible
@@ -411,8 +410,10 @@ export default {
 
         // TODO: Remove this after fetching real value
         out.push({
-          label: 'v1.25.7+rke2r1',
-          value: 'v1.25.7+rke2r1',
+          label:      'v1.25.7+rke2r1',
+          value:      'v1.25.7+rke2r1',
+          serverArgs: {},
+          agentArgs:  {}
         });
         out.push(...allValidRke2Versions);
       }
@@ -560,11 +561,7 @@ export default {
     },
 
     haveArgInfo() {
-      if ( this.selectedVersion?.serverArgs && this.selectedVersion?.agentArgs ) {
-        return true;
-      }
-
-      return false;
+      return Boolean(this.selectedVersion?.serverArgs && this.selectedVersion?.agentArgs);
     },
 
     serverArgs() {
