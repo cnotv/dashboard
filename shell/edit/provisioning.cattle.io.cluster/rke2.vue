@@ -237,8 +237,8 @@ export default {
     }
 
     // TODO: Check if conditionally required to set empty value
-    if ( this.value.spec.defaultPodSecurityAdmissionTemplateName === undefined ) {
-      set(this.value.spec, 'defaultPodSecurityAdmissionTemplateName', '');
+    if ( this.value.spec.defaultPodSecurityAdmissionConfigurationTemplateId === undefined ) {
+      set(this.value.spec, 'defaultPodSecurityAdmissionConfigurationTemplateId', '');
     }
 
     await this.initAddons();
@@ -494,7 +494,7 @@ export default {
       }
 
       // TODO: Check if spec key is correct
-      const cur = this.value.spec.defaultPodSecurityAdmissionTemplateName;
+      const cur = this.value.spec.defaultPodSecurityAdmissionConfigurationTemplateId;
 
       if ( cur && !out.find(x => x.value === cur) ) {
         out.unshift({ label: `${ cur } (Current)`, value: cur });
@@ -1829,7 +1829,7 @@ export default {
           <Banner
             v-if="!haveArgInfo"
             color="warning"
-            label="Configuration information is not available for the selected Kubernetes version.  The options available in this screen will be limited, you may want to use the YAML editor."
+            :label="t('cluster.banner.haveArgInfo')"
           />
           <Banner
             v-if="showk8s21LegacyWarning"
@@ -1937,10 +1937,10 @@ export default {
               <!-- // TODO: Check if spec key is correct -->
               <LabeledSelect
                 v-if="needsPSA"
-                v-model="value.spec.defaultPodSecurityAdmissionTemplateName"
+                v-model="value.spec.defaultPodSecurityAdmissionConfigurationTemplateId"
                 :mode="mode"
                 :options="psaOptions"
-                :label="t('cluster.rke2.defaultPodSecurityAdmissionTemplateName.label')"
+                :label="t('cluster.rke2.defaultPodSecurityAdmissionConfigurationTemplateId.label')"
               />
             </div>
             <div
