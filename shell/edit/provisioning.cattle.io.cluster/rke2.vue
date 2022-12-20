@@ -344,7 +344,7 @@ export default {
       const release = this.value?.spec?.kubernetesVersion || '';
       const isRKE2 = release.includes('rke2');
       const version = release.match(/\d+/g);
-      const needsPSA = version[0] > +1 || version[1] >= +25;
+      const needsPSA = version ? version[0] > +1 || version[1] >= +25 : false;
 
       return isRKE2 && needsPSA;
     },
@@ -1924,16 +1924,19 @@ export default {
           </h3>
           <div class="row">
             <div class="col span-6">
+              <!-- PSP template selector -->
               <LabeledSelect
                 v-if="pspOptions && !needsPSA"
                 v-model="value.spec.defaultPodSecurityPolicyTemplateName"
+                data-testid="rke2-custom-edit-psa"
                 :mode="mode"
                 :options="pspOptions"
                 :label="t('cluster.rke2.defaultPodSecurityPolicyTemplateName.label')"
               />
-              <!-- // TODO: Check if spec key is correct -->
+
+              <!-- PSA template selector -->
               <LabeledSelect
-                v-if="needsPSA"
+                v-if="psaOptions && needsPSA"
                 v-model="value.spec.defaultPodSecurityAdmissionConfigurationTemplateId"
                 :mode="mode"
                 :options="psaOptions"
