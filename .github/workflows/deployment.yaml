@@ -1,0 +1,22 @@
+name: Deploy to Kubernetes
+
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install DigitalOcean CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+        curl -sSL https://github.com/digitalocean/doctl/releases/download/v1.92.0/doctl-1.92.0-linux-amd64.tar.gz | tar -xvz
+        sudo mv doctl /usr/local/bin
+    - name: Deploy to Kubernetes
+      env:
+        DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      run: |
+        doctl auth init -t $DIGITALOCEAN_TOKEN
+        doctl kubernetes cluster kubeconfig save my-cluster
+        kubectl apply -f deployment.yaml
