@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rancher-deployment
+spec:
+  # replicas: 3
+  selector:
+    matchLabels:
+      app: rancher-dashboard
+  template:
+    metadata:
+      labels:
+        app: rancher-dashboard
+    spec:
+      containers:
+      - name: my-container
+        image: rancher-dashboard:latest
+        ports:
+        - containerPort: 80
