@@ -13,13 +13,13 @@ jobs:
         sudo apt-get install -y jq
         curl -sSL https://github.com/digitalocean/doctl/releases/download/v1.92.0/doctl-1.92.0-linux-amd64.tar.gz | tar -xvz
         sudo mv doctl /usr/local/bin
-    - name: Build Docker image
-      run: |
-        docker build -t rancher-dashboard .
+    # - name: Build Docker image
+    #   run: |
+    #     docker build -t rancher-dashboard .
     - name: Deploy to Kubernetes
       env:
         DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
       run: |
         doctl auth init -t $DIGITALOCEAN_TOKEN
-        doctl kubernetes cluster kubeconfig save rancher-deployment
+        doctl kubernetes cluster kubeconfig save rancher-deployment -v
         kubectl apply -f k8s/deployment.yaml
