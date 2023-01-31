@@ -21,5 +21,6 @@ jobs:
         DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
       run: |
         doctl auth init -t $DIGITALOCEAN_TOKEN
-        doctl kubernetes cluster kubeconfig save rancher-deployment -v
+        doctl kubernetes cluster list
+        doctl kubernetes cluster kubeconfig save rancher-deployment
         kubectl apply -f k8s/deployment.yaml
