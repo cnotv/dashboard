@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Config
+clusters:
+- name: DIGITALOCEAN_CLUSTER_NAME
+  cluster:
+    server: DIGITALOCEAN_CLUSTER_SERVER
+    certificate-authority-data: DIGITALOCEAN_CLUSTER_CERTIFICATE
+
+users:
+- name: DIGITALOCEAN_CLUSTER_NAME
+  user:
+    token: DIGITALOCEAN_CLUSTER_TOKEN
+
+
+contexts:
+- name: DIGITALOCEAN_CLUSTER_NAME
+  context:
+    user: DIGITALOCEAN_CLUSTER_NAME
+    cluster: DIGITALOCEAN_CLUSTER_NAME
+
+current-context: DIGITALOCEAN_CLUSTER_NAME
