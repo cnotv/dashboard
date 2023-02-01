@@ -24,7 +24,5 @@ jobs:
     
     - name: Deploy to Kubernetes
       run: |
-        doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }}
-        doctl kubernetes cluster list
-        doctl kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
+        doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
         kubectl apply -f k8s/deployment.yaml
