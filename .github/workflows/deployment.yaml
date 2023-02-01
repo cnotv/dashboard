@@ -20,7 +20,7 @@ jobs:
     #     docker build -t rancher-dashboard .
 
     - name: Set Kubeconfig values
-      run: sed -i 's|<DIGITALOCEAN_CLUSTER_NAME>|${{secrets.DIGITALOCEAN_CLUSTER_NAME}}|'  's|<DIGITALOCEAN_CLUSTER_SERVER>|${{secrets.DIGITALOCEAN_CLUSTER_SERVER}}|'  's|<DIGITALOCEAN_CLUSTER_CERTIFICATE>|${{secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE}}|'  's|<DIGITALOCEAN_CLUSTER_TOKEN>|${{secrets.DIGITALOCEAN_CLUSTER_TOKEN}}|' $GITHUB_WORKSPACE/k8s/cluster-config.yaml
+      run: sed -e 's|<DIGITALOCEAN_CLUSTER_NAME>|${{secrets.DIGITALOCEAN_CLUSTER_NAME}}|' -e 's|<DIGITALOCEAN_CLUSTER_SERVER>|${{secrets.DIGITALOCEAN_CLUSTER_SERVER}}|' -e 's|<DIGITALOCEAN_CLUSTER_CERTIFICATE>|${{secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE}}|' -e 's|<DIGITALOCEAN_CLUSTER_TOKEN>|${{secrets.DIGITALOCEAN_CLUSTER_TOKEN}}|' $GITHUB_WORKSPACE/k8s/cluster-config.yaml
     
     - name: Deploy to Kubernetes
       env:
