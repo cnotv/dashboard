@@ -31,5 +31,11 @@ jobs:
       run: doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
 
     - name: Deploy to Kubernetes
-      run: kubectl apply -f k8s/deployment.yaml
+      run: |
+        mkdir -p $HOME/.kube
+        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo chown $(id -u):$(id -g) $HOME/.kube/config
+        kubectl cluster-info
+        kubectl config view
+        kubectl apply -f k8s/deployment.yaml
         
