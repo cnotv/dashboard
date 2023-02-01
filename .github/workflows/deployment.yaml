@@ -19,9 +19,12 @@ jobs:
     #   run: |
     #     docker build -t rancher-dashboard .
 
-    - name: Set Kubeconfig values
-      # Set env vars from secrets, keeping the configuration file abstracted and not displaying values
-      run: sed -e 's|<DIGITALOCEAN_CLUSTER_NAME>|${{secrets.DIGITALOCEAN_CLUSTER_NAME}}|' -e 's|<DIGITALOCEAN_CLUSTER_SERVER>|${{secrets.DIGITALOCEAN_CLUSTER_SERVER}}|' -e 's|<DIGITALOCEAN_CLUSTER_CERTIFICATE>|${{secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE}}|' -e 's|<DIGITALOCEAN_CLUSTER_TOKEN>|${{secrets.DIGITALOCEAN_CLUSTER_TOKEN}}|' $GITHUB_WORKSPACE/k8s/cluster-config.yaml
+    - name: Define env var values
+      run: |
+        # Set env vars from secrets, keeping the configuration file abstracted and not displaying values
+        sed -e 's|<DIGITALOCEAN_CLUSTER_NAME>|${{secrets.DIGITALOCEAN_CLUSTER_NAME}}|' -e 's|<DIGITALOCEAN_CLUSTER_SERVER>|${{secrets.DIGITALOCEAN_CLUSTER_SERVER}}|' -e 's|<DIGITALOCEAN_CLUSTER_CERTIFICATE>|${{secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE}}|' -e 's|<DIGITALOCEAN_CLUSTER_TOKEN>|${{secrets.DIGITALOCEAN_CLUSTER_TOKEN}}|' $GITHUB_WORKSPACE/k8s/cluster-config.yaml
+        # Set run 
+        sed -e 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|${{github.event.pull_request.title}}|' $GITHUB_WORKSPACE/k8s/deployment.yaml
     
     - name: Set cluster configuration
       # Needs inlined auth token to work
