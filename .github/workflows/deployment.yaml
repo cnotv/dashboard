@@ -7,20 +7,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+   
     - name: Install DigitalOcean CLI
       run: |
         sudo apt-get update
         sudo apt-get install -y jq
         curl -sSL https://github.com/digitalocean/doctl/releases/download/v1.92.0/doctl-1.92.0-linux-amd64.tar.gz | tar -xvz
         sudo mv doctl /usr/local/bin
+   
     # - name: Build Docker image
     #   run: |
     #     docker build -t rancher-dashboard .
+
+    - name: Set Kubeconfig values
+      run: sed -i 's|<DIGITALOCEAN_CLUSTER_NAME>|${{secrets.DIGITALOCEAN_CLUSTER_NAME}}|'  's|<DIGITALOCEAN_CLUSTER_SERVER>|${{secrets.DIGITALOCEAN_CLUSTER_SERVER}}|'  's|<DIGITALOCEAN_CLUSTER_CERTIFICATE>|${{secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE}}|'  's|<DIGITALOCEAN_CLUSTER_TOKEN>|${{secrets.DIGITALOCEAN_CLUSTER_TOKEN}}|' $GITHUB_WORKSPACE/k8s/cluster-config.yaml
+    
     - name: Deploy to Kubernetes
       env:
         DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
       run: |
         doctl auth init -t $DIGITALOCEAN_TOKEN
         doctl kubernetes cluster list
-        doctl kubernetes cluster kubeconfig save --config="k8s/cluster-config.yaml" rancher-deployments
+        doctl kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
         kubectl apply -f k8s/deployment.yaml

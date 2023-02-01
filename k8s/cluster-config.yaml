@@ -1,21 +1,21 @@
 apiVersion: v1
 kind: Config
 clusters:
-- name: ${{ secrets.DIGITALOCEAN_CLUSTER_NAME }}
+- name: DIGITALOCEAN_CLUSTER_NAME
   cluster:
-    server: ${{ secrets.DIGITALOCEAN_CLUSTER_SERVER }}
-    certificate-authority-data: ${{ secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE }}
+    server: DIGITALOCEAN_CLUSTER_SERVER
+    certificate-authority-data: DIGITALOCEAN_CLUSTER_CERTIFICATE
 
 users:
-- name: ${{ secrets.DIGITALOCEAN_CLUSTER_NAME }}
+- name: DIGITALOCEAN_CLUSTER_NAME
   user:
-    token: ${{ secrets.DIGITALOCEAN_CLUSTER_TOKEN }}
+    token: DIGITALOCEAN_CLUSTER_TOKEN
 
 
 contexts:
-- name: ${{ secrets.DIGITALOCEAN_CLUSTER_NAME }}
+- name: DIGITALOCEAN_CLUSTER_NAME
   context:
-    user: ${{ secrets.DIGITALOCEAN_CLUSTER_NAME }}
-    cluster: ${{ secrets.DIGITALOCEAN_CLUSTER_NAME }}
+    user: DIGITALOCEAN_CLUSTER_NAME
+    cluster: DIGITALOCEAN_CLUSTER_NAME
 
-current-context: ${{ secrets.DIGITALOCEAN_CLUSTER_NAME }}
+current-context: DIGITALOCEAN_CLUSTER_NAME
