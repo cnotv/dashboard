@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rancher-deployment
+  name: DIGITALOCEAN_DEPLOYMENT_NAME
 spec:
-  # replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: rancher-dashboard
@@ -13,7 +13,7 @@ spec:
         app: rancher-dashboard
     spec:
       containers:
-      - name: my-container
+      - name: rancher-deployment-container
         image: rancher-dashboard:latest
         ports:
         - containerPort: 80
