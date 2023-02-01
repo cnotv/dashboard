@@ -22,7 +22,11 @@ jobs:
     - name: Set Kubeconfig values
       run: sed -e 's|<DIGITALOCEAN_CLUSTER_NAME>|${{secrets.DIGITALOCEAN_CLUSTER_NAME}}|' -e 's|<DIGITALOCEAN_CLUSTER_SERVER>|${{secrets.DIGITALOCEAN_CLUSTER_SERVER}}|' -e 's|<DIGITALOCEAN_CLUSTER_CERTIFICATE>|${{secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE}}|' -e 's|<DIGITALOCEAN_CLUSTER_TOKEN>|${{secrets.DIGITALOCEAN_CLUSTER_TOKEN}}|' $GITHUB_WORKSPACE/k8s/cluster-config.yaml
     
-    - name: Deploy to Kubernetes
+    - name: Set cluster configuration
       run: |
         doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
+
+    - name: Deploy to Kubernetes
+      run: |
         kubectl apply -f k8s/deployment.yaml
+        
