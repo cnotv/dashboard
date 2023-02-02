@@ -21,9 +21,9 @@ jobs:
       with:
         token: ${{ secrets.DIGITALOCEAN_TOKEN }}
 
-    # - name: Build Docker image
-    #   run: |
-    #     docker build -t rancher-dashboard .
+    - name: Build Docker image
+      run: |
+        docker build -t rancher-dashboard .
 
     - name: Define env var values
       run: |
@@ -39,6 +39,6 @@ jobs:
 
     - name: Deploy to Kubernetes
       run: |
-        kubectl apply -f k8s/deployment.yaml --kubeconfig="k8s/cluster-config.yaml"
+        kubectl create deployment ${{github.event.pull_request.title || 'test-push'}} --image=rancher-dashboard --kubeconfig="k8s/cluster-config.yaml"
 
         
