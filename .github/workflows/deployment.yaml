@@ -2,6 +2,10 @@ name: Deploy to Kubernetes
 
 on: [push]
 
+env:
+  NAME: ${{ github.event.pull_request.title || 'test-push' }}
+  PATH: $GITHUB_WORKSPACE/k8s/test.yaml
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,15 +24,15 @@ jobs:
     - name: Define env var values
       run: |
         echo "${{secrets.DIGITALOCEAN_CLUSTER}}" >> $GITHUB_WORKSPACE/k8s/cluster-config.yaml
-        sed -e 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|${{github.event.pull_request.title || 'test-push'}}|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -e 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|${{env.NAME}}|' $GITHUB_WORKSPACE/k8s/deployment.yaml
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
-        kubectl delete deployment ${{github.event.pull_request.title || 'test-push'}} --kubeconfig="k8s/test.yaml" 
+        kubectl delete deployment ${{env.NAME}} --kubeconfig="${{env.PATH}}" 
         
     - name: Deploy to Rancher cluster
       run: |
-        kubectl create deployment ${{github.event.pull_request.title || 'test-push'}} --image=rancher-dashboard --kubeconfig="$GITHUB_WORKSPACE/k8s/test.yaml"
-        # kubectl apply -f k8s/deployment.yaml --kubeconfig="$GITHUB_WORKSPACE/k8s/test.yaml"
+        kubectl create deployment ${{env.NAME}} --image=rancher-dashboard --kubeconfig="${{env.PATH}}"
+        # kubectl apply -f k8s/deployment.yaml --kubeconfig="${{env.PATH}}"
 
         
