@@ -28,7 +28,7 @@ jobs:
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
-        kubectl delete deployment ${{env.K8S_NAME}} --kubeconfig="${{env.K8S_PATH}}" 
+        kubectl delete deployment ${{env.K8S_NAME}} --kubeconfig="${{env.K8S_PATH}}" --ignore-not-found
         
     - name: Deploy to Rancher cluster
       run: |
