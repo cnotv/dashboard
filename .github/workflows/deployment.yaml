@@ -8,12 +8,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
    
-    - name: Install DigitalOcean CLI
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y jq
-        curl -sSL https://github.com/digitalocean/doctl/releases/download/v1.92.0/doctl-1.92.0-linux-amd64.tar.gz | tar -xvz
-        sudo mv doctl /usr/local/bin
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
    
     # - name: Build Docker image
     #   run: |
@@ -28,17 +26,10 @@ jobs:
     
     - name: Set cluster configuration
       # Needs inlined auth token to work
-      run: |
-        doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments -v
-        ls
-        cd $HOME
-        ls
+      run: doctl kubernetes cluster kubeconfig save rancher-deployments
 
     - name: Deploy to Kubernetes
       run: |
-        mkdir -p $HOME/.kube
-        sudo cp -i $GITHUB_WORKSPACE/k8s/cluster-config.yaml $HOME/.kube/config
-        sudo chown $(id -u):$(id -g) $HOME/.kube/config
         kubectl cluster-info
         kubectl config view
         kubectl apply -f k8s/deployment.yaml
