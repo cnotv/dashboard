@@ -8,28 +8,35 @@ jobs:
     steps:
     - uses: actions/checkout@v3
    
-    - name: Install DigitalOcean CLI
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y jq
-        curl -sSL https://github.com/digitalocean/doctl/releases/download/v1.92.0/doctl-1.92.0-linux-amd64.tar.gz | tar -xvz
-        sudo mv doctl /usr/local/bin
-   
+    # - name: Install DigitalOcean CLI
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y jq
+    #     curl -sSL https://github.com/digitalocean/doctl/releases/download/v1.92.0/doctl-1.92.0-linux-amd64.tar.gz | tar -xvz
+    #     sudo mv doctl /usr/local/bin
+    #     doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} 
+    
+    - name: Install doctl CLI
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+
     # - name: Build Docker image
     #   run: |
     #     docker build -t rancher-dashboard .
 
     - name: Define env var values
       run: |
-        # Set env vars from secrets, keeping the configuration file abstracted and not displaying values
         sed -e 's|<DIGITALOCEAN_CLUSTER_NAME>|${{secrets.DIGITALOCEAN_CLUSTER_NAME}}|' -e 's|<DIGITALOCEAN_CLUSTER_SERVER>|${{secrets.DIGITALOCEAN_CLUSTER_SERVER}}|' -e 's|<DIGITALOCEAN_CLUSTER_CERTIFICATE>|${{secrets.DIGITALOCEAN_CLUSTER_CERTIFICATE}}|' -e 's|<DIGITALOCEAN_CLUSTER_TOKEN>|${{secrets.DIGITALOCEAN_CLUSTER_TOKEN}}|' $GITHUB_WORKSPACE/k8s/cluster-config.yaml
-        # Set run 
-        sed -e 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|${{github.event.pull_request.title}}|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -e 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|${{github.event.pull_request.title || 'test-push'}}|' $GITHUB_WORKSPACE/k8s/deployment.yaml
     
     - name: Set cluster configuration
       # Needs inlined auth token to work
-      run: doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
+      run: |
+        doctl kubernetes cluster list
+        doctl kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
 
     - name: Deploy to Kubernetes
-      run: kubectl apply -f k8s/deployment.yaml
+      run: |
+        kubectl apply -f k8s/deployment.yaml
         
