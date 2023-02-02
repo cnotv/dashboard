@@ -24,7 +24,7 @@ jobs:
 
     - name: Deploy to Kubernetes
       run: |
-        kubectl create deployment ${{github.event.pull_request.title || 'test-push'}} --image=rancher-dashboard --kubeconfig="$GITHUB_WORKSPACE/k8s/cluster-config.yaml"
-        kubectl apply -f k8s/deployment.yaml --kubeconfig="$GITHUB_WORKSPACE/k8s/cluster-config.yaml"
+        kubectl create deployment ${{github.event.pull_request.title || 'test-push'}} --image=rancher-dashboard --kubeconfig="$GITHUB_WORKSPACE/k8s/test.yaml"
+        kubectl apply -f k8s/deployment.yaml --kubeconfig="$GITHUB_WORKSPACE/k8s/test.yaml"
 
         

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Config
+clusters:
+- name: "rancher-deployments"
+  cluster:
+    server: "https://104.248.253.167/k8s/clusters/c-m-ksfsf7qb"
+    certificate-authority-data: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJ2RENDQ\
+      VdPZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQkdNUnd3R2dZRFZRUUtFeE5rZVc1aGJXbGoKY\
+      kdsemRHVnVaWEl0YjNKbk1TWXdKQVlEVlFRRERCMWtlVzVoYldsamJHbHpkR1Z1WlhJdFkyRkFNV\
+      FkzTXpZeApNRGs0TXpBZUZ3MHlNekF4TVRNeE1UVTJNak5hRncwek16QXhNVEF4TVRVMk1qTmFNR\
+      Vl4SERBYUJnTlZCQW9UCkUyUjVibUZ0YVdOc2FYTjBaVzVsY2kxdmNtY3hKakFrQmdOVkJBTU1IV\
+      1I1Ym1GdGFXTnNhWE4wWlc1bGNpMWoKWVVBeE5qY3pOakV3T1Rnek1Ga3dFd1lIS29aSXpqMENBU\
+      VlJS29aSXpqMERBUWNEUWdBRW00L2RVd3BJUG1tTgpiT080ZVNZUjFsT29BMHlvZG1aZUEzK1dGc\
+      jlZQ2pKejBFTXBZUXd6MDZySUpjeGFBWWZnb2YxMzF4VDA0Zi9DCjM4OElCdS9XdmFOQ01FQXdEZ\
+      1lEVlIwUEFRSC9CQVFEQWdLa01BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0hRWUQKVlIwT0JCWUVGU\
+      GZmd3ZHeGdSMFJiQ21tYkpXTXRTSkZ2U28yTUFvR0NDcUdTTTQ5QkFNQ0EwY0FNRVFDSUZGcQpzS\
+      HFRYUtWS1NXa1hHL05Mbm9LVENXMGpRbjh3WmNrVEFtU2tDVnpWQWlBUlE1U0JvT3hKa2hsM0tMU\
+      VRXdkFqCkV2ZE00STFwenNjZE9FS3pBT2tXblE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t"
+
+users:
+- name: "rancher-deployments"
+  user:
+    token: "kubeconfig-user-l5xv9q57mc:klzt7snsv658k7lrbqmhdskngr2pbhbpnfnxwptnhhtmd5rxnhjvss"
+
+
+contexts:
+- name: "rancher-deployments"
+  context:
+    user: "rancher-deployments"
+    cluster: "rancher-deployments"
+
+current-context: "rancher-deployments"
