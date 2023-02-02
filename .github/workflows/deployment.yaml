@@ -28,12 +28,13 @@ jobs:
     
     - name: Set cluster configuration
       # Needs inlined auth token to work
-      run: doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
+      run: |
+        doctl auth init -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments -v
 
     - name: Deploy to Kubernetes
       run: |
         mkdir -p $HOME/.kube
-        sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        sudo cp -i $GITHUB_WORKSPACE/k8s/cluster-config.yaml $HOME/.kube/config
         sudo chown $(id -u):$(id -g) $HOME/.kube/config
         kubectl cluster-info
         kubectl config view
