@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: DIGITALOCEAN_DEPLOYMENT_NAME
+  name: <DIGITALOCEAN_DEPLOYMENT_NAME>
 spec:
   replicas: 3
   selector:
