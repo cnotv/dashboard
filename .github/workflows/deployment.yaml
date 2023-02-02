@@ -34,7 +34,7 @@ jobs:
       # Needs inlined auth token to work
       run: |
         doctl kubernetes cluster list
-        doctl kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
+        doctl -t ${{ secrets.DIGITALOCEAN_TOKEN }} kubernetes cluster kubeconfig save --config="$GITHUB_WORKSPACE/k8s/cluster-config.yaml" rancher-deployments
 
     - name: Deploy to Kubernetes
       run: |
