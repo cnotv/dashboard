@@ -34,5 +34,3 @@ jobs:
       run: |
         kubectl create deployment ${{env.K8S_NAME}} --image=rancher-dashboard --kubeconfig="${{env.K8S_PATH}}"
         # kubectl apply -f k8s/deployment.yaml --kubeconfig="${{env.K8S_PATH}}"
-
-        

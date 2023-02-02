@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: <DIGITALOCEAN_DEPLOYMENT_NAME>
+  namespace: rancher-deployments
 spec:
   replicas: 3
   selector:
@@ -13,7 +14,7 @@ spec:
         app: rancher-dashboard
     spec:
       containers:
-      - name: rancher-deployment-container
+      - name: <DIGITALOCEAN_DEPLOYMENT_NAME>-container
         image: rancher-dashboard:latest
         ports:
         - containerPort: 80
@@ -21,7 +22,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rancher-deployment-service
+  name: <DIGITALOCEAN_DEPLOYMENT_NAME>-service
+  namespace: rancher-deployments
 spec:
   selector:
     app: rancher-dashboard
