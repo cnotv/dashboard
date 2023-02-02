@@ -17,14 +17,20 @@ jobs:
       with:
         token: ${{ secrets.DIGITALOCEAN_TOKEN }}
 
-    # - name: Build Docker image
-    #   run: |
-    #     docker build -t rancher-dashboard .
+    - name: Log in to DigitalOcean Container Registry with short-lived credentials
+      run: doctl registry login --expiry-seconds 600
 
-    - name: Define env var values
+    - name: Build Docker image
+      run: |
+        docker build -t rancher-dashboard registry.digitalocean.com/gleo-registry/${env.K8S_NAME}:$(echo $GITHUB_SHA | head -c7) .
+
+    - name: Push image to DigitalOcean Container Registry
+      run: docker push registry.digitalocean.com/asb/static-example:$(echo $GITHUB_SHA | head -c7)
+
+    - name: Update deployment file
       run: |
         echo "${{secrets.DIGITALOCEAN_CLUSTER}}" >> $GITHUB_WORKSPACE/k8s/cluster-config.yaml
-        sed -e 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|${{env.K8S_NAME}}|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        TAG=$(echo $GITHUB_SHA | head -c7) && sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|registry.digitalocean.com/gleo-registry/'${env.K8S_NAME}:'${TAG}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
