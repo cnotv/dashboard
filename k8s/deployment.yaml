@@ -4,10 +4,14 @@ metadata:
   name: <DIGITALOCEAN_DEPLOYMENT_NAME>
   namespace: rancher-deployments
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: <DIGITALOCEAN_DEPLOYMENT_NAME>
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -34,3 +38,24 @@ spec:
     port: 80
     targetPort: 80
   type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: <DIGITALOCEAN_DEPLOYMENT_NAME>-ingress
+  namespace: rancher-deployments
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: <DIGITALOCEAN_DEPLOYMENT_DOMAIN>
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/<DIGITALOCEAN_DEPLOYMENT_NAME>/"
+        backend:
+          service:
+            name: <DIGITALOCEAN_DEPLOYMENT_NAME>-service
+            port:
+              number: 80
