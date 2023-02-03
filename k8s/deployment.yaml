@@ -7,15 +7,17 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: rancher-dashboard
+      app: <DIGITALOCEAN_DEPLOYMENT_NAME>
   template:
     metadata:
       labels:
-        app: rancher-dashboard
+        app: <DIGITALOCEAN_DEPLOYMENT_NAME>
     spec:
       containers:
       - name: <DIGITALOCEAN_DEPLOYMENT_NAME>-container
-        image: rancher-dashboard:latest
+        image: <DIGITALOCEAN_DEPLOYMENT_NAME>
+        imagePullSecrets:
+        - name: gleo-registry
         ports:
         - containerPort: 80
 ---
@@ -26,7 +28,7 @@ metadata:
   namespace: rancher-deployments
 spec:
   selector:
-    app: rancher-dashboard
+    app: <DIGITALOCEAN_DEPLOYMENT_NAME>
   ports:
   - name: http
     port: 80
