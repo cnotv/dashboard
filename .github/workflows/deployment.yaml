@@ -8,7 +8,7 @@ env:
   K8S_DIR: $GITHUB_WORKSPACE/k8s
   K8S_CLUSTER_CONFIG: $GITHUB_WORKSPACE/k8s/test.yaml
   DIGITALOCEAN_REGISTRY: 'gleo-registry'
-  TAG: $(echo $GITHUB_SHA | head -c7)
+  TAG: '$(echo $GITHUB_SHA | head -c7)'
 
 jobs:
   deploy:
@@ -34,8 +34,9 @@ jobs:
     - name: Update deployment file
       run: |
         echo "${{secrets.DIGITALOCEAN_CLUSTER}}" >> $GITHUB_WORKSPACE/k8s/cluster-config.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_IMAGE>|registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/'${{env.K8S_NAME}}':'${{env.TAG}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_IMAGE>|registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{env.K8S_NAME}}':'${{env.TAG}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
         sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|'${{env.K8S_NAME}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_REGISTRY>|'${{env.DIGITALOCEAN_REGISTRY}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
