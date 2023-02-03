@@ -1,3 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rancher-deployments
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rancher-deployments-registry
+  namespace: rancher-deployments
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
