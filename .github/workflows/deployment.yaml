@@ -23,10 +23,10 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t rancher-dashboard registry.digitalocean.com/gleo-registry/${{env.K8S_NAME}}:${{env.TAG}} .
+        docker build -t registry.digitalocean.com/gleo-registry/${{env.K8S_NAME}}:${{env.TAG}} .
 
     - name: Push image to DigitalOcean Container Registry
-      run: docker push registry.digitalocean.com/asb/static-example:${{env.TAG}}
+      run: docker push registry.digitalocean.com/gleo-registry/${{env.K8S_NAME}}:${{env.TAG}}
 
     - name: Update deployment file
       run: |
@@ -39,5 +39,5 @@ jobs:
         
     - name: Deploy to Rancher cluster
       run: |
-        kubectl create deployment ${{env.K8S_NAME}} --image=rancher-dashboard --kubeconfig="${{env.K8S_PATH}}"
+        kubectl create deployment ${{env.K8S_NAME}} --image=${{env.K8S_NAME}}:${{env.TAG}} --kubeconfig="${{env.K8S_PATH}}"
         # kubectl apply -f k8s/deployment.yaml --kubeconfig="${{env.K8S_PATH}}"
