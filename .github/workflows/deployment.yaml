@@ -4,6 +4,7 @@ on: [push]
 
 env:
   K8S_NAME: ${{ github.event.pull_request.title || 'test-push' }}
+  K8S_DIR: $GITHUB_WORKSPACE/k8s
   K8S_PATH: $GITHUB_WORKSPACE/k8s/test.yaml
   TAG: $(echo $GITHUB_SHA | head -c7)
 
@@ -20,7 +21,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t registry.digitalocean.com/gleo-registry/${{env.K8S_NAME}}:${{env.TAG}} .
+        docker build -f k8s/build -t registry.digitalocean.com/gleo-registry/${{env.K8S_NAME}}:${{env.TAG}} .
 
     - name: Log in to DigitalOcean Container Registry with short-lived credentials
       run: doctl registry login --expiry-seconds 600
