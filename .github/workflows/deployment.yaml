@@ -21,28 +21,28 @@ jobs:
       with:
         token: ${{ secrets.DIGITALOCEAN_TOKEN }}
 
-    - name: Build Docker image
-      run: |
-        docker build -t registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{env.K8S_NAME}}:${{env.TAG}} .
+    # - name: Build Docker image
+    #   run: |
+    #     docker build -t registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{ env.K8S_NAME }}:${{ env.TAG }} .
 
-    - name: Log in to DigitalOcean Container Registry with short-lived credentials
-      run: doctl registry login --expiry-seconds 600
+    # - name: Log in to DigitalOcean Container Registry with short-lived credentials
+    #   run: doctl registry login --expiry-seconds 600
 
-    - name: Push image to DigitalOcean Container Registry
-      run: docker push registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{env.K8S_NAME}}:${{env.TAG}}
+    # - name: Push image to DigitalOcean Container Registry
+    #   run: docker push registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{ env.K8S_NAME }}:${{ env.TAG }}
 
     - name: Update deployment file
       run: |
         echo "${{secrets.DIGITALOCEAN_CLUSTER}}" >> $GITHUB_WORKSPACE/k8s/cluster-config.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_IMAGE>|registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{env.K8S_NAME}}':'${{env.TAG}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|'${{env.K8S_NAME}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
-        sed -i 's|<DIGITALOCEAN_REGISTRY>|'${{env.DIGITALOCEAN_REGISTRY}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_IMAGE>|registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{ env.K8S_NAME }}':'${{ env.TAG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|'${{ env.K8S_NAME }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_REGISTRY>|'${{ env.DIGITALOCEAN_REGISTRY }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
-        kubectl delete deployment ${{env.K8S_NAME}} --kubeconfig="${{env.K8S_CLUSTER_CONFIG}}" --ignore-not-found
+        kubectl delete deployment ${{ env.K8S_NAME }} --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}" --ignore-not-found
         
     - name: Deploy to Rancher cluster
       run: |
-        kubectl create deployment ${{env.K8S_NAME}} --image=registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{env.K8S_NAME}}':'${{env.TAG}}' --kubeconfig="${{env.K8S_CLUSTER_CONFIG}}"
-        # kubectl apply -f k8s/deployment.yaml --kubeconfig="${{env.K8S_CLUSTER_CONFIG}}"
+        # kubectl create deployment ${{ env.K8S_NAME }} --image=registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{ env.K8S_NAME }}':'${{ env.TAG }}' --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
+        kubectl apply -f ${{ env.K8S_DIR }}/deployment.yaml --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
