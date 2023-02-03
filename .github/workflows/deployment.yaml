@@ -5,6 +5,7 @@ on: [push]
 env:
   K8S_NAME: ${{ github.event.pull_request.title || 'test-push' }}
   K8S_PATH: $GITHUB_WORKSPACE/k8s/test.yaml
+  TAG: $(echo $GITHUB_SHA | head -c7)
 
 jobs:
   deploy:
@@ -22,15 +23,15 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t rancher-dashboard registry.digitalocean.com/gleo-registry/${env.K8S_NAME}:$(echo $GITHUB_SHA | head -c7) .
+        docker build -t rancher-dashboard registry.digitalocean.com/gleo-registry/${env.K8S_NAME}:${{env.TAG}} .
 
     - name: Push image to DigitalOcean Container Registry
-      run: docker push registry.digitalocean.com/asb/static-example:$(echo $GITHUB_SHA | head -c7)
+      run: docker push registry.digitalocean.com/asb/static-example:${{env.TAG}}
 
     - name: Update deployment file
       run: |
         echo "${{secrets.DIGITALOCEAN_CLUSTER}}" >> $GITHUB_WORKSPACE/k8s/cluster-config.yaml
-        TAG=$(echo $GITHUB_SHA | head -c7) && sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|registry.digitalocean.com/gleo-registry/'${env.K8S_NAME}:'${TAG}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|registry.digitalocean.com/gleo-registry/'${env.K8S_NAME}:'${{env.TAG}}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
