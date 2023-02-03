@@ -44,5 +44,5 @@ jobs:
         
     - name: Deploy to Rancher cluster
       run: |
-        kubectl create deployment ${{env.K8S_NAME}} --image=${{env.K8S_NAME}}:${{env.TAG}} --kubeconfig="${{env.K8S_CLUSTER_CONFIG}}"
+        kubectl create deployment ${{env.K8S_NAME}} --image=registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{env.K8S_NAME}}':'${{env.TAG}}' --kubeconfig="${{env.K8S_CLUSTER_CONFIG}}"
         # kubectl apply -f k8s/deployment.yaml --kubeconfig="${{env.K8S_CLUSTER_CONFIG}}"
