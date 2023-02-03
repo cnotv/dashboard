@@ -16,10 +16,10 @@ spec:
       containers:
       - name: <DIGITALOCEAN_DEPLOYMENT_NAME>-container
         image: <DIGITALOCEAN_DEPLOYMENT_IMAGE>
-        imagePullSecrets:
-        - name: <DIGITALOCEAN_REGISTRY>
         ports:
         - containerPort: 80
+      imagePullSecrets:
+      - name: <DIGITALOCEAN_REGISTRY>
 ---
 apiVersion: v1
 kind: Service
