@@ -23,7 +23,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t rancher-dashboard registry.digitalocean.com/gleo-registry/${env.K8S_NAME}:${{env.TAG}} .
+        docker build -t rancher-dashboard registry.digitalocean.com/gleo-registry/${{env.K8S_NAME}}:${{env.TAG}} .
 
     - name: Push image to DigitalOcean Container Registry
       run: docker push registry.digitalocean.com/asb/static-example:${{env.TAG}}
