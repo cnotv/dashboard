@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: <DIGITALOCEAN_DEPLOYMENT_NAME>-container
-        image: <DIGITALOCEAN_DEPLOYMENT_NAME>
+        image: <DIGITALOCEAN_DEPLOYMENT_IMAGE>
         imagePullSecrets:
         - name: gleo-registry
         ports:
