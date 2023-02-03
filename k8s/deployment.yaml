@@ -6,8 +6,11 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: rancher-deployments-registry
+  name: <DIGITALOCEAN_REGISTRY>
   namespace: rancher-deployments
+data:
+  .dockerconfigjson: <DIGITALOCEAN_REGISTRY_CONFIG>
+type: kubernetes.io/dockerconfigjson
 ---
 apiVersion: apps/v1
 kind: Deployment

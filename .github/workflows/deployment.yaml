@@ -38,7 +38,9 @@ jobs:
         sed -i 's|<DIGITALOCEAN_DEPLOYMENT_IMAGE>|registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{ env.K8S_NAME }}':'${{ env.TAG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
         sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|'${{ env.K8S_NAME }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
         sed -i 's|<DIGITALOCEAN_REGISTRY>|'${{ env.DIGITALOCEAN_REGISTRY }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_DOMAIN>|'${{ ENV.DIGITALOCEAN_DEPLOYMENT_DOMAIN }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_DOMAIN>|'${{ env.DIGITALOCEAN_DEPLOYMENT_DOMAIN }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_REGISTRY_CONFIG>|'${{ secrets.DIGITALOCEAN_REGISTRY_CONFIG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
