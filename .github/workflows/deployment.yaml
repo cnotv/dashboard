@@ -2,6 +2,15 @@ name: Deploy to Kubernetes
 
 on: [push]
 
+# TODO:
+# - Replace test.yaml with the secret cluster configuration
+# - Replace hardcoded name with PR ID or branch name (for push)
+# - Correct ingress address
+# - Generate list of deployments as HTML for the root
+# - Fix environment issues for loading deployments
+# - Prevent use of registry if possible, due image size (500MB)
+# - Chain in one script the deployment sed command
+
 env:
   # K8S_NAME: ${{ github.event.pull_request.title || 'rancher-deployment' }}
   K8S_NAME: 'rancher-deployment'
