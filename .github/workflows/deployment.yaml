@@ -17,7 +17,7 @@ env:
   K8S_DIR: $GITHUB_WORKSPACE/k8s
   K8S_CLUSTER_CONFIG: $GITHUB_WORKSPACE/k8s/test.yaml
   DIGITALOCEAN_REGISTRY: 'gleo-registry'
-  DIGITALOCEAN_DEPLOYMENT_DOMAIN: '146.190.136.254'
+  DIGITALOCEAN_DEPLOYMENT_DOMAIN: 'rancher-deployments.cnotv.xyz'
   TAG: '$(echo $GITHUB_SHA | head -c7)'
 
 jobs:
