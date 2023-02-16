@@ -6,7 +6,6 @@ on: [push]
 # - Replace test.yaml with the secret cluster configuration
 # - Replace hardcoded name with PR ID or branch name (for push)
 # - Correct ingress address
-# - Generate list of deployments as HTML for the root
 # - Fix environment issues for loading deployments
 # - Prevent use of registry if possible, due image size (500MB)
 # - Chain in one script the deployment sed command
@@ -16,6 +15,7 @@ env:
   K8S_NAME: 'rancher-deployment'
   K8S_DIR: $GITHUB_WORKSPACE/k8s
   K8S_CLUSTER_CONFIG: $GITHUB_WORKSPACE/k8s/test.yaml
+  K8S_DEPLOYMENTS: 'rancher-deployment'
   DIGITALOCEAN_REGISTRY: 'gleo-registry'
   DIGITALOCEAN_DEPLOYMENT_DOMAIN: 'rancher-deployments.cnotv.xyz'
   TAG: '$(echo $GITHUB_SHA | head -c7)'
@@ -62,6 +62,7 @@ jobs:
 
     - name: Generate index page with deployment list
       run: |
+        sed -i 's|K8S_DEPLOYMENTS|'${{ env.K8S_DEPLOYMENTS }}'|' $GITHUB_WORKSPACE/k8s/list.yaml
         sed -i 's|<DIGITALOCEAN_DEPLOYMENT_DOMAIN>|'${{ env.DIGITALOCEAN_DEPLOYMENT_DOMAIN }}'|' $GITHUB_WORKSPACE/k8s/list.yaml
         kubectl delete deployment rancher-deployments-list --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}" --ignore-not-found
         kubectl apply -f ${{ env.K8S_DIR }}/list.yaml --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"

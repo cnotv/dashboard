@@ -1,0 +1,507 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Rancher deployments</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta data-hid="description" name="description" content="Rancher Dashboard">
+  <link data-hid="icon" rel="icon" type="image/x-icon" href="https://releases.rancher.com/dashboard/latest/favicon.png">
+
+  <style>
+    html,
+    body {
+      font-family: "Lato", arial, helvetica, sans-serif;
+      font-size: 14px;
+    }
+
+    body {
+      color: var(--body-text);
+      direction: ltr;
+      position: relative;
+      margin: 0;
+      background: var(--body-bg);
+    }
+
+    a {
+      color: var(--link);
+      text-decoration: none;
+      background-color: transparent;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --default: #27292e;
+        --default-text: #6c6c76;
+        --default-hover-bg: #101012;
+        --default-hover-text: #fff;
+        --default-active-bg: #000;
+        --default-active-text: #fff;
+        --default-border: #($dark);
+        --default-banner-bg: rgba(39, 41, 46, 0.15);
+        --default-light-bg: rgba(39, 41, 46, 0.05);
+        --slider-light-bg: #1b1c21;
+        --slider-light-bg-right: rgba(27, 28, 33, 0);
+        --muted: #6c6c76;
+        --body-bg: #1b1c21;
+        --body-text: #fff;
+        --scrollbar-thumb: #4a4b52;
+        --scrollbar-thumb-dropdown: #4a4b52;
+        --header-bg: #1b1c21;
+        --header-border: #4a4b52;
+        --header-btn-bg: transparent;
+        --header-btn-text: #fff;
+        --header-btn-text-hover: #fff;
+        --header-input-text: #fff;
+        --banner-text-color: #fff;
+        --nav-bg: #141419;
+        --nav-active: var(--primary-active-bg);
+        --nav-border: #4a4b52;
+        --nav-hover: var(--primary);
+        --nav-expander-hover: var(--primary-banner-bg);
+        --disabled-bg: #54545b;
+        --disabled-text: #b6b6c2;
+        --box-bg: #141419;
+        --subtle-border: #141419;
+        --border: #4a4b52;
+        --topmenu-bg: #141419;
+        --topmenu-text: #fff;
+        --topmost-border: #4a4b52;
+        --topmost-shadow: #1f1f27;
+        --topmost-light-hover: #4a4b52;
+        --accent-btn: var(--primary-banner-bg);
+        --accent-btn-hover: var(--primary);
+        --accent-btn-hover-text: #fff;
+        --modal-bg: #27292e;
+        --modal-border: #4a4b52;
+        --overlay-bg: rgba(20, 20, 25, 0.75);
+        --shadow: rgba(20, 20, 25, 0.9);
+        --checkbox-tick: #fff;
+        --checkbox-border: #4a4b52;
+        --checkbox-tick-disabled: #f0f0f1;
+        --checkbox-disabled-bg: #6c6c76;
+        --checkbox-ticked-bg: var(--link);
+        --drag-over-inner-bg: rgba(220, 222, 231, 0.9);
+        --drag-over-outer-bg: rgba(220, 222, 231, 0);
+        --dropdown-bg: #2b2c32;
+        --dropdown-border: #6c6c76;
+        --dropdown-divider: #6c6c76;
+        --dropdown-text: #fff;
+        --dropdown-active-text: #fff;
+        --dropdown-active-bg: #6c6c76;
+        --dropdown-hover-text: #fff;
+        --dropdown-hover-bg: var(--link);
+        --dropdown-disabled-bg: #6c6c76;
+        --dropdown-disabled-text: #6c6c76;
+        --dropdown-highlight-text: var(--link);
+        --input-text: #fff;
+        --input-label: #b6b6c2;
+        --input-placeholder: #6c6c76;
+        --input-border: var(--border);
+        --input-bg: var(--body-bg);
+        --input-bg-accent: #202226;
+        --input-hover-bg: var(--box-bg);
+        --input-focus-bg: var(--box-bg);
+        --input-disabled-text: grey;
+        --input-disabled-label: #666679;
+        --input-disabled-bg: #232326;
+        --input-disabled-border: #010102;
+        --input-disabled-placeholder: #54545b;
+        --input-addon-bg: #1b1c21;
+        --link: #3d98d3;
+        --link-text: #fff;
+        --link-hover-bg: #297db4;
+        --link-hover-text: #fff;
+        --link-active-bg: #1b5276;
+        --link-active-text: #fff;
+        --link-border: #3d98d3;
+        --link-banner-bg: rgba(61, 152, 211, 0.15);
+        --link-light-bg: rgba(61, 152, 211, 0.05);
+        --progress-bg: #4a4b52;
+        --progress-divider: #fff;
+        --sortable-table-bg: #2b2b35;
+        --sortable-table-row-bg: #1b1c21;
+        --sortable-table-header-bg: #141419;
+        --sortable-table-top-divider: var(--border);
+        --sortable-table-hover-bg: #141419;
+        --sortable-table-selected-bg: var(--primary-light-bg);
+        --sortable-table-group-label: #b6b6c2;
+        --tag-primary: #fff;
+        --tag-bg: #4a4b52;
+        --popover-bg: var(--body-bg);
+        --popover-border: var(--border);
+        --popover-text: var(--body-text);
+        --tooltip-bg: #4a4b52;
+        --tooltip-border: var(--tag-primary);
+        --tooltip-text: var(--body-text);
+        --tooltip-text-warning: var(--body-text);
+        --tabbed-border: #4a4b52;
+        --tabbed-sidebar-bg: #141419;
+        --tabbed-container-bg: #2e3035;
+        --yaml-editor-bg: #141419;
+        --diff-border: var(--border);
+        --diff-header-bg: var(--nav-bg);
+        --diff-header-border: var(--border);
+        --diff-header: rgba(20, 20, 25, 0.3);
+        --diff-linenum-bg: var(--nav-bg);
+        --diff-linenum: var(--muted);
+        --diff-linenum-border: var(--border);
+        --diff-line-ins-bg: $success;
+        --diff-line-del-bg: rgba(246, 71, 71, 0.75);
+        --diff-del-bg: rgba(246, 71, 71, 0.3);
+        --diff-del-border: #f64747;
+        --diff-ins-bg: rgba(93, 153, 93, 0.3);
+        --diff-ins-border: rgba(93, 153, 93, 0.5);
+        --diff-chg-ins: rgba(93, 153, 93, 0.25);
+        --diff-chg-del: rgba(218, 195, 66, 0.5);
+        --diff-chg-dela: #dac342;
+        --diff-empty-placeholder: #1b1c21;
+        --wm-tabs-bg: #2b2c32;
+        --wm-tab-bg: #141419;
+        --wm-closer-hover-bg: #4a4b52;
+        --wm-tab-active-bg: #1b1c21;
+        --wm-title-bg: #141419;
+        --wm-title-border: #4a4b52;
+        --wm-body-bg: #141419;
+        --wm-border: #000;
+        --glance-divider: #4a4b52;
+        --resource-gauge-back-circle: 74, 75, 82, 0.5;
+        --simple-box-bg: #1b1c21;
+        --simple-box-border: #4a4b52;
+        --simple-box-divider: #4a4b52;
+        --simple-box-shadow: none;
+        --terminal-bg: var(--wm-body-bg);
+        --terminal-cursor: var(--warning);
+        --terminal-selection: rgba(61, 152, 211, 0.5);
+        --terminal-text: var(--body-text);
+        --logs-bg: var(--wm-body-bg);
+        --logs-highlight: var(--wm-body-bg);
+        --logs-highlight-bg: var(--warning);
+        --logs-text: var(--body-text);
+        --gauge-divider: hsla(0, 0%, 100%, 0.3);
+        --gauge-success-primary: 75, 95, 64;
+        --gauge-success-secondary: 150, 189, 127;
+        --gauge-warning-primary: 218, 195, 66;
+        --gauge-warning-secondary: 109, 98, 33;
+        --gauge-error-primary: 239, 90, 83;
+        --gauge-error-secondary: 120, 45, 42;
+        --product-icon: #b6b6c2;
+        --product-icon-active: #fff;
+      }
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --primary: #3d98d3;
+        --primary-text: #fff;
+        --primary-hover-bg: #297db4;
+        --primary-hover-text: #fff;
+        --primary-active-bg: #1b5276;
+        --primary-active-text: #fff;
+        --primary-border: #3d98d3;
+        --primary-banner-bg: rgba(61, 152, 211, 0.15);
+        --primary-light-bg: rgba(61, 152, 211, 0.05);
+        --link: #3d98d3;
+        --link-text: #fff;
+        --link-hover-bg: #297db4;
+        --link-hover-text: #fff;
+        --link-active-bg: #1b5276;
+        --link-active-text: #fff;
+        --link-border: #3d98d3;
+        --link-banner-bg: rgba(61, 152, 211, 0.15);
+        --link-light-bg: rgba(61, 152, 211, 0.05);
+        --default: #eeeff4;
+        --default-text: #141419;
+        --default-hover-bg: #cfd2e0;
+        --default-hover-text: #fff;
+        --default-active-bg: #a1a6c2;
+        --default-active-text: #141419;
+        --default-border: #eeeff4;
+        --default-banner-bg: rgba(238, 239, 244, 0.15);
+        --default-light-bg: rgba(238, 239, 244, 0.05);
+        --slider-light-bg: #fff;
+        --slider-light-bg-right: hsla(0, 0%, 100%, 0);
+        --muted: #b6b6c2;
+        --darker: #6c6c76;
+        --darker-text: #fff;
+        --darker-hover-bg: #54545b;
+        --darker-hover-text: #fff;
+        --darker-active-bg: #2f2f33;
+        --darker-active-text: #fff;
+        --darker-border: #6c6c76;
+        --darker-banner-bg: rgba(108, 108, 118, 0.15);
+        --darker-light-bg: rgba(108, 108, 118, 0.05);
+        --success: #5d995d;
+        --success-text: #fff;
+        --success-hover-bg: #4a794a;
+        --success-hover-text: #fff;
+        --success-active-bg: #2d4a2d;
+        --success-active-text: #fff;
+        --success-border: #5d995d;
+        --success-banner-bg: rgba(93, 153, 93, 0.15);
+        --success-light-bg: rgba(93, 153, 93, 0.05);
+        --info: #3d98d3;
+        --info-text: #fff;
+        --info-hover-bg: #297db4;
+        --info-hover-text: #fff;
+        --info-active-bg: #1b5276;
+        --info-active-text: #fff;
+        --info-border: #3d98d3;
+        --info-banner-bg: rgba(61, 152, 211, 0.15);
+        --info-light-bg: rgba(61, 152, 211, 0.05);
+        --warning: #dac342;
+        --warning-text: #141419;
+        --warning-hover-bg: #c3ab26;
+        --warning-hover-text: #fff;
+        --warning-active-bg: #83731a;
+        --warning-active-text: #fff;
+        --warning-border: #dac342;
+        --warning-banner-bg: rgba(218, 195, 66, 0.15);
+        --warning-light-bg: rgba(218, 195, 66, 0.05);
+        --error: #f64747;
+        --error-text: #fff;
+        --error-hover-bg: #f41616;
+        --error-hover-text: #fff;
+        --error-active-bg: #b50909;
+        --error-active-text: #fff;
+        --error-border: #f64747;
+        --error-banner-bg: rgba(246, 71, 71, 0.15);
+        --error-light-bg: rgba(246, 71, 71, 0.05);
+        --body-bg: #fff;
+        --body-text: #141419;
+        --scrollbar-thumb: #b6b6c2;
+        --scrollbar-thumb-dropdown: #f4f5fa;
+        --scrollbar-track: transparent;
+        --banner-text-color: #141419;
+        --header-bg: #fff;
+        --header-btn-bg: transparent;
+        --header-btn-text: #141419;
+        --header-btn-text-hover: #fff;
+        --header-input-text: #141419;
+        --header-height: 55px;
+        --header-border: #dcdee7;
+        --header-border-size: 1px;
+        --nav-width: 230px;
+        --nav-bg: #fff;
+        --nav-active: #eeeff4;
+        --nav-hover: #dcdee7;
+        --nav-expander-hover: #bec1d2;
+        --nav-border: #dcdee7;
+        --nav-border-size: 1px;
+        --footer-bg: transparent;
+        --footer-height: 0px;
+        --topmenu-bg: #fff;
+        --topmenu-text: #141419;
+        --topmost-border: #dcdee7;
+        --topmost-shadow: #fff;
+        --topmost-light-hover: #eeeff4;
+        --disabled-bg: #dcdee7;
+        --disabled-text: #6c6c76;
+        --box-bg: #f4f5fa;
+        --subtle-border: #dcdee7;
+        --border: #dcdee7;
+        --border-width: 1px;
+        --border-radius: 4px;
+        --outline: var(--primary);
+        --outline-width: 1px;
+        --accent-btn: var(--primary-banner-bg);
+        --accent-btn-hover: var(--primary);
+        --accent-btn-hover-text: #fff;
+        --modal-bg: #fff;
+        --modal-border: #b6b6c2;
+        --overlay-bg: rgba(244, 245, 250, 0.75);
+        --shadow: rgba(220, 222, 231, 0.85);
+        --checkbox-tick: #fff;
+        --checkbox-border: #dcdee7;
+        --checkbox-tick-disabled: #646d93;
+        --checkbox-disabled-bg: #dcdee7;
+        --checkbox-ticked-bg: var(--link);
+        --drag-over-inner-bg: rgba(220, 222, 231, 0.9);
+        --drag-over-outer-bg: rgba(220, 222, 231, 0);
+        --dropdown-bg: #fff;
+        --dropdown-border: #dcdee7;
+        --dropdown-divider: #dcdee7;
+        --dropdown-text: #141419;
+        --dropdown-active-text: #fff;
+        --dropdown-active-bg: #b6b6c2;
+        --dropdown-hover-text: #fff;
+        --dropdown-hover-bg: var(--link);
+        --dropdown-disabled-text: var(--muted);
+        --dropdown-disabled-bg: #dcdee7;
+        --dropdown-highlight-text: var(--link);
+        --card-badge-text: #fff;
+        --card-header: var(--primary-banner-bg);
+        --input-text: #141419;
+        --input-label: #6c6c76;
+        --input-placeholder: #bec1d2;
+        --input-border: var(--border);
+        --input-bg: var(--body-bg);
+        --input-bg-accent: #e8e9f0;
+        --input-hover-bg: var(--box-bg);
+        --input-focus-bg: var(--box-bg);
+        --input-disabled-text: #3b4056;
+        --input-disabled-label: #646d93;
+        --input-disabled-bg: #dcdee7;
+        --input-disabled-border: #bec1d2;
+        --input-disabled-placeholder: #afb3c8;
+        --input-addon-bg: #6c6c76;
+        --input-hover-border: #9097b3;
+        --progress-bg: #dcdee7;
+        --progress-divider: #dcdee7;
+        --sortable-table-bg: #f2f2f2;
+        --sortable-table-row-bg: #fff;
+        --sortable-table-header-bg: #f4f5fa;
+        --sortable-table-top-divider: var(--border);
+        --sortable-table-body-divider: #dcdee7;
+        --sortable-table-hover-bg: #f4f5fa;
+        --sortable-table-selected-bg: var(--primary-light-bg);
+        --sortable-table-group-label: #6c6c76;
+        --tag-primary: #141419;
+        --tag-bg: #dcdee7;
+        --popover-bg: var(--body-bg);
+        --popover-border: var(--border);
+        --popover-text: var(--body-text);
+        --popover-border-radius: var(--border-radius);
+        --tooltip-bg: #dcdee7;
+        --tooltip-border: var(--tag-primary);
+        --tooltip-text: var(--tag-primary);
+        --tooltip-bg-warning: rgba(218, 195, 66, 0.8);
+        --tooltip-text-warning: var(--body-text);
+        --tabbed-border: #dcdee7;
+        --tabbed-sidebar-bg: #f4f5fa;
+        --tabbed-container-bg: #f3f4f9;
+        --yaml-editor-bg: #f4f5fa;
+        --diff-border: var(--border);
+        --diff-header-bg: var(--nav-bg);
+        --diff-header-border: var(--border);
+        --diff-header: rgba(20, 20, 25, 0.3);
+        --diff-linenum-bg: var(--nav-bg);
+        --diff-linenum: var(--muted);
+        --diff-linenum-border: var(--border);
+        --diff-line-ins-bg: $success;
+        --diff-line-del-bg: rgba(246, 71, 71, 0.75);
+        --diff-del-bg: rgba(246, 71, 71, 0.3);
+        --diff-del-border: #f64747;
+        --diff-ins-bg: rgba(93, 153, 93, 0.3);
+        --diff-ins-border: rgba(93, 153, 93, 0.5);
+        --diff-chg-ins: rgba(93, 153, 93, 0.25);
+        --diff-chg-del: rgba(218, 195, 66, 0.5);
+        --diff-empty-placeholder: #fff;
+        --wm-tabs-bg: #dcdee7;
+        --wm-tab-bg: #eeeff4;
+        --wm-closer-hover-bg: #f4f5fa;
+        --wm-tab-active-bg: #f4f5fa;
+        --wm-title-bg: #fff;
+        --wm-title-border: #dcdee7;
+        --wm-body-bg: #f4f5fa;
+        --wm-border: var(--border);
+        --wm-tab-height: 29px;
+        --glance-bg-rgb: 61, 152, 211;
+        --glance-divider: #dcdee7;
+        --resource-gauge-back-circle: 255, 255, 255, 0.15;
+        --simple-box-bg: #fff;
+        --simple-box-border: #dcdee7;
+        --simple-box-divider: #dcdee7;
+        --simple-box-shadow: none;
+        --terminal-bg: var(--body-bg);
+        --terminal-cursor: var(--warning);
+        --terminal-selection: rgba(61, 152, 211, 0.5);
+        --terminal-text: var(--body-text);
+        --logs-bg: var(--wm-body-bg);
+        --logs-highlight: var(--wm-body-bg);
+        --logs-highlight-bg: var(--warning);
+        --logs-text: var(--body-text);
+        --gauge-divider: #fff;
+        --gauge-zero: #dcdee7;
+        --gauge-success-primary: 150, 189, 127;
+        --gauge-success-secondary: 190, 211, 172;
+        --gauge-warning-primary: 238, 226, 176;
+        --gauge-warning-secondary: 218, 195, 66;
+        --gauge-error-primary: 249, 186, 171;
+        --gauge-error-secondary: 239, 90, 83;
+        --sizzle-0: 180, 210, 30;
+        --sizzle-1: 225, 45, 74;
+        --sizzle-2: 212, 66, 148;
+        --sizzle-3: 0, 169, 217;
+        --sizzle-4: 244, 136, 68;
+        --sizzle-5: 0, 147, 128;
+        --sizzle-6: 136, 81, 165;
+        --sizzle-7: 45, 47, 149;
+        --sizzle-8: 255, 235, 0;
+        --sizzle-success: 93, 153, 93;
+        --sizzle-info: 61, 152, 211;
+        --sizzle-warning: 218, 195, 66;
+        --sizzle-error: 246, 71, 71;
+        --sizzle-unknown: 220, 222, 231;
+        --app-rancher-accent: #3d98d3;
+        --app-rancher-accent-text: #fff;
+        --app-partner-accent: #fea424;
+        --app-partner-accent-text: #000;
+        --app-color1-accent: rgba(var(--sizzle-1), 1);
+        --app-color1-accent-text: #fff;
+        --app-color2-accent: rgba(var(--sizzle-2), 1);
+        --app-color2-accent-text: #fff;
+        --app-color3-accent: rgba(var(--sizzle-3), 1);
+        --app-color3-accent-text: #fff;
+        --app-color4-accent: rgba(var(--sizzle-4), 1);
+        --app-color4-accent-text: #fff;
+        --app-color5-accent: rgba(var(--sizzle-5), 1);
+        --app-color5-accent-text: #fff;
+        --app-color6-accent: rgba(var(--sizzle-6), 1);
+        --app-color6-accent-text: #fff;
+        --app-color7-accent: rgba(var(--sizzle-7), 1);
+        --app-color7-accent-text: #fff;
+        --app-color8-accent: rgba(var(--sizzle-8), 1);
+        --app-color8-accent-text: #fff;
+        --product-icon: #6c6c76;
+        --product-icon-active: #141419;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <svg width="100px" height="100%" fill="#3d98d3" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 100 100" xml:space="preserve">
+      <g>
+        <g>
+          <path d="M26.0862026,44.4953918H8.6165142c-5.5818157,0-9.3979139-4.6252708-8.4802637-10.1311035l2.858391-17.210701
+      C3.912292,11.6477556,6.1382647,7.1128125,7.8419709,7.1128125s3.1788611,4.5368752,3.1788611,10.1186218v4.4837742
+      c0,5.5817471,4.4044495,9.5409164,9.9862652,9.5409164h5.0791054V44.4953918z"></path>
+        </g>
+        <path d="M63.0214729,92.8871841H37.0862045c-6.0751343,0-11.0000019-4.9248657-11.0000019-11V30.3864384
+    c0-6.0751324,4.9248676-11,11.0000019-11h25.9352684c6.0751305,0,11.0000038,4.9248676,11.0000038,11v51.5007477
+    C74.0214767,87.9623184,69.0966034,92.8871841,63.0214729,92.8871841z"></path>
+        <g>
+          <path d="M73.9137955,44.4953918h17.4696884c5.5818176,0,9.3979187-4.6252708,8.4802628-10.1311035
+      l-2.8583908-17.210701c-0.9176483-5.5058317-3.1436234-10.0407753-4.8473282-10.0407753
+      s-3.1788635,4.5368752-3.1788635,10.1186218v4.4837742c0,5.5817471-4.4044418,9.5409164-9.9862595,9.5409164h-5.0791092
+      V44.4953918z"></path>
+        </g>
+      </g>
+    </svg>
+    <h1>Rancher Deployments Previews</h1>
+    <h2>Pull requests:</h2>
+    <ul></ul>
+  </div>
+
+  <script>
+    const list = 'K8S_DEPLOYMENTS'.split(',');
+    list.forEach(text => {
+      const listEl = document.createElement('li')
+      const anchorEl = document.createElement("a");
+      anchorEl.href = `/${text}`;
+      anchorEl.textContent = text;
+      listEl.appendChild(anchorEl);
+      document.querySelector('ul').appendChild(listEl)
+    })
+  </script>
+
+</html>
