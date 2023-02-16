@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rancher-deployments-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rancher-deployments-list-configmap
+  namespace: rancher-deployments-config
+data:
+  index.html: |
+    <html>
+    <h1>Welcome</h1>
+    </br>
+    <h1>Deployment preview</h1>
+    <h2>Pull requests:</h2>
+    <ul>
+      <li><a href="http://rancher-deployments.cnotv.xyz/rancher-deployment/">rancher-deployment</a></li>
+    </ul>
+    </html
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rancher-deployments-list
+  namespace: rancher-deployments-config
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2 
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+            - name: nginx-index-file
+              mountPath: /usr/share/nginx/html/
+      volumes:
+      - name: nginx-index-file
+        configMap:
+          name: rancher-deployments-list-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rancher-deployments-list-service
+  namespace: rancher-deployments-config
+spec:
+  selector:
+    app: nginx
+  type: NodePort
+  ports:
+    - port: 80
+      nodePort: 32000
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rancher-deployments-list-ingress
+  namespace: rancher-deployments-config
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: <DIGITALOCEAN_DEPLOYMENT_DOMAIN>
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: rancher-deployments-list-service
+            port:
+              number: 80
