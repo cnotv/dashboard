@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: rancher-deployments-config
+  name: <K8S_PREFIX>-config
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: rancher-deployments-list-configmap
-  namespace: rancher-deployments-config
+  name: <K8S_PREFIX>-list-configmap
+  namespace: <K8S_PREFIX>-config
 data:
   index.html: |
     <!doctype html>
@@ -521,8 +521,8 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rancher-deployments-list
-  namespace: rancher-deployments-config
+  name: <K8S_PREFIX>-list
+  namespace: <K8S_PREFIX>-config
 spec:
   selector:
     matchLabels:
@@ -544,13 +544,13 @@ spec:
       volumes:
       - name: nginx-index-file
         configMap:
-          name: rancher-deployments-list-configmap
+          name: <K8S_PREFIX>-list-configmap
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: rancher-deployments-list-service
-  namespace: rancher-deployments-config
+  name: <K8S_PREFIX>-list-service
+  namespace: <K8S_PREFIX>-config
 spec:
   selector:
     app: nginx
@@ -563,18 +563,18 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: rancher-deployments-list-ingress
-  namespace: rancher-deployments-config
+  name: <K8S_PREFIX>-list-ingress
+  namespace: <K8S_PREFIX>-config
 spec:
   ingressClassName: nginx
   rules:
-  - host: <DIGITALOCEAN_DEPLOYMENT_DOMAIN>
+  - host: <K8S_DEPLOYMENT_DOMAIN>
     http:
       paths:
       - pathType: Prefix
         path: "/"
         backend:
           service:
-            name: rancher-deployments-list-service
+            name: <K8S_PREFIX>-list-service
             port:
               number: 80

@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: rancher-deployments-dist
+  name: <K8S_PREFIX>-dist
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: <DIGITALOCEAN_REGISTRY>
-  namespace: rancher-deployments-dist
+  namespace: <K8S_PREFIX>-dist
 data:
   .dockerconfigjson: <DIGITALOCEAN_REGISTRY_CONFIG>
 type: kubernetes.io/dockerconfigjson
@@ -15,13 +15,13 @@ type: kubernetes.io/dockerconfigjson
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: <DIGITALOCEAN_DEPLOYMENT_NAME>
-  namespace: rancher-deployments-dist
+  name: <K8S_NAME>
+  namespace: <K8S_PREFIX>-dist
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: <DIGITALOCEAN_DEPLOYMENT_NAME>
+      app: <K8S_NAME>
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -29,11 +29,11 @@ spec:
   template:
     metadata:
       labels:
-        app: <DIGITALOCEAN_DEPLOYMENT_NAME>
+        app: <K8S_NAME>
     spec:
       containers:
-      - name: <DIGITALOCEAN_DEPLOYMENT_NAME>-container
-        image: <DIGITALOCEAN_DEPLOYMENT_IMAGE>
+      - name: <K8S_NAME>-container
+        image: <DIGITALOCEAN_IMAGE>
         ports:
         - containerPort: 80
       imagePullSecrets:
@@ -42,11 +42,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: <DIGITALOCEAN_DEPLOYMENT_NAME>-service
-  namespace: rancher-deployments-dist
+  name: <K8S_NAME>-service
+  namespace: <K8S_PREFIX>-dist
 spec:
   selector:
-    app: <DIGITALOCEAN_DEPLOYMENT_NAME>
+    app: <K8S_NAME>
   ports:
   - name: http
     port: 80
@@ -56,18 +56,18 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: <DIGITALOCEAN_DEPLOYMENT_NAME>-ingress
-  namespace: rancher-deployments-dist
+  name: <K8S_NAME>-ingress
+  namespace: <K8S_PREFIX>-dist
 spec:
   ingressClassName: nginx
   rules:
-  - host: <DIGITALOCEAN_DEPLOYMENT_DOMAIN>
+  - host: <K8S_DEPLOYMENT_DOMAIN>
     http:
       paths:
       - pathType: Prefix
-        path: "/<DIGITALOCEAN_DEPLOYMENT_NAME>/"
+        path: "/<K8S_NAME>/"
         backend:
           service:
-            name: <DIGITALOCEAN_DEPLOYMENT_NAME>-service
+            name: <K8S_NAME>-service
             port:
               number: 80

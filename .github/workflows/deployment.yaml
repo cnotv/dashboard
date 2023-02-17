@@ -4,21 +4,22 @@ on: [push]
 
 # TODO:
 # - Replace test.yaml with the secret cluster configuration
-# - Replace hardcoded name with PR ID or branch name (for push)
-# - Correct ingress address
-# - Fix environment issues for loading deployments
-# - Prevent use of registry if possible, due image size (500MB)
+# - Prevent use of registry if possible, due image size (500MB) or remove older images
 # - Chain in one script the deployment sed command
+# - Concatenate env vars (DIGITALOCEAN_IMAGE)
 
 env:
-  # K8S_NAME: ${{ github.event.pull_request.title || 'rancher-deployment' }}
-  K8S_NAME: 'rancher-deployment'
+  K8S_PREFIX: 'rancher-deployment'
+  # K8S_NAME: ${{ github.event.pull_request.number || github.event.number || github.head_ref || github.ref_name || 'rancher-deployment' }}
+  K8S_NAME: ${{ github.event.pull_request.number || 'rancher-deployment' }}
   K8S_DIR: $GITHUB_WORKSPACE/k8s
   K8S_CLUSTER_CONFIG: $GITHUB_WORKSPACE/k8s/test.yaml
   K8S_DEPLOYMENTS: 'rancher-deployment'
-  DIGITALOCEAN_REGISTRY: 'gleo-registry'
-  DIGITALOCEAN_DEPLOYMENT_DOMAIN: 'rancher-deployments.cnotv.xyz'
+  K8S_DEPLOYMENT_DOMAIN: 'rancher-deployments.cnotv.xyz'
   TAG: '$(echo $GITHUB_SHA | head -c7)'
+  DIGITALOCEAN_REGISTRY: 'gleo-registry'
+  # DIGITALOCEAN_IMAGE: '$(echo registry.digitalocean.com/gleo-registry/rancher-deployment:${{ env.K8S_NAME }})'
+  # DIGITALOCEAN_IMAGE: '$(echo registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{ env.K8S_PREFIX }}:${{ env.TAG }})'
 
 jobs:
   deploy:
@@ -32,6 +33,8 @@ jobs:
         token: ${{ secrets.DIGITALOCEAN_TOKEN }}
 
     - name: Build Docker image
+      env:
+        ROUTER_BASE: https://${{ env.K8S_DEPLOYMENT_DOMAIN }}/${{ env.K8S_NAME }}/
       run: |
         docker build -t registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{ env.K8S_NAME }}:${{ env.TAG }} .
 
@@ -42,12 +45,15 @@ jobs:
       run: docker push registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{ env.K8S_NAME }}:${{ env.TAG }}
 
     - name: Update deployment file
+      env:
+        DIGITALOCEAN_CLUSTER: ${{ secrets.DIGITALOCEAN_CLUSTER }}
       run: |
-        echo "${{secrets.DIGITALOCEAN_CLUSTER}}" >> $GITHUB_WORKSPACE/k8s/cluster-config.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_IMAGE>|registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{ env.K8S_NAME }}':'${{ env.TAG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_NAME>|'${{ env.K8S_NAME }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        echo DIGITALOCEAN_CLUSTER | base64 > $GITHUB_WORKSPACE/k8s/cluster-config.yaml
+        sed -i 's|<K8S_PREFIX>|'${{ env.K8S_PREFIX }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<DIGITALOCEAN_IMAGE>|registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{ env.K8S_NAME }}':'${{ env.TAG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<K8S_NAME>|'${{ env.K8S_NAME }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
         sed -i 's|<DIGITALOCEAN_REGISTRY>|'${{ env.DIGITALOCEAN_REGISTRY }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_DOMAIN>|'${{ env.DIGITALOCEAN_DEPLOYMENT_DOMAIN }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
+        sed -i 's|<K8S_DEPLOYMENT_DOMAIN>|'${{ env.K8S_DEPLOYMENT_DOMAIN }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
         sed -i 's|<DIGITALOCEAN_REGISTRY_CONFIG>|'${{ secrets.DIGITALOCEAN_REGISTRY_CONFIG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
         
 
@@ -57,13 +63,14 @@ jobs:
         
     - name: Deploy to Rancher cluster
       run: |
-        # kubectl create deployment ${{ env.K8S_NAME }} --image=registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{ env.K8S_NAME }}':'${{ env.TAG }}' --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
+        # kubectl create deployment ${{ env.K8S_NAME }} --image='${{ env.DIGITALOCEAN_IMAGE }}' --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
         kubectl apply -f ${{ env.K8S_DIR }}/deployment.yaml --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
 
     - name: Generate index page with deployment list
       run: |
         sed -i 's|K8S_DEPLOYMENTS|'${{ env.K8S_DEPLOYMENTS }}'|' $GITHUB_WORKSPACE/k8s/list.yaml
-        sed -i 's|<DIGITALOCEAN_DEPLOYMENT_DOMAIN>|'${{ env.DIGITALOCEAN_DEPLOYMENT_DOMAIN }}'|' $GITHUB_WORKSPACE/k8s/list.yaml
+        sed -i 's|<K8S_PREFIX>|'${{ env.K8S_PREFIX }}'|' $GITHUB_WORKSPACE/k8s/list.yaml
+        sed -i 's|<K8S_DEPLOYMENT_DOMAIN>|'${{ env.K8S_DEPLOYMENT_DOMAIN }}'|' $GITHUB_WORKSPACE/k8s/list.yaml
         kubectl delete deployment rancher-deployments-list --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}" --ignore-not-found
         kubectl apply -f ${{ env.K8S_DIR }}/list.yaml --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
       
