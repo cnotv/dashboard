@@ -21,9 +21,14 @@ export default {
     hideSensitiveData: {
       type:    Boolean,
       default: true,
+    },
+    rules: {
+      default:   () => {},
+      type:      Array,
+      // we only want functions in the rules array
+      validator: rules => rules.every(rule => ['function'].includes(typeof rule))
     }
   },
-
   computed: {
     isView() {
       return this.mode === _VIEW;
@@ -50,6 +55,7 @@ export default {
     key="data"
     v-model="value.data"
     :mode="mode"
+    :rules="rules"
     :initial-empty-row="true"
     :handle-base64="true"
     :value-trim="false"

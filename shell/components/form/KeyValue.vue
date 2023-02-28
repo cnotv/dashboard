@@ -10,6 +10,7 @@ import Select from '@shell/components/form/Select';
 import FileSelector from '@shell/components/form/FileSelector';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { asciiLike } from '@shell/utils/string';
+import { LabeledInput } from '@components/Form/LabeledInput';
 
 export default {
   name: 'KeyValue',
@@ -17,7 +18,8 @@ export default {
   components: {
     Select,
     TextAreaAutoGrow,
-    FileSelector
+    FileSelector,
+    LabeledInput
   },
   props: {
     value: {
@@ -240,6 +242,12 @@ export default {
     parseLinesFromFile: {
       default: false,
       type:    Boolean
+    },
+    rules: {
+      default:   () => [],
+      type:      Array,
+      // we only want functions in the rules array
+      validator: rules => rules.every(rule => ['function'].includes(typeof rule))
     }
   },
   data() {
@@ -603,6 +611,17 @@ export default {
               :taggable="keyTaggable"
               :options="calculateOptions(row[keyName])"
               @input="queueUpdate"
+            />
+            <LabeledInput
+              v-else-if="rules.length > 0"
+              ref="key"
+              v-model="row[keyName]"
+              :rules="rules"
+              :compact="true"
+              :disabled="isView || !keyEditable || isProtected(row.key)"
+              :placeholder="keyPlaceholder"
+              @input="queueUpdate"
+              @paste="onPaste(i, $event)"
             />
             <input
               v-else

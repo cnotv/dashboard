@@ -20,6 +20,7 @@ import { NAME as MANAGER } from '@shell/config/product/manager';
 import SelectIconGrid from '@shell/components/SelectIconGrid';
 import { sortBy } from '@shell/utils/sort';
 import { ucFirst } from '@shell/utils/string';
+import FormValidation from '@shell/mixins/form-validation';
 
 const creatableTypes = [
   TYPES.OPAQUE,
@@ -44,7 +45,7 @@ export default {
     SelectIconGrid
   },
 
-  mixins: [CreateEditView],
+  mixins: [CreateEditView, FormValidation],
 
   async fetch() {
     if ( this.isCloud ) {
@@ -90,8 +91,36 @@ export default {
       nodeDrivers:       null,
       secretTypes,
       secretType:        this.value._type,
-      initialSecretType: this.value._type
+      initialSecretType: this.value._type,
+      fvFormRuleSets:    [{
+        path:  'data',
+        rules: ['required', 'noUpperCase']
+      }],
     };
+  },
+
+  watch: {
+    value() {
+      if (this.value.data) {
+        const dataKeys = Object.keys(this.value.data);
+        const dataRules = dataKeys.map((key) => {
+          return {
+            // We are validating the value pair of this key not the key itself
+            path:  `data.${ key }`,
+            rules: ['required', 'noUpperCase']
+          };
+        });
+
+        this.fvFormRuleSets = [
+          ...this.fvFormRuleSets,
+          {
+            path:  'data',
+            rules: ['required', 'noUpperCase']
+          },
+          ...dataRules
+        ];
+      }
+    }
   },
 
   computed: {
@@ -222,6 +251,19 @@ export default {
   },
 
   methods: {
+    rules() {
+      const base = { data: this.fvGetAndReportPathRules(`data`) };
+
+      if (!this.value.data) {
+        return base;
+      }
+
+      return Object.keys(this.value.data).reduce((acc, key) => ({
+        ...acc,
+        [key]: this.fvGetAndReportPathRules(`data.${ key }`)
+      }), { ...base });
+      // }), {});
+    },
     async saveSecret(btnCb) {
       if ( this.errors ) {
         clear(this.errors);
@@ -310,10 +352,10 @@ export default {
     <CruResource
       v-else
       :mode="mode"
-      :validation-passed="true"
+      :validation-passed="fvFormIsValid"
+      :errors="fvUnreportedValidationErrors"
       :selected-subtype="value._type"
       :resource="value"
-      :errors="errors"
       :done-route="doneRoute"
       :subtypes="secretSubTypes"
       @finish="saveSecret"
@@ -356,7 +398,6 @@ export default {
           />
         </div>
       </div>
-
       <div class="spacer" />
       <component
         :is="cloudComponent"
@@ -365,6 +406,7 @@ export default {
         :driver-name="driverName"
         :value="value"
         :mode="mode"
+        :rules="rules"
         :hide-sensitive-data="hideSensitiveData"
       />
       <Tabbed

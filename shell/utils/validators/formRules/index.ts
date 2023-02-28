@@ -129,7 +129,7 @@ export default function(t: Translation, { key = 'Value' }: ValidationOptions) {
 
   const required: Validator = (val: any) => !val && val !== false ? t('validation.required', { key }) : undefined;
 
-  const noUpperCase: Validator = (val = '') => val.toLowerCase() !== val ? t('validation.noUpperCase', { key }) : undefined;
+  const noUpperCase: Validator = (val = '') => typeof val === 'string' && val.toLowerCase() !== val ? t('validation.noUpperCase', { key }) : undefined;
 
   const cronSchedule: Validator = (val: string) => {
     try {
