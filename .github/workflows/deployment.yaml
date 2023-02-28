@@ -36,7 +36,7 @@ jobs:
       env:
         ROUTER_BASE: https://${{ env.K8S_DEPLOYMENT_DOMAIN }}/${{ env.K8S_NAME }}/
       run: |
-        docker build -t registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{ env.K8S_NAME }}:${{ env.TAG }} --build-arg ROUTER_BASE=${ROUTER_BASE} .
+        docker build -t registry.digitalocean.com/${{ env.DIGITALOCEAN_REGISTRY }}/${{ env.K8S_NAME }}:${{ env.TAG }} .
 
     - name: Log in to DigitalOcean Container Registry with short-lived credentials
       run: doctl registry login --expiry-seconds 600
