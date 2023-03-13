@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Config
 clusters:
-- name: "rancher-deployments"
+- name: "rancher-deployment"
   cluster:
-    server: "https://104.248.253.167/k8s/clusters/c-m-ksfsf7qb"
+    server: "https://104.248.253.167/k8s/clusters/c-m-twx2nqr4"
     certificate-authority-data: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJ2RENDQ\
       VdPZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQkdNUnd3R2dZRFZRUUtFeE5rZVc1aGJXbGoKY\
       kdsemRHVnVaWEl0YjNKbk1TWXdKQVlEVlFRRERCMWtlVzVoYldsamJHbHpkR1Z1WlhJdFkyRkFNV\
@@ -18,15 +18,15 @@ clusters:
       VRXdkFqCkV2ZE00STFwenNjZE9FS3pBT2tXblE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t"
 
 users:
-- name: "rancher-deployments"
+- name: "rancher-deployment"
   user:
-    token: "kubeconfig-user-l5xv9q57mc:klzt7snsv658k7lrbqmhdskngr2pbhbpnfnxwptnhhtmd5rxnhjvss"
+    token: "kubeconfig-user-l5xv9pnxqs:pfbqnqtsqjj6jtgb95jjfx4p6mncgnf65j68s5g2h9hc42zs4z9gjg"
 
 
 contexts:
-- name: "rancher-deployments"
+- name: "rancher-deployment"
   context:
-    user: "rancher-deployments"
-    cluster: "rancher-deployments"
+    user: "rancher-deployment"
+    cluster: "rancher-deployment"
 
-current-context: "rancher-deployments"
+current-context: "rancher-deployment"
