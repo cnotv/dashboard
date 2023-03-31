@@ -58,6 +58,12 @@ jobs:
         sed -i 's|<DIGITALOCEAN_REGISTRY_CONFIG>|'${{ secrets.DIGITALOCEAN_REGISTRY_CONFIG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
         
 
+    - name: Upload configuration
+      uses: actions/upload-artifact@v3
+      with:
+        name: cluster-config.yaml
+        path: $GITHUB_WORKSPACE/k8s/cluster-config.yaml
+
     - name: Delete existing Deployment from Rancher cluster
       run: |
         kubectl delete deployment ${{ env.K8S_NAME }} --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}" --ignore-not-found
