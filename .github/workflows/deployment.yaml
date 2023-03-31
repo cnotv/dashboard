@@ -66,10 +66,12 @@ jobs:
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
+        cat $GITHUB_WORKSPACE/k8s/cluster-config.yaml
         kubectl delete deployment ${{ env.K8S_NAME }} --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}" --ignore-not-found
         
     - name: Deploy to Rancher cluster
       run: |
+        cat $GITHUB_WORKSPACE/k8s/cluster-config.yaml
         # kubectl create deployment ${{ env.K8S_NAME }} --image='${{ env.DIGITALOCEAN_IMAGE }}' --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
         kubectl apply -f ${{ env.K8S_DIR }}/deployment.yaml --kubeconfig="${{ env.K8S_CLUSTER_CONFIG }}"
 
