@@ -13,7 +13,7 @@ env:
   # K8S_NAME: ${{ github.event.pull_request.number || github.event.number || github.head_ref || github.ref_name || 'rancher-deployment' }}
   K8S_NAME: ${{ github.event.pull_request.number || 'rancher-deployment' }}
   K8S_DIR: $GITHUB_WORKSPACE/k8s
-  K8S_CLUSTER_CONFIG: $GITHUB_WORKSPACE/k8s/test.yaml
+  K8S_CLUSTER_CONFIG: $GITHUB_WORKSPACE/k8s/cluster-config.yaml
   K8S_DEPLOYMENTS: 'rancher-deployment'
   K8S_DEPLOYMENT_DOMAIN: 'rancher-deployments.cnotv.xyz'
   TAG: '$(echo $GITHUB_SHA | head -c7)'
