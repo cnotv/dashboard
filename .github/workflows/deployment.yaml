@@ -48,7 +48,7 @@ jobs:
       env:
         DIGITALOCEAN_CLUSTER: ${{ secrets.DIGITALOCEAN_CLUSTER }}
       run: |
-        echo DIGITALOCEAN_CLUSTER > $GITHUB_WORKSPACE/k8s/cluster-config.yaml
+        echo $DIGITALOCEAN_CLUSTER | base64 --decode > $GITHUB_WORKSPACE/k8s/cluster-config.yaml
         cat $GITHUB_WORKSPACE/k8s/cluster-config.yaml
     #     sed -i 's|<K8S_PREFIX>|'${{ env.K8S_PREFIX }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
     #     sed -i 's|<DIGITALOCEAN_IMAGE>|registry.digitalocean.com/'${{ env.DIGITALOCEAN_REGISTRY }}'/'${{ env.K8S_NAME }}':'${{ env.TAG }}'|' $GITHUB_WORKSPACE/k8s/deployment.yaml
