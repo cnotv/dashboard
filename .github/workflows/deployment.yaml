@@ -62,7 +62,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: cluster-config
-        path: $GITHUB_WORKSPACE/k8s
+        path: k8s
 
     - name: Delete existing Deployment from Rancher cluster
       run: |
