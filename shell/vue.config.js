@@ -454,7 +454,8 @@ module.exports = function(dir, _appConfig) {
         console.warn('Instrumenting code for coverage'); // eslint-disable-line no-console
       }
 
-      const loaders = [
+      // https://v4.webpack.js.org/configuration/module/#rule
+      const ruleLoaders = [
         // Ensure there is a fallback for browsers that don't support web workers
         {
           test:    /web-worker.[a-z-]+.js/i,
@@ -523,11 +524,8 @@ module.exports = function(dir, _appConfig) {
               loader:  'ts-loader',
               options: {
                 transpileOnly:     true,
-                happyPackMode:     false,
-                appendTsxSuffixTo: [
-                  '\\.vue$'
-                ],
-                configFile: path.join(SHELL_ABS, 'tsconfig.json')
+                appendTsxSuffixTo: [/\.vue$/],
+                configFile:        path.join(SHELL_ABS, 'tsconfig.json')
               }
             }
           ]
@@ -547,6 +545,7 @@ module.exports = function(dir, _appConfig) {
           ]
         },
         // Prevent warning in log with the md files in the content folder
+        // TODO: Verify if can merge with setting above
         {
           test: /\.md$/,
           use:  [
@@ -558,14 +557,15 @@ module.exports = function(dir, _appConfig) {
         }
       ];
 
-      config.module.rules.push(...loaders);
+      config.module.rules.push(...ruleLoaders);
 
       // Update vue-loader to set whitespace to 'preserve'
       // This was the setting with nuxt, but is not the default with vue cli
-      // Need to find the vue loader in the webpack config and update the setting
-      config.module.rules.forEach((loader) => {
-        if (loader.use) {
-          loader.use.forEach((use) => {
+      // Need to set for all the defined loaders for all the rules from the Webpack config
+      // UseEntry for Module Rule https://v4.webpack.js.org/configuration/module/#useentry
+      config.module.rules.forEach((rule) => {
+        if (rule.use) {
+          rule.use.forEach((use) => {
             if (use.loader.includes('vue-loader')) {
               use.options.compilerOptions.whitespace = 'preserve';
             }
