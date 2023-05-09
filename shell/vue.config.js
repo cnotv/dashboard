@@ -214,7 +214,7 @@ module.exports = function(dir, _appConfig) {
     }
   });
 
-  const singleChunk = new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 });
+  const limitChunk = new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 2 });
 
   // Serve up the dist-pkg folder under /pkg
   serverMiddleware.push({ path: `/pkg/`, handler: serveStatic(`${ dir }/dist-pkg/`) });
@@ -392,7 +392,7 @@ module.exports = function(dir, _appConfig) {
       config.plugins.push(autoImport);
       config.plugins.push(new VirtualModulesPlugin(autoImportTypes));
       config.plugins.push(pkgImport);
-      config.plugins.push(singleChunk);
+      config.plugins.push(limitChunk);
 
       // DefinePlugin does string replacement within our code. We may want to consider replacing it with something else. In code we'll see something like
       // process.env.commit even though process and env aren't even defined objects. This could cause people to be mislead.
