@@ -347,8 +347,9 @@ module.exports = function(dir, _appConfig) {
         });
       },
     },
-    publicPath: resourceBase || undefined,
-    css:        {
+    transpileDependencies: true,
+    publicPath:            resourceBase || undefined,
+    css:                   {
       extract:       false, // inline css styles instead of including with `<links`
       loaderOptions: {
         sass: {
