@@ -18,20 +18,33 @@
     "rootDir": ".",
     "paths": {
       "~/*": [
-        "../*"
+        "./*"
       ],
       "@/*": [
-        "../*"
+        "./*"
       ],
       "@shell/*": [
-        "../shell/*"
+        "./shell/*"
       ],
       "@pkg/*": [
-        "../shell/pkg/*"
+        "./shell/pkg/*"
       ]
     },
     "typeRoots": [
       "./node_modules/@types"
     ],
+    "types": [
+      "webpack-env",
+    ]
   },
+  "exclude": [
+    "node_modules",
+    ".nuxt",
+    "dist",
+    "dist-pkg",
+    "shell/creators",
+    "shell/scripts",
+    "script/standalone",
+    "docusaurus"
+  ]
 }

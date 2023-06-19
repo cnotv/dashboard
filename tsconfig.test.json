@@ -1,9 +1,16 @@
 {
   "extends": "./tsconfig.default.json",
+  "compilerOptions": {
+    "types": [
+      "jest"
+    ]
+  },
+  "include": [
+    "./**/*.test.ts"
+  ],
   "exclude": [
     "cypress",
     "./cypress.config.ts",
-    "**/*.test.ts",
     "**/*.spec.ts"
   ]
 }
