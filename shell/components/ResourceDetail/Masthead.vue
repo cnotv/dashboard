@@ -82,6 +82,11 @@ export default {
       type:    String,
       default: null,
     },
+
+    canViewYaml: {
+      type:    Boolean,
+      default: false
+    }
   },
 
   data() {
