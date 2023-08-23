@@ -18,6 +18,14 @@ export default {
       type:    String,
       default: _EDIT,
     },
+    newProp: {
+      type:    String,
+      default: null
+    },
+    type: {
+      type:    String,
+      default: ''
+    },
     initialEmptyRow: {
       type:    Boolean,
       default: false,
@@ -88,6 +96,7 @@ export default {
   data() {
     const input = (this.value || []).slice();
     const rows = [];
+    const newData = this.newProp || (this.value || []).push({ value: '' });
 
     for ( const value of input ) {
       rows.push({ value });
@@ -98,7 +107,9 @@ export default {
       rows.push({ value });
     }
 
-    return { rows, lastUpdateWasFromValue: false };
+    return {
+      rows, lastUpdateWasFromValue: false, newData
+    };
   },
   computed: {
     isView() {
@@ -142,6 +153,10 @@ export default {
     this.queueUpdate = debounce(this.update, 50);
   },
   methods: {
+    randomCoverageTest() {
+      return JSON.stringify(this.rows || {});
+    },
+
     add() {
       this.rows.push({ value: clone(this.defaultAddValue) });
       if (this.defaultAddValue) {
@@ -205,6 +220,7 @@ export default {
 
 <template>
   <div>
+    {{ randomCoverageTest() }}
     <div
       v-if="title"
       class="clearfix"
