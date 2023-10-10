@@ -55,7 +55,6 @@ describe('Performance', { tags: '@adminUser' }, () => {
       cy.reload();
 
       // eslint-disable-next-line cypress/no-unnecessary-waiting
-      cy.wait(6000); // We wait for the modal to show
 
       expect(performancePage.inactivityModalCard().getModal().should('exist'));
 

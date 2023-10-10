@@ -209,7 +209,7 @@ describe('Users', { tags: '@adminUser' }, () => {
 
       cy.intercept('GET', '/v1/management.cattle.io.users/*').as('downloadYaml');
       usersPo.list().bulkActionButton('Download YAML').click();
-      cy.wait('@downloadYaml', { timeout: 10000 }).its('response.statusCode').should('eq', 200);
+      cy.wait('@downloadYaml').its('response.statusCode').should('eq', 200);
       const downloadedFilename = path.join(downloadsFolder, 'resources.zip');
 
       cy.readFile(downloadedFilename).should('exist');

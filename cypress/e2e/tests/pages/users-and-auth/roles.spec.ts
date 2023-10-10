@@ -123,7 +123,7 @@ describe('Roles', { tags: '@adminUser' }, () => {
     roles.list().elementWithName(globalRoleName).click();
     cy.intercept('GET', '/v1/management.cattle.io.globalroles/*').as('downloadYaml');
     roles.list().downloadYaml().click();
-    cy.wait('@downloadYaml', { timeout: 10000 }).its('response.statusCode').should('eq', 200);
+    cy.wait('@downloadYaml').its('response.statusCode').should('eq', 200);
     const downloadedFilename = path.join(downloadsFolder, `${ globalRoleName }.yaml`);
 
     cy.readFile(downloadedFilename).should('exist');

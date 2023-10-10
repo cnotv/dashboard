@@ -77,7 +77,7 @@ describe('Agent Configuration for RKE2', { tags: '@adminUser' }, () => {
 
     // need to do a wait to make sure intercept doesn't fail on cy.wait for request
     // ci/cd pipelines are notoriously slow... let's wait longer than usual
-    cy.wait('@customRKE2ClusterCreation', { requestTimeout: 10000 }).then((req) => {
+    cy.wait('@customRKE2ClusterCreation').then((req) => {
       expect(req.response?.statusCode).to.equal(201);
       expect(req.request?.body?.spec.clusterAgentDeploymentCustomization).to.deep.equal(payloadComparisonData.clusterAgentDeploymentCustomization);
       expect(req.request?.body?.spec.fleetAgentDeploymentCustomization).to.deep.equal(payloadComparisonData.fleetAgentDeploymentCustomization);

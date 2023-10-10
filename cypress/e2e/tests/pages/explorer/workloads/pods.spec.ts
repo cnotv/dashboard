@@ -41,7 +41,7 @@ describe('Cluster Explorer', () => {
         it(`Should have same spec as the original pod`, () => {
           const cloneCreatePodPage = new WorkLoadsPodDetailsPagePo(origPodName, { mode: 'clone' });
 
-          cloneCreatePodPage.goTo().wait(10000);
+          cloneCreatePodPage.goTo();
 
           let origPodSpec: any;
 
@@ -56,11 +56,11 @@ describe('Cluster Explorer', () => {
 
           // Each pod need a unique name
           createClonePo.nameNsDescription().name().set(clonePodName);
-          createClonePo.save().wait(10000);
+          createClonePo.save();
 
           const clonedPodPage = new WorkLoadsPodDetailsPagePo(clonePodName);
 
-          clonedPodPage.goTo().wait(10000);
+          clonedPodPage.goTo();
 
           cy.wait('@clonedPod')
             .then(({ response }) => {
