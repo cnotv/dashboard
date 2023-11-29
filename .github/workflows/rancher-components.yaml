@@ -3,8 +3,6 @@ on:
   pull_request:
     paths:
       - 'pkg/rancher-components/**/*'
-    branches:
-      - master
 
 jobs:
   validate-build:
