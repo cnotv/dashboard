@@ -2,10 +2,10 @@
 // This file was generated during Nuxt migration
 
 import { createApp } from 'vue';
-import { extendRouter } from '../config/router.js';
+import { createRouter } from '../config/router.js';
 import NuxtChild from '../components/nuxt/nuxt-child.js';
 import App from './App.js';
-import { setContext, getLocation, getRouteData, normalizeError } from '../utils/nuxt';
+import { setContext, getRouteData, normalizeError } from '../utils/nuxt';
 import { createStore } from '../config/store.js';
 
 /* Plugins */
@@ -68,7 +68,8 @@ vueApp.component(NuxtChild.name, NuxtChild);
 vueApp.component('NChild', NuxtChild);
 
 async function extendApp(config = {}) {
-  const router = await extendRouter(config);
+  const router = await createRouter(config);
+  vueApp.use(router);
 
   const store = createStore();
 
@@ -108,10 +109,7 @@ async function extendApp(config = {}) {
 
   const next = (location) => app.router.push(location);
   // Resolve route
-
-  const path = getLocation(router.options.base, router.options.mode);
-  const routeResolve = router.resolve(path);
-  const route = router.resolve(path).route;
+  const route = router.currentRoute.value;
 
   // Set context to app.context
   await setContext(app, {
@@ -192,7 +190,7 @@ async function extendApp(config = {}) {
   // Wait for async component to be resolved first
   await new Promise((resolve, reject) => {
     // Ignore 404s rather than blindly replacing URL in browser
-    const { route } = router.resolve(app.context.route.fullPath);
+    const route = router.currentRoute.value;
 
     if (!route.matched.length) {
       return resolve();
