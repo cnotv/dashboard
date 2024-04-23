@@ -3,6 +3,15 @@ kind: Namespace
 metadata:
   name: <K8S_PREFIX>-dist
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: <DIGITALOCEAN_REGISTRY>
+  namespace: <K8S_PREFIX>-dist
+data:
+  .dockerconfigjson: <DIGITALOCEAN_REGISTRY_CONFIG>
+type: kubernetes.io/dockerconfigjson
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,11 +33,12 @@ spec:
     spec:
       containers:
       - name: <K8S_NAME>-container
-        image: <K8S_IMAGE>
+        image: <DIGITALOCEAN_IMAGE>
         ports:
         - containerPort: 80
+      imagePullSecrets:
+      - name: <DIGITALOCEAN_REGISTRY>
 ---
-# Expose deployment with ClusterIP service
 apiVersion: v1
 kind: Service
 metadata:
@@ -43,7 +53,6 @@ spec:
     targetPort: 80
   type: ClusterIP
 ---
-# Expose service with ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
