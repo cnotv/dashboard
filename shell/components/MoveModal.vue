@@ -12,17 +12,14 @@ export default {
   components: {
     AsyncButton, Card, LabeledSelect, Loading, AppModal
   },
-
-  async fetch() {
-    this.projects = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PROJECT });
-  },
-
   data() {
     return {
       modalName: 'move-modal', projects: [], targetProject: null, showModal: false
     };
   },
-
+  async beforeCreate() {
+    this.projects = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PROJECT });
+  },
   computed: {
     ...mapState('action-menu', ['showPromptMove', 'toMove']),
     ...mapGetters(['currentCluster']),
