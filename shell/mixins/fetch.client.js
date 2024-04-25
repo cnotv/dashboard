@@ -1,4 +1,4 @@
-import { hasFetch, normalizeError, addLifecycleHook } from '../utils/nuxt';
+import { hasFetch, normalizeError } from '../utils/nuxt';
 
 export default {
   beforeCreate() {
@@ -8,8 +8,7 @@ export default {
 
     this._fetchDelay = typeof this.$options.fetchDelay === 'number' ? this.$options.fetchDelay : 200;
 
-    this.$fetch = $fetch.bind(this);
-    addLifecycleHook(this, 'beforeMount', beforeMount);
+    this.$fetch = globalFetch.bind(this);
   },
 
   data() {
@@ -29,15 +28,9 @@ export default {
   }
 };
 
-function beforeMount() {
-  if (!this._hydrated) {
-    return this.$fetch();
-  }
-}
-
-function $fetch() {
+function globalFetch() {
   if (!this._fetchPromise) {
-    this._fetchPromise = $_fetch.call(this)
+    this._fetchPromise = updateFetchState.call(this)
       .then(() => {
         delete this._fetchPromise;
       });
@@ -46,10 +39,9 @@ function $fetch() {
   return this._fetchPromise;
 }
 
-async function $_fetch() { // eslint-disable-line camelcase
+async function updateFetchState() { // eslint-disable-line camelcase
   this.state.pending = true;
   this.state.error = null;
-  this._hydrated = false;
   let error = null;
   const startTime = Date.now();
 
