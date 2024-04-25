@@ -2,7 +2,7 @@ const GITHUB_BASE_API = 'https://api.github.com';
 const MAX_RESULTS = 100; // max number of results is 100
 
 const fetchGithubAPI = async(endpoint) => {
-  const response = await beforeMount(`${ GITHUB_BASE_API }/${ endpoint }`);
+  const response = await fetch(`${ GITHUB_BASE_API }/${ endpoint }`);
 
   // If rate-limit is exceeded, we should wait until the rate limit is reset
   if (response.status === 403) {
