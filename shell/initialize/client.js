@@ -395,7 +395,7 @@ async function render(to, from, next) {
       // Check disabled page loading
       this.$loading.manual = Component.options.loading === false;
 
-      // Call fetch(context)
+      // Call beforeMount(context)
       if (hasFetch) {
         let p = Component.options.fetch(app.context);
 

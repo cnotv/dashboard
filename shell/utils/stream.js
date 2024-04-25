@@ -7,7 +7,7 @@ export function streamJson(url, opt, onData) {
   const decoder = new TextDecoder();
   let buf = '';
 
-  return fetch(url, opt)
+  return beforeMount(url, opt)
     .then((res) => {
       if ( res.status >= 400 ) {
         // eslint-disable-next-line no-console

@@ -2,7 +2,7 @@
 import { NAME as MANAGER } from '@shell/config/product/manager';
 
 export default {
-  fetch({ store, redirect }) {
+  beforeMount({ store, redirect }) {
     const id = store.getters['defaultClusterId'];
 
     if ( id ) {
