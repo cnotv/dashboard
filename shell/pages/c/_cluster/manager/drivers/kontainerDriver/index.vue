@@ -10,7 +10,7 @@ export default {
     ResourceTable, Loading, Masthead, AsyncButton
   },
 
-  async fetch() {
+  async beforeMount() {
     this.allDrivers = await this.$store.dispatch('rancher/findAll', { type: NORMAN.KONTAINER_DRIVER }, { root: true });
   },
 

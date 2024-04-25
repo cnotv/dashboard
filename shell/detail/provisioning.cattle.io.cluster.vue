@@ -79,7 +79,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.value.waitForProvisioner();
 
     const extClass = this.$plugin.getDynamic('provisioner', this.value.machineProvider);

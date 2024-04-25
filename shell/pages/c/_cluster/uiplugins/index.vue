@@ -95,7 +95,7 @@ export default {
     };
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = {};
 
     const isSetup = await this.updateInstallStatus(true);

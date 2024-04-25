@@ -29,7 +29,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentProduct'].inStore;
     const alertmanagerConfigId = this.value.id;
 

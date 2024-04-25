@@ -25,7 +25,7 @@ function isSaml($route) {
 }
 
 export default {
-  async fetch({ store, route, redirect }) {
+  async beforeMount({ store, route, redirect }) {
     const code = route.query[GITHUB_CODE];
     const stateStr = route.query[GITHUB_NONCE];
     const {

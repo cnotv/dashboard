@@ -38,7 +38,7 @@ export default {
   },
 
   mixins: [CreateEditView, ResourceManager],
-  async fetch() {
+  async beforeMount() {
     const storageClasses = await this.$store.dispatch('cluster/findAll', { type: STORAGE_CLASS });
 
     if (this.$store.getters['cluster/canList'](PV)) {

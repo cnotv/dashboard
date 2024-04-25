@@ -24,7 +24,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     this.$initializeFetchData(this.resource);
     this.$fetchType(LOGGING.CLUSTER_OUTPUT);
 

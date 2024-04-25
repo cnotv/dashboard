@@ -50,7 +50,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     const hasAccessToClusterOutputs = this.$store.getters[`cluster/schemaFor`](LOGGING.CLUSTER_OUTPUT);
     const hasAccessToOutputs = this.$store.getters[`cluster/schemaFor`](LOGGING.OUTPUT);
     const hasAccessToNamespaces = this.$store.getters[`cluster/schemaFor`](NAMESPACE);

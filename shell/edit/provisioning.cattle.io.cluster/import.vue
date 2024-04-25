@@ -51,7 +51,7 @@ export default {
     },
   },
 
-  fetch() {
+  beforeMount() {
     // if ( !this.value.spec.rkeConfig ) {
     // set(this.value.spec, 'rkeConfig', {});
     // }

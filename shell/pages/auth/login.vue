@@ -178,7 +178,7 @@ export default {
     });
   },
 
-  async fetch() {
+  async beforeMount() {
     const { value } = await this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: SETTING.BANNERS });
 
     this.customLoginError = JSON.parse(value).loginError;

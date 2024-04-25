@@ -31,7 +31,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentProduct'].inStore;
     const schema = this.$store.getters[`${ inStore }/schemaFor`](this.value);
 

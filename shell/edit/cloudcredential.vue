@@ -30,7 +30,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     this.nodeDrivers = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.NODE_DRIVER });
     this.kontainerDrivers = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.KONTAINER_DRIVER });
 

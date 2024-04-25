@@ -11,7 +11,7 @@ import AppModal from '@shell/components/AppModal.vue';
 export default {
   components: { AsyncButton, AppModal },
 
-  async fetch() {
+  async beforeMount() {
     if ( this.$store.getters['management/schemaFor'](UI_PLUGIN) ) {
       const plugins = this.$store.dispatch('management/findAll', { type: UI_PLUGIN });
 

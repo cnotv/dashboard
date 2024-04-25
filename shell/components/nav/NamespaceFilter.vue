@@ -38,7 +38,7 @@ export default {
     };
   },
 
-  async fetch() {
+  async beforeMount() {
     // Determine if filtering by specific namespaces/projects is required
     // This is done once and up front
     // - it doesn't need to be re-active

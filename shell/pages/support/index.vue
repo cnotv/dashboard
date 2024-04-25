@@ -19,7 +19,7 @@ export default {
     TabTitle
   },
 
-  async fetch() {
+  async beforeMount() {
     const fetchOrCreateSetting = async(id, val) => {
       let setting;
 

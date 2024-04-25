@@ -103,7 +103,7 @@ export default {
 
   mixins: [CreateEditView, FormValidation],
 
-  async fetch() {
+  async beforeMount() {
     /**
      * example receiver value:
      * {

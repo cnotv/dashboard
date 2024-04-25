@@ -40,7 +40,7 @@ export default {
       required: true
     },
   },
-  async fetch() {
+  async beforeMount() {
     const hash = await allHash({
       storageClasses:    this.$store.dispatch('cluster/findAll', { type: STORAGE_CLASS }),
       persistentVolumes: this.$store.dispatch('cluster/findAll', { type: PV }),

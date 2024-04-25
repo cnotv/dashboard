@@ -33,7 +33,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     this.$initializeFetchData(CAPI.RANCHER_CLUSTER);
     const hash = {
       rancherClusters: this.$fetchType(CAPI.RANCHER_CLUSTER),

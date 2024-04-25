@@ -29,7 +29,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     if (this.$store.getters['cluster/schemaFor'](CSI_DRIVER)) {
       this.csiDrivers = await this.$store.dispatch('cluster/findAll', { type: CSI_DRIVER });
     }

@@ -10,7 +10,7 @@ export default {
   },
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     let cur = (this.value.decodedData.defaultRegion || '').toLowerCase();
 
     if ( !cur ) {

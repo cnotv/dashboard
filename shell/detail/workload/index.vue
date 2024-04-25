@@ -52,7 +52,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     let hasNodes = false;
 
     try {

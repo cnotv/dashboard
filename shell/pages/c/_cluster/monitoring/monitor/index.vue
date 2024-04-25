@@ -12,7 +12,7 @@ export default {
     Loading, Tabbed, Tab, ResourceTable, TypeDescription
   },
 
-  async fetch() {
+  async beforeMount() {
     this.podMonitorSchema = this.$store.getters['cluster/schemaFor'](MONITORING.PODMONITOR);
     this.serviceMonitorSchema = this.$store.getters['cluster/schemaFor'](MONITORING.SERVICEMONITOR);
 

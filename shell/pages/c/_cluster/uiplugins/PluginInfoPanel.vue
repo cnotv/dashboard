@@ -7,7 +7,7 @@ import { MANAGEMENT } from '@shell/config/types';
 import { SETTING } from '@shell/config/settings';
 
 export default {
-  async fetch() {
+  async beforeMount() {
     const bannerSetting = await this.$store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.BANNERS);
     const { showHeader, bannerHeader } = JSON.parse(bannerSetting.value);
 

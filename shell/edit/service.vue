@@ -62,7 +62,7 @@ export default {
 
   mixins: [CreateEditView, FormValidation],
 
-  fetch() {
+  beforeMount() {
     return this.loadPods();
   },
 

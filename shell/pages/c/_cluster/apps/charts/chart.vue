@@ -24,7 +24,7 @@ export default {
     ChartMixin
   ],
 
-  async fetch() {
+  async beforeMount() {
     await this.fetchChart();
   },
 

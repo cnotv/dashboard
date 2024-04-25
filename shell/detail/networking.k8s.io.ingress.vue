@@ -15,7 +15,7 @@ export default {
     Tab
   },
   mixins: [CreateEditView],
-  async fetch() {
+  async beforeMount() {
     const hash = await allHash({
       secrets:        this.$store.dispatch('cluster/findAll', { type: SECRET }),
       services:       this.$store.dispatch('cluster/findAll', { type: SERVICE }),

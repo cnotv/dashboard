@@ -22,7 +22,7 @@ export default {
     DefaultLinksEditor,
     TabTitle
   },
-  async fetch() {
+  async beforeMount() {
     this.value = await fetchLinks(this.$store, this.hasSupport, false, (str) => this.t(str));
   },
 

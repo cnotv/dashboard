@@ -45,7 +45,7 @@ export default {
       default: 'edit'
     }
   },
-  async fetch() {
+  async beforeMount() {
     this.ingressClassSchema = this.$store.getters[`cluster/schemaFor`](INGRESS_CLASS);
     const hash = await allHash({
       secrets:               this.$store.dispatch('cluster/findAll', { type: SECRET }),

@@ -12,7 +12,7 @@ export default {
     ResourceSummary
   },
 
-  async fetch() {
+  async beforeMount() {
     this.clusters = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.CLUSTER });
   },
 

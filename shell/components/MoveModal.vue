@@ -17,7 +17,7 @@ export default {
       modalName: 'move-modal', projects: [], targetProject: null, showModal: false
     };
   },
-  async beforeCreate() {
+  async beforeMount() {
     this.projects = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PROJECT });
   },
   computed: {

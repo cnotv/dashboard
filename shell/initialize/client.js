@@ -587,7 +587,7 @@ function addHotReload($component, depth) {
         });
         promises.push(pAsyncData);
 
-        // Call fetch()
+        // Call beforeMount()
         Component.options.fetch = Component.options.fetch || noopFetch;
         let pFetch = Component.options.fetch.length && Component.options.fetch(context);
 

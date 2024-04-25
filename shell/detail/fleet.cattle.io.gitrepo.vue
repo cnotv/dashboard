@@ -74,7 +74,7 @@ export default {
       return bundles;
     },
   },
-  async fetch() {
+  async beforeMount() {
     const allDispatches = await checkSchemasForFindAllHash({
       allBundles: {
         inStoreType: 'management',

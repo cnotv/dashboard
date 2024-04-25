@@ -17,7 +17,7 @@ export default {
 
   middleware: InstallRedirect(NAME, CHART_NAME),
 
-  async fetch() {
+  async beforeMount() {
     if ( this.$store.getters['cluster/schemaFor'](SERVICE) ) {
       this.uiServices = await this.$store.dispatch('cluster/findMatching', {
         type:     SERVICE,

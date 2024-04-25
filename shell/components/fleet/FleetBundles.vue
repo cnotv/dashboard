@@ -25,7 +25,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     if (this.$store.getters['management/schemaFor']( FLEET.CLUSTER )) {
       this.allFleet = await this.$store.getters['management/all'](FLEET.CLUSTER);
     }

@@ -77,7 +77,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = {
       // These aren't explicitly used, but need to be listening for change events
       mgmtClusters: this.$store.dispatch('management/findAll', { type: MANAGEMENT.CLUSTER }),

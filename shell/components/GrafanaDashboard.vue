@@ -38,7 +38,7 @@ export default {
       default: 'dark'
     }
   },
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     if (this.$store.getters[`${ inStore }/canList`](CATALOG.APP)) {

@@ -177,7 +177,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     this.errors = [];
 
     try {

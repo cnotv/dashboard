@@ -26,7 +26,7 @@ describe('component: EtcdInfoBanner', () => {
         }
       });
 
-    await (EtcdInfoBanner as any).fetch.call(wrapper.vm);
+    await (EtcdInfoBanner as any).beforeMount.call(wrapper.vm);
 
     // canList should have been called once
     expect(mockCanList.mock.calls).toHaveLength(1);

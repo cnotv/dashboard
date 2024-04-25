@@ -138,7 +138,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.fetchRke2Versions();
     await this.initSpecs();
     await this.initAddons();

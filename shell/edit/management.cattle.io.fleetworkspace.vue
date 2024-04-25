@@ -33,7 +33,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     this.rancherClusters = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.CLUSTER });
 
     if (this.$store.getters['management/schemaFor']( FLEET.CLUSTER )) {

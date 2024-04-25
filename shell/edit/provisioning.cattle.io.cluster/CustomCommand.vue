@@ -27,7 +27,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('management/findAll', { type: MANAGEMENT.NODE });
   },
 

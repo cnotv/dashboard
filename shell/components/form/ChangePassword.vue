@@ -24,7 +24,7 @@ export default {
       default: false
     }
   },
-  async fetch() {
+  async beforeMount() {
     if (this.isChange) {
       // Fetch the username for hidden input fields. The value itself is not needed if create or changing another user's password
       const users = await this.$store.dispatch('rancher/findAll', {

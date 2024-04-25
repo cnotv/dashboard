@@ -38,7 +38,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = await allHash({
       profiles:               this.$store.dispatch('cluster/findAll', { type: CIS.CLUSTER_SCAN_PROFILE }),
       benchmarks:             this.$store.dispatch('cluster/findAll', { type: CIS.BENCHMARK }),

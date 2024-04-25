@@ -29,7 +29,7 @@ export default {
     return { allOperations: [] };
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('catalog/load', { force: true, reset: true });
 
     this.allOperations = await this.$store.dispatch('cluster/findAll', { type: CATALOG.OPERATION });

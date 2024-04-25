@@ -80,7 +80,7 @@ export default {
     ChartMixin
   ],
 
-  async fetch() {
+  async beforeMount() {
     this.errors = [];
     // IMPORTANT! Any exception thrown before this.value is set will result in an empty page
 

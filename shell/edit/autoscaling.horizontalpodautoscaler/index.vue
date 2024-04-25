@@ -55,7 +55,7 @@ export default {
     },
   },
 
-  fetch() {
+  beforeMount() {
     const promises = [this.loadAPIServices(), this.loadWorkloads()];
 
     return Promise.all(promises);

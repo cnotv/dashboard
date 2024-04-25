@@ -40,7 +40,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     const hash = await allHash({
       allPods:       this.$store.dispatch('cluster/findAll', { type: POD }),
       allNamespaces: this.$store.dispatch('cluster/findAll', { type: NAMESPACE }),

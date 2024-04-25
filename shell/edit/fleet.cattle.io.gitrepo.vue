@@ -51,7 +51,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     const hash = await checkSchemasForFindAllHash({
       allClusters: {
         inStoreType: 'management',

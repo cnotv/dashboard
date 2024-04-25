@@ -27,7 +27,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     if ( this.typeSchema ) {
       this.all = await this.$store.dispatch(`${ this.inStore }/findAll`, { type: this.typeName });
     }

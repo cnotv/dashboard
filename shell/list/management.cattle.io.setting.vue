@@ -9,7 +9,7 @@ import { VIEW_IN_API } from '@shell/store/prefs';
 export default {
   components: { Banner, Loading },
 
-  async fetch() {
+  async beforeMount() {
     const viewInApi = this.$store.getters['prefs/get'](VIEW_IN_API);
     const rows = await this.$store.dispatch(`management/findAll`, { type: MANAGEMENT.SETTING });
     const t = this.$store.getters['i18n/t'];

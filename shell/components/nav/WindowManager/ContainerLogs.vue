@@ -145,7 +145,7 @@ export default {
     };
   },
 
-  fetch() {
+  beforeMount() {
     // See https://github.com/rancher/dashboard/issues/6122. At some point prior to 2.6.5 LOGS_RANGE has become polluted with something
     // invalid. To avoid everyone having to manually remove invalid user preferences fix it automatically here
     const originalRange = this.$store.getters['prefs/get'](LOGS_RANGE);

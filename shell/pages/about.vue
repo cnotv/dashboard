@@ -14,7 +14,7 @@ export default {
     BackLink, Loading, TabTitle
   },
   mixins: [BackRoute],
-  async fetch() {
+  async beforeMount() {
     this.settings = await this.$store.dispatch(`management/findAll`, { type: MANAGEMENT.SETTING });
   },
   data() {

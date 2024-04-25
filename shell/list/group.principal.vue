@@ -31,7 +31,7 @@ export default {
       default: false
     }
   },
-  async fetch() {
+  async beforeMount() {
     await this.updateRows();
 
     const authConfigSchema = this.$store.getters[`management/schemaFor`](MANAGEMENT.AUTH_CONFIG);

@@ -3,7 +3,7 @@
 import { MANAGEMENT } from '@shell/config/types';
 
 export default {
-  async fetch() {
+  async beforeMount() {
     if ( this.$store.getters['management/schemaFor'](MANAGEMENT.USER_NOTIFICATION)) {
       this.notifications = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.USER_NOTIFICATION });
     }

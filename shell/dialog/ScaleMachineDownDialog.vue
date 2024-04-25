@@ -13,7 +13,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     if (this.isRke2) {
       await Promise.all([
         this.$store.dispatch('management/findAll', { type: CAPI.MACHINE_DEPLOYMENT }),

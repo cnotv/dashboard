@@ -121,7 +121,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     if ( (this.allowSsh || this.allowBasic || this.allowRke) && this.$store.getters[`${ this.inStore }/schemaFor`](SECRET) ) {
       // Avoid an async call and loading screen if already loaded by someone else
       if ( this.$store.getters[`${ this.inStore }/haveAll`](SECRET) ) {

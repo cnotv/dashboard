@@ -17,7 +17,7 @@ export default {
     AppModal,
   },
 
-  async fetch() {
+  async beforeMount() {
     this.defaultRegistrySetting = await this.$store.dispatch('management/find', {
       type: MANAGEMENT.SETTING,
       id:   'system-default-registry'

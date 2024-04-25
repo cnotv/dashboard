@@ -6,7 +6,7 @@ import { AZURE_MIGRATED } from '@shell/config/labels-annotations';
 import { BLANK_CLUSTER } from '@shell/store/store-types.js';
 
 export default {
-  async fetch() {
+  async beforeMount() {
     // Check for access to steve authConfigs because everyone can load the norman auth config schema
     if (
       this.$store.getters['isRancher'] &&

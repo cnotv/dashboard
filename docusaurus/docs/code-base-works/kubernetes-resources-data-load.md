@@ -71,7 +71,7 @@ Looking at the above example, we configuring the secondary data load to get data
 **Initialize secondary data load**
 
 ```
-async fetch() {
+async beforeMount() {
   this.resourceManagerFetchSecondaryResources(this.secondaryResourceDataConfig);
 }
 ```
@@ -88,7 +88,7 @@ Function used to initialize the data loading procedure
 
 Example:
 ```
-async fetch() {
+async beforeMount() {
   this.resourceManagerFetchSecondaryResources(dataConfig, onlyNamespaced);
 }
 ```
@@ -101,7 +101,7 @@ Function used to clear the results for the secondary resource data fetch. It's a
 
 Example:
 ```
-async fetch() {
+async beforeMount() {
   this.resourceManagerClearSecondaryResources(dataConfig, onlyNamespaced);
 }
 ```

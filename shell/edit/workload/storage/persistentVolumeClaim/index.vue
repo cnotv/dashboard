@@ -59,7 +59,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     // Create the new PVC form state if it doesn't exist
     if (this.value.__newPvc) {
       return;

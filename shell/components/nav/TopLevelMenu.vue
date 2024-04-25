@@ -43,7 +43,7 @@ export default {
     };
   },
 
-  fetch() {
+  beforeMount() {
     if (this.hasProvCluster) {
       this.$store.dispatch('management/findAll', { type: CAPI.RANCHER_CLUSTER });
     }

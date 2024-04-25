@@ -23,7 +23,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$fetchType(this.resource);
   }
 };

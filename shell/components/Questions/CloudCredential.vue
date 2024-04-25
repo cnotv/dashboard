@@ -7,7 +7,7 @@ export default {
   components: { LabeledSelect },
   mixins:     [Question],
 
-  async fetch() {
+  async beforeMount() {
     this.all = await this.$store.dispatch('rancher/findAll', { type: NORMAN.CLOUD_CREDENTIAL });
   },
 

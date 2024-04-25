@@ -7,7 +7,7 @@ import { CATALOG } from '@shell/config/types';
 
 export default {
   components: { Banner, Loading },
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentProduct'].inStore;
     let monitoringVersion = '';
 

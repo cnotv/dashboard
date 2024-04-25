@@ -41,7 +41,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     try {
       const hash = await checkSchemasForFindAllHash({
         cluster: {

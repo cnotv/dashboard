@@ -14,7 +14,7 @@ export default {
   },
 
   mixins: [CreateEditView],
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('management/findAll', { type: MANAGEMENT.USER });
     this.roleTemplates = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.ROLE_TEMPLATE });
   },

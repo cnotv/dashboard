@@ -24,7 +24,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('cluster/findAll', { type: SECRET });
   },
 

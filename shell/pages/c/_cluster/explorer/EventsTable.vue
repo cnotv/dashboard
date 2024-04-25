@@ -8,7 +8,7 @@ import { fetchClusterResources } from './explorer-utils';
 export default {
   components: { SortableTable },
 
-  async fetch() {
+  async beforeMount() {
     this.events = await fetchClusterResources(this.$store, EVENT);
   },
 

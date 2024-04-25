@@ -24,7 +24,7 @@ export default defineComponent({
     ResourceTable, Banner, BadgeState
   },
 
-  async fetch() {
+  async beforeMount() {
     // We're fetching secrets with a filter, this will clash with secrets in other contexts
     this.$store.dispatch('cluster/forgetType', SECRET);
 

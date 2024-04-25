@@ -21,7 +21,7 @@ export default {
 
   middleware: InstallRedirect(NAME, CHART_NAME),
 
-  async fetch() {
+  async beforeMount() {
     await this.fetchDeps();
   },
 

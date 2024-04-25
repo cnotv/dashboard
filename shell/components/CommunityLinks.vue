@@ -28,7 +28,7 @@ export default {
 
   mixins: [Closeable],
 
-  async fetch() {
+  async beforeMount() {
     this.links = await fetchLinks(this.$store, this.hasSupport, this.isSupportPage, (str) => this.t(str));
   },
 

@@ -25,7 +25,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = {
       workspaces:    this.$store.dispatch('cluster/findAll', { type: FLEET.WORKSPACE }),
       FleetClusters: this.$store.dispatch('management/findAll', { type: FLEET.CLUSTER }),

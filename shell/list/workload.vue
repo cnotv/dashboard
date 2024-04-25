@@ -45,7 +45,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     if (this.allTypes && this.loadResources.length) {
       this.$initializeFetchData(this.loadResources[0], this.loadResources);
     } else {

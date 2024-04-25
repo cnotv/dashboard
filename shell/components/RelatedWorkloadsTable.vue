@@ -13,7 +13,7 @@ export default {
       required: true
     }
   },
-  async fetch() {
+  async beforeMount() {
     // Enumerating instead of using Object.values() because it looks like we don't want to include replica sets for this.
     const types = [
       WORKLOAD_TYPES.DEPLOYMENT,

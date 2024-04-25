@@ -104,7 +104,7 @@ export default {
 
   mixins: [ResourceManager],
 
-  async fetch() {
+  async beforeMount() {
     const hash = {};
 
     if ( this.$store.getters['management/canList'](WORKLOAD_TYPES.DEPLOYMENT) ) {

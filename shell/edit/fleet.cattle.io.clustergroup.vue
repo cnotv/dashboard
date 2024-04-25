@@ -27,7 +27,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     const _hash = {};
 
     if (this.$store.getters['management/schemaFor'](FLEET.CLUSTER)) {

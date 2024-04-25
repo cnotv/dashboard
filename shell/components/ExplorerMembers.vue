@@ -41,7 +41,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const clusterRoleTemplateBindingSchema = this.$store.getters[
       `rancher/schemaFor`
     ](NORMAN.CLUSTER_ROLE_TEMPLATE_BINDING);

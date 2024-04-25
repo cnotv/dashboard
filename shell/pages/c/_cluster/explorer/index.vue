@@ -85,7 +85,7 @@ export default {
 
   mixins: [metricPoller],
 
-  fetch() {
+  beforeMount() {
     fetchClusterResources(this.$store, NODE);
 
     if (this.currentCluster) {

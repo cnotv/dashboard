@@ -24,7 +24,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     this.allNamespaces = await this.$store.dispatch('cluster/findAll', { type: NAMESPACE });
     this.allProjects = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PROJECT });
   },

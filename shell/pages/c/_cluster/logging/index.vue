@@ -12,7 +12,7 @@ import ChartHeading from '@shell/components/ChartHeading';
 export default {
   middleware: InstallRedirect(NAME, CHART_NAME),
   components: { ChartHeading, SortableTable },
-  async fetch() {
+  async beforeMount() {
     const getAllOrDefault = (type) => {
       const hasAccess = this.$store.getters[`cluster/schemaFor`](type);
 

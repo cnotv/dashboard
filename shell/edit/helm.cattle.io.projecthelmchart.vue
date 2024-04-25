@@ -28,7 +28,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('catalog/load');
     const inStore = this.$store.getters['currentStore'](NAMESPACE);
 

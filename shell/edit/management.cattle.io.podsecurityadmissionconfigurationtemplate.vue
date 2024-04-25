@@ -18,7 +18,7 @@ export default defineComponent({
     PodSecurityAdmission,
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PSA });
   },
 

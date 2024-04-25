@@ -17,7 +17,7 @@ export default {
   mixins: [
     CreateEditView
   ],
-  async fetch() {
+  async beforeMount() {
     const canSeeGlobalRoles = !!this.$store.getters[`management/canList`](MANAGEMENT.GLOBAL_ROLE);
 
     if (canSeeGlobalRoles) {

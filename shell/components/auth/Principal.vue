@@ -19,7 +19,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     this.principal = this.$store.getters['rancher/byId'](NORMAN.PRINCIPAL, this.value);
 
     if ( this.principal ) {

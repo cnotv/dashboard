@@ -34,7 +34,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentStore'](NAMESPACE);
 
     this.schema = this.$store.getters[`${ inStore }/schemaFor`](NAMESPACE);

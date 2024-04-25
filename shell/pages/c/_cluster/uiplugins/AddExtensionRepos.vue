@@ -18,7 +18,7 @@ export default {
     Dialog,
   },
 
-  async fetch() {
+  async beforeMount() {
     if (this.$store.getters['management/schemaFor'](CATALOG.CLUSTER_REPO)) {
       this.repos = await this.$store.dispatch('management/findAll', { type: CATALOG.CLUSTER_REPO, opt: { force: true } });
     }

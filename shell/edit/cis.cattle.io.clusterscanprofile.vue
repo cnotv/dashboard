@@ -32,7 +32,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     this.allBenchmarks = await this.$store.dispatch('cluster/findAll', { type: CIS.BENCHMARK });
   },
 

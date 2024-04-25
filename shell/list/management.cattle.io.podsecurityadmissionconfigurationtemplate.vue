@@ -20,7 +20,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentStore']();
 
     // Fetch storage classes so we can determine if a PVC can be expanded

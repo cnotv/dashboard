@@ -30,7 +30,7 @@ export default {
     Dialog,
   },
 
-  async fetch() {
+  async beforeMount() {
     // Check to see that the charts we need are available
     const c = this.$store.getters['catalog/rawCharts'];
     const charts = Object.values(c);

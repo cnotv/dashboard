@@ -43,7 +43,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('catalog/load');
 
     const hash = await allHash({

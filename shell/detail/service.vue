@@ -34,7 +34,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.value.fetchPods();
   },
 

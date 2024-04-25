@@ -24,7 +24,7 @@ export default {
     },
   },
 
-  fetch() {
+  beforeMount() {
     if (this.$store.getters['cluster/schemaFor'](CSI_DRIVER)) {
       this.$store.dispatch('cluster/findAll', { type: CSI_DRIVER }).then((drivers) => {
         this.csiDrivers = drivers;

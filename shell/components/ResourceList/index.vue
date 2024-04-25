@@ -38,7 +38,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     const store = this.$store;
     const resource = this.resource;
 

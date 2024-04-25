@@ -30,7 +30,7 @@ export default {
 
   mixins: [CreateEditView, AuthConfig],
 
-  async fetch() {
+  async beforeMount() {
     await this.mixinFetch();
 
     this.targetType = (!this.model.hostname || this.model.hostname === 'github.com' ? 'public' : 'private');

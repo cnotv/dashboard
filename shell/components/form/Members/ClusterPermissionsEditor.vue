@@ -42,7 +42,7 @@ export default {
       default: null
     }
   },
-  async fetch() {
+  async beforeMount() {
     const [, roleTemplates] = await Promise.all([
       this.$store.dispatch('management/findAll', { type: MANAGEMENT.USER }),
       this.$store.dispatch('management/findAll', { type: MANAGEMENT.ROLE_TEMPLATE })

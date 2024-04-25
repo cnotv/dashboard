@@ -23,7 +23,7 @@ export default {
     FleetNoWorkspaces
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = await checkSchemasForFindAllHash({
       fleetWorkspaces: {
         inStoreType:     'management',

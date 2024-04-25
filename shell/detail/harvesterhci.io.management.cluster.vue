@@ -22,7 +22,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.value.waitForProvisioner();
 
     const hash = { clusterToken: this.value.getOrCreateToken() };

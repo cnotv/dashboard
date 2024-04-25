@@ -50,7 +50,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     const { $store } = this;
 
     // Fetch all the resources required for all the tabs asyncronously up front

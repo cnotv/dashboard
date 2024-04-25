@@ -27,7 +27,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     if (!this.$store.getters['isRancher']) {
       // This fetch function is getting snapshots, which are associated
       // with cluster manager. Rancher Desktop doesn't come with cluster

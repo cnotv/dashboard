@@ -39,7 +39,7 @@ export default {
 
   mixins: [PageHeaderActions],
 
-  fetch() {
+  beforeMount() {
     if ( this.$store.getters['management/schemaFor'](CAPI.RANCHER_CLUSTER) ) {
       this.$store.dispatch('management/findAll', { type: CAPI.RANCHER_CLUSTER });
     }

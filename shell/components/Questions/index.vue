@@ -170,7 +170,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     // If this source is a schema, ensure the schema's `resourceFields` is populated
     if (this.source.type === 'schema' && this.source.requiresResourceFields) {
       await this.source.fetchResourceFields();

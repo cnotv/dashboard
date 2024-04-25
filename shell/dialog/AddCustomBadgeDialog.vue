@@ -55,7 +55,7 @@ export default {
     }
   },
 
-  fetch() {
+  beforeMount() {
     if (this.enableFields ) {
       return;
     }

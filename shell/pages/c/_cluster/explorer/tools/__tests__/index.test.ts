@@ -46,7 +46,7 @@ describe('page: cluster tools', () => {
   it('should show apps catalog', async() => {
     const wrapper = shallowMount(ClusterTools, mountOptions);
 
-    await (ClusterTools as any).fetch.call(wrapper.vm);
+    await (ClusterTools as any).beforeMount.call(wrapper.vm);
     const cards = wrapper.find('[data-testid^="cluster-tools-app"]');
 
     expect(cards.exists()).toBe(true);
@@ -63,7 +63,7 @@ describe('page: cluster tools', () => {
 
     const wrapper = shallowMount(ClusterTools, options);
 
-    await (ClusterTools as any).fetch.call(wrapper.vm);
+    await (ClusterTools as any).beforeMount.call(wrapper.vm);
     const cards = wrapper.find('[data-testid^="cluster-tools-app"]');
 
     expect(cards.exists()).toBe(true);

@@ -26,7 +26,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     // Fetch the list and schema resource fields in parallel
     const res = await allHash({
       resources:              this.$fetchType(this.resource),

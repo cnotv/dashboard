@@ -29,7 +29,7 @@ export default {
 
   },
 
-  async fetch() {
+  async beforeMount() {
     this.configMaps = await this.$store.dispatch('cluster/findAll', { type: CONFIG_MAP });
   },
 

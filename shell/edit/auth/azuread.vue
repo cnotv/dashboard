@@ -68,7 +68,7 @@ export default {
 
   mixins: [CreateEditView, AuthConfig, FormValidation],
 
-  async fetch() {
+  async beforeMount() {
     await this.reloadModel();
 
     if ( this.value?.graphEndpoint ) {

@@ -144,7 +144,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     // TODO Should remove these lines
     // ? The results aren't stored, so don't know why we fetch?
 

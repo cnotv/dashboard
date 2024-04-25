@@ -70,7 +70,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = { allUsers: this.$store.dispatch('management/findAll', { type: MANAGEMENT.USER }) };
     const inStore = this.inStore;
 

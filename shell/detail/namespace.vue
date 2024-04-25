@@ -99,7 +99,7 @@ export default {
     };
   },
 
-  async fetch() {
+  async beforeMount() {
     this.allWorkloads = await this.getAllWorkloads();
   },
 

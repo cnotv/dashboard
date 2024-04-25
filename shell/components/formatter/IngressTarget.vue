@@ -17,7 +17,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const promises = Object.values(WORKLOAD_TYPES).map((type) => this.$store.dispatch('cluster/findAll', { type }));
     const ingressSchema = this.$store.getters[`cluster/schemaFor`](INGRESS);
 

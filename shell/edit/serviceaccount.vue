@@ -35,7 +35,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     this.allSecrets = await this.$store.dispatch(`cluster/findAll`, { type: SECRET });
   },
 

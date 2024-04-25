@@ -45,7 +45,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     this.errors = [];
     if ( !this.credentialId ) {
       return;

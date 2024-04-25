@@ -45,7 +45,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     this.showMetrics = await allDashboardsExist(this.$store, this.currentCluster.id, [NODE_METRICS_DETAIL_URL, NODE_METRICS_SUMMARY_URL]);
 
     return this.$store.dispatch('cluster/findAll', { type: POD });

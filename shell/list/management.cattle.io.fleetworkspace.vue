@@ -21,7 +21,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     try {
       await this.$fetchType(this.resource);
     } catch (e) {}

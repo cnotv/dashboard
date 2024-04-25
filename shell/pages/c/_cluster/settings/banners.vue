@@ -62,7 +62,7 @@ export default {
     NotificationSettings
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = await allHash({ uiBannerSetting: this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: SETTING.BANNERS }) });
 
     Object.assign(this, hash);

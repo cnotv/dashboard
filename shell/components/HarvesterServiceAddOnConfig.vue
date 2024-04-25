@@ -47,7 +47,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     const hash = {

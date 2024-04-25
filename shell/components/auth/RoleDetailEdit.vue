@@ -68,7 +68,7 @@ export default {
 
   mixins: [CreateEditView, FormValidation],
 
-  async fetch() {
+  async beforeMount() {
     // We don't want to get all schemas from the cluster because there are
     // two problems with that:
     // - In the local cluster, that yields over 500-1,000 schemas, most of which aren't meant to

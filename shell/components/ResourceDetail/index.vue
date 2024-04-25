@@ -81,7 +81,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const store = this.$store;
     const route = this.$route;
     const params = route.params;

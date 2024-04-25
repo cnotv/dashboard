@@ -35,7 +35,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = await allHash({ allResources: this.$store.dispatch('cluster/findAll', { type: this.type }) });
 
     this.allResources = hash.allResources;

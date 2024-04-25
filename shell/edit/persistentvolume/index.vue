@@ -43,7 +43,7 @@ export default {
 
   mixins: [CreateEditView, ResourceManager],
 
-  fetch() {
+  beforeMount() {
     if (this.mode !== _CREATE) {
       this.secondaryResourceData.namespace = this.value?.spec?.claimRef?.namespace || null;
 

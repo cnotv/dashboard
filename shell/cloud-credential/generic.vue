@@ -18,7 +18,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     let keyOptions = [];
 
     const { normanSchema } = this;

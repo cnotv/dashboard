@@ -55,7 +55,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const roleBindingRequestParams = { type: this.type, opt: { force: true } };
 
     if (this.type === NORMAN.PROJECT_ROLE_TEMPLATE_BINDING && this.parentId) {

@@ -20,7 +20,7 @@ export default {
     CopyToClipboardText, BackLink, Banner, PromptChangePassword, Loading, ResourceTable, Principal, TabTitle
   },
   mixins: [BackRoute],
-  async fetch() {
+  async beforeMount() {
     this.canChangePassword = await this.calcCanChangePassword();
 
     if (this.apiKeySchema) {

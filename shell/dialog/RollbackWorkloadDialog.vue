@@ -80,7 +80,7 @@ export default {
       return `${ dateFormat }, ${ timeFormat }`;
     },
   },
-  fetch() {
+  beforeMount() {
     // Fetch revisions of the current workload
     this.$store.dispatch('cluster/findAll', { type: this.revisionsType })
       .then(( response ) => {

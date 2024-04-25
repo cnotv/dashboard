@@ -21,7 +21,7 @@ export default {
     return { repo: null };
   },
 
-  async fetch() {
+  async beforeMount() {
     const { namespace, labels } = this.value.metadata;
     const repoName = `${ namespace }/${ labels['fleet.cattle.io/repo-name'] }`;
 

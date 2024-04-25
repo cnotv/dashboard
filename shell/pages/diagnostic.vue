@@ -11,7 +11,7 @@ export default {
 
   components: { AsyncButton, PromptModal },
 
-  async fetch() {
+  async beforeMount() {
     const provClusters = await this.$store.dispatch('management/findAll', { type: CAPI.RANCHER_CLUSTER });
     const readyClusters = provClusters.filter((c) => c.mgmt?.isReady);
     const clusterForCounts = filterHiddenLocalCluster(filterOnlyKubernetesClusters(readyClusters, this.$store), this.$store);

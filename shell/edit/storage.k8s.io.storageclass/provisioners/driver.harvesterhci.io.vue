@@ -31,7 +31,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     const res = await allHash({ rke2Versions: this.$store.dispatch('management/request', { url: '/v1-rke2-release/releases' }) });
 
     this.rke2Versions = res.rke2Versions;

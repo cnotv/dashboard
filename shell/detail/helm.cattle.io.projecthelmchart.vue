@@ -22,7 +22,7 @@ export default {
       required: true,
     },
   },
-  async fetch() {
+  async beforeMount() {
     await this.fetchDeps();
   },
   data() {

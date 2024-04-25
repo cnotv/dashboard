@@ -25,7 +25,7 @@ const NONE = '__[[NONE]]__';
 export default {
   components: { LabeledSelect },
 
-  async fetch() {
+  async beforeMount() {
     // Make sure secrets are in the store so that the secret
     // selectors in the receiver config forms will have secrets
     // to choose from.

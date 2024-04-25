@@ -14,7 +14,7 @@ export default {
     ChartHeading, SortableTable, Banner
   },
   middleware: InstallRedirect(NAME, CHART_NAME),
-  async fetch() {
+  async beforeMount() {
     const constraints = this.constraint ? [this.constraint] : await this.$store.dispatch('cluster/findAll', { type: GATEKEEPER.SPOOFED.CONSTRAINT });
 
     this.violations = constraints

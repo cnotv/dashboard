@@ -26,7 +26,7 @@ export default {
     Tabbed,
   },
 
-  async fetch() {
+  async beforeMount() {
     this.routeSchema = this.$store.getters['cluster/schemaFor'](MONITORING.SPOOFED.ROUTE);
     this.receiverSchema = this.$store.getters['cluster/schemaFor'](MONITORING.SPOOFED.RECEIVER);
 

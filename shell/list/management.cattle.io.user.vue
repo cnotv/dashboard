@@ -34,7 +34,7 @@ export default {
       default: false
     }
   },
-  async fetch() {
+  async beforeMount() {
     const store = this.$store;
 
     await store.dispatch(`rancher/findAll`, { type: NORMAN.USER });

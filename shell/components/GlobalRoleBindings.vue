@@ -46,7 +46,7 @@ export default {
       default: ''
     }
   },
-  async fetch() {
+  async beforeMount() {
     try {
       this.allRoles = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.GLOBAL_ROLE });
       if (!this.sortedRoles) {

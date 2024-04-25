@@ -158,7 +158,7 @@ export default {
       };
     }
   },
-  async fetch() {
+  async beforeMount() {
     this.services = await this.$store
       .dispatch('cluster/findAll', { type: SERVICE });
   },

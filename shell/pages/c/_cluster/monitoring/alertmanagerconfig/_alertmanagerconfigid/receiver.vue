@@ -21,7 +21,7 @@ export default {
     ResourceYaml
   },
 
-  async fetch() {
+  async beforeMount() {
     const inStore = this.$store.getters['currentProduct'].inStore;
     const alertmanagerConfigSchema = this.$store.getters[`${ inStore }/schemaFor`](MONITORING.ALERTMANAGERCONFIG);
 

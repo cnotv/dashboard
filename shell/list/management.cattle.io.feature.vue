@@ -37,7 +37,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$fetchType(this.resource);
 
     this.serverUrlSetting = this.$store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.SERVER_URL);

@@ -12,7 +12,7 @@ export default {
   },
 
   mixins: [CreateEditView],
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('management/findAll', { type: MANAGEMENT.USER });
     this.projects = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PROJECT });
     this.$set(this.binding, 'projectId', this.binding.projectId || this.projects[0]?.id.replace('/', ':'));

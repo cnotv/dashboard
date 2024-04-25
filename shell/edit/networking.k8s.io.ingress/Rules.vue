@@ -44,7 +44,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     await Promise.all(Object.values(WORKLOAD_TYPES).map((type) => this.$store.dispatch('cluster/findAll', { type })));
   },
 

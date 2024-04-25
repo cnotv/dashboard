@@ -39,7 +39,7 @@ export default {
     }
   },
 
-  async fetch() {
+  async beforeMount() {
     this.$initializeFetchData(this.resource);
 
     const hash = { kubeNodes: this.$fetchType(this.resource) };

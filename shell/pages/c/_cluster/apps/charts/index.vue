@@ -36,7 +36,7 @@ export default {
     TabTitle
   },
 
-  async fetch() {
+  async beforeMount() {
     await this.$store.dispatch('catalog/load', { force: true, reset: true });
 
     const query = this.$route.query;

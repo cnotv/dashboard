@@ -25,7 +25,7 @@ export default {
     LabeledInput, Checkbox, FileImageSelector, Loading, SimpleBox, AsyncButton, Banner, ColorInput, TypeDescription, TabTitle
   },
 
-  async fetch() {
+  async beforeMount() {
     const hash = await allHash({
       uiPLSetting:                   this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: SETTING.PL }),
       uiLogoDarkSetting:             fetchOrCreateSetting(this.$store, SETTING.LOGO_DARK, ''),

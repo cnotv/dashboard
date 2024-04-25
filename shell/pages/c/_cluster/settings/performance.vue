@@ -31,7 +31,7 @@ export default {
     UnitInput
   },
 
-  async fetch() {
+  async beforeMount() {
     try {
       this.uiPerfSetting = await this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: SETTING.UI_PERFORMANCE });
     } catch {

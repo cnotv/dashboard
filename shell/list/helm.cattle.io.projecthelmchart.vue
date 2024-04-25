@@ -31,7 +31,7 @@ export default {
       default: false
     }
   },
-  async fetch() {
+  async beforeMount() {
     this.projectHelmChartSchema = this.$store.getters['cluster/schemaFor'](HELM.PROJECTHELMCHART);
     await this.$fetchType(HELM.PROJECTHELMCHART);
 

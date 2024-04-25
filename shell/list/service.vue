@@ -25,7 +25,7 @@ export default {
   },
 
   // fetch nodes before loading this page, as they may be referenced in the Target table column
-  async fetch() {
+  async beforeMount() {
     const store = this.$store;
     const inStore = store.getters['currentStore']();
 

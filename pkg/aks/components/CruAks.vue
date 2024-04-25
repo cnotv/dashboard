@@ -133,7 +133,7 @@ export default defineComponent({
   },
 
   // AKS provisioning needs to use the norman API - a provisioning cluster resource will be created by the BE when the norman cluster is made but v2 prov clusters don't contain the relevant aks configuration fields
-  async fetch() {
+  async beforeMount() {
     const store = this.$store as Store<any>;
 
     if (this.value.id) {

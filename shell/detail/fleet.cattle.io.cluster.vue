@@ -25,7 +25,7 @@ export default {
     },
   },
 
-  async fetch() {
+  async beforeMount() {
     const clusterId = this.value?.metadata?.labels[FLEET_LABELS.CLUSTER_NAME];
 
     this.rancherCluster = await this.$store.dispatch('management/find', {

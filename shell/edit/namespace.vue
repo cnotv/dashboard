@@ -36,7 +36,7 @@ export default {
 
   mixins: [CreateEditView],
 
-  async fetch() {
+  async beforeMount() {
     if (this.$store.getters['management/schemaFor'](MANAGEMENT.PROJECT)) {
       this.projects = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.PROJECT });
 

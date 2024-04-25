@@ -17,7 +17,7 @@ export default {
       required: true,
     },
   },
-  async fetch() {
+  async beforeMount() {
     // we need this to populate the NORMAN node... getNorman
     await this.$store.dispatch('rancher/findAll', { type: NORMAN.NODE });
   },

@@ -12,7 +12,7 @@ export const hasCspAdapter = (apps) => {
 };
 
 export default {
-  async fetch() {
+  async beforeMount() {
     // For the login page, the schemas won't be loaded - we don't need the apps in this case
     try {
       if (this.$store.getters['management/canList'](CATALOG.APP)) {
