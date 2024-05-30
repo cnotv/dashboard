@@ -5,7 +5,6 @@ import VTooltip from 'v-tooltip';
 import vSelect from 'vue-select';
 import 'vue-resize/dist/vue-resize.css';
 
-import '@shell/plugins/extend-router';
 import '@shell/plugins/formatters';
 import '@shell/plugins/vue-js-modal';
 import '@shell/plugins/js-yaml';
