@@ -88,7 +88,6 @@ const packageUpdatesLibraries = (file, oldContent) => {
   const types = ['dependencies', 'devDependencies', 'peerDependencies'];
   // [Library name, new version or new library, new library version]
   const librariesUpdates = [
-    ['@nuxt/babel-preset-app', removePlaceholder],
     ['@types/jest', '^29.5.2'],
     ['@typescript-eslint/eslint-plugin', '~5.4.0'],
     ['@typescript-eslint/parser', '~5.4.0'],
