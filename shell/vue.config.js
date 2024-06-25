@@ -158,6 +158,16 @@ const getLoaders = (SHELL_ABS) => {
       ]
     },
     {
+      test: /\.vue$/,
+      loader: 'vue-loader'
+    },
+    {
+      test:    /\.js$/,
+      loader:  'babel-loader',
+      exclude: path.resolve(__dirname, 'node_modules/'),
+      query:   { compact: false }
+    },
+    {
       test: /\.tsx?$/,
       use:  [
         {
@@ -178,6 +188,14 @@ const getLoaders = (SHELL_ABS) => {
             configFile: path.join(SHELL_ABS, 'tsconfig.json')
           }
         }
+      ]
+    },
+    {
+      test: /\.scss$/,
+      use:  [
+        'vue-style-loader',
+        'css-loader',
+        'sass-loader',
       ]
     },
     // Prevent warning in log with the md files in the content folder
