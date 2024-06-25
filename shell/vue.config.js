@@ -158,8 +158,8 @@ const getLoaders = (SHELL_ABS) => {
       ]
     },
     {
-      test: /\.vue$/,
-      loader: 'vue-loader',
+      test:    /\.vue$/,
+      loader:  'vue-loader',
       options: {
         compilerOptions: {
           // preserve is supposed to be the default
