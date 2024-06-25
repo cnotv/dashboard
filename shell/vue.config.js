@@ -159,7 +159,15 @@ const getLoaders = (SHELL_ABS) => {
     },
     {
       test: /\.vue$/,
-      loader: 'vue-loader'
+      loader: 'vue-loader',
+      options: {
+        compilerOptions: {
+          // preserve is supposed to be the default
+          // see: https://github.com/vuejs/vue/tree/dev/packages/vue-template-compiler#options
+          // but as of 2022-01-13 (vue 3.2.26)
+          whitespace: 'preserve',
+        },
+      },
     },
     {
       test:    /\.js$/,
@@ -401,23 +409,6 @@ const processShellFiles = (config, SHELL_ABS) => {
   });
 };
 
-/**
- * Update vue-loader to set whitespace to 'preserve'
- * This was the setting with nuxt, but is not the default with vue cli
- * Need to find the vue loader in the webpack config and update the setting
- */
-const preserveWhitespace = (config) => {
-  config.module.rules.forEach((loader) => {
-    if (loader.use) {
-      loader.use.forEach((use) => {
-        if (use.loader.includes('vue-loader')) {
-          use.options.compilerOptions.whitespace = 'preserve';
-        }
-      });
-    }
-  });
-};
-
 const printLogs = (dev, dashboardVersion, resourceBase, routerBasePath, pl, rancherEnv) => {
   console.log(`Build: ${ dev ? 'Development' : 'Production' }`); // eslint-disable-line no-console
 
@@ -537,7 +528,6 @@ module.exports = function(dir, _appConfig) {
       config.resolve.symlinks = false;
       processShellFiles(config, SHELL_ABS);
       config.module.rules.push(...getLoaders(SHELL_ABS));
-      preserveWhitespace(config);
     },
   };
 
