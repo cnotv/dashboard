@@ -11,12 +11,26 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '16.20.2'
-    - name: Validate Plugin build system
-      run: ./shell/scripts/test-plugins-build.sh
+
+    - name: Setup Verdaccio for publishing testing
+      run: ./shell/scripts/test-plugins-build-verdaccio.sh
+      shell: bash
+
+    - name: Publish Shell
+      run: ./shell/scripts/test-plugins-build-publish-shell.sh
+      shell: bash
+
+    - name: Building test environment test-app and test-pkg
+      run: ./shell/scripts/test-plugins-build-create-extension.sh
+      shell: bash
+
+    - name: Installing clone shell with test-pkg
+      run: ./shell/scripts/test-plugins-build-install-extension.sh
       shell: bash
 
     - name: Upload files
