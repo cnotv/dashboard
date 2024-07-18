@@ -14,7 +14,7 @@ import { normalizeURL } from 'ufo';
  * @param {*} mode
  * @returns
  */
-export const getLocation = (base, mode) => {
+const getLocation = (base, mode) => {
   if (mode === 'hash') {
     return window.location.hash.replace(/^#\//, '');
   }

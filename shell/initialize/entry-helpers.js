@@ -3,6 +3,7 @@ import { updatePageTitle } from '@shell/utils/title';
 import { getVendor } from '@shell/config/private-label';
 import middleware from '@shell/config/middleware.js';
 import { withQuery } from 'ufo';
+import { markRaw } from 'vue';
 
 // Global variable used on mount, updated on route change and used in the render function
 let app;
@@ -527,3 +528,26 @@ export const setContext = async(app, context) => {
   app.context.params = app.context.route.params || {};
   app.context.query = app.context.route.query || {};
 };
+
+/**
+ * Initialize store after app is created
+ * @param {*} store Vuex store
+ * @param {*} context 
+ */
+export const storeInit = ({ state, dispatch, rootState }, context) => {
+  state.$router = markRaw(context.app.router);
+  state.$route = markRaw(context.route);
+  state.$plugin = markRaw(context.app.$plugin);
+
+  dispatch('management/rehydrateSubscribe');
+  dispatch('cluster/rehydrateSubscribe');
+
+  if ( rootState.isRancher ) {
+    dispatch('rancher/rehydrateSubscribe');
+  }
+
+  dispatch('catalog/rehydrate');
+
+  dispatch('prefs/loadCookies');
+  dispatch('prefs/loadTheme');
+}

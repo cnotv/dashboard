@@ -727,18 +727,6 @@ export const mutations = {
   targetRoute(state, route) {
     state.targetRoute = route;
   },
-
-  setRouter(state, router) {
-    state.$router = markRaw(router);
-  },
-
-  setRoute(state, route) {
-    state.$route = markRaw(route);
-  },
-
-  setPlugin(state, pluginDefinition) {
-    state.$plugin = markRaw(pluginDefinition);
-  }
 };
 
 export const actions = {
@@ -1162,24 +1150,6 @@ export const actions = {
 
       document.location.href = `${ base }auth/login?${ QUERY }`;
     }
-  },
-
-  nuxtClientInit({ dispatch, commit, rootState }, nuxt) {
-    commit('setRouter', nuxt.app.router);
-    commit('setRoute', nuxt.route);
-    commit('setPlugin', nuxt.app.$plugin);
-
-    dispatch('management/rehydrateSubscribe');
-    dispatch('cluster/rehydrateSubscribe');
-
-    if ( rootState.isRancher ) {
-      dispatch('rancher/rehydrateSubscribe');
-    }
-
-    dispatch('catalog/rehydrate');
-
-    dispatch('prefs/loadCookies');
-    dispatch('prefs/loadTheme');
   },
 
   loadingError({ commit, state }, err) {
