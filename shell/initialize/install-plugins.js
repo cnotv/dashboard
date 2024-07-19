@@ -40,7 +40,22 @@ export async function installPlugins(vueApp) {
 }
 
 export async function installInjectedPlugins(app, vueApp) {
-  const pluginDefinitions = [config, cookieUniversalNuxt, axios, plugins, pluginsLoader, axiosShell, intNumber, codeMirror, replaceAll, backButton, plugin, version, steveCreateWorker, emberCookie];
+  const pluginDefinitions = [
+    config, 
+    cookieUniversalNuxt, 
+    axios, 
+    plugins, 
+    pluginsLoader, 
+    axiosShell, 
+    intNumber, 
+    codeMirror, 
+    replaceAll, 
+    backButton, 
+    plugin, 
+    version, 
+    steveCreateWorker, 
+    emberCookie
+  ];
 
   const installations = pluginDefinitions.map(async(pluginDefinition) => {
     if (typeof pluginDefinition === 'function') {
