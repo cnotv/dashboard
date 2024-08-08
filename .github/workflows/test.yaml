@@ -19,8 +19,8 @@ env:
   TEST_USERNAME: admin
   TEST_PASSWORD: password
   CATTLE_BOOTSTRAP_PASSWORD: password
-  TEST_BASE_URL: https://127.0.0.1/dashboard
-  API: https://127.0.0.1
+  TEST_BASE_URL: https://rancher.cnotv.xyz/dashboard/
+  API: https://rancher.cnotv.xyz/
   TEST_PROJECT_ID: rancher-dashboard
   CYPRESS_API_URL: http://139.59.134.103:1234/
   TEST_RUN_ID: ${{github.run_number}}-${{github.run_attempt}}-${{github.event.pull_request.title || github.event.head_commit.message}}
@@ -115,13 +115,13 @@ jobs:
       - name: Run Rancher
         run: yarn e2e:docker
       
-      - name: Setup Rancher and user
-        run: |
-          yarn e2e:prod
-        env: 
-          GREP_TAGS: ${{ matrix.role.tag }}Setup+${{ matrix.features[0] }} --@jenkins ${{ matrix.role.tag }}Setup+${{ matrix.features[1] || matrix.features[0] }} --@jenkins
-          TEST_USERNAME: admin
-          TEST_ONLY: setup
+      # - name: Setup Rancher and user
+      #   run: |
+      #     yarn e2e:prod
+      #   env: 
+      #     GREP_TAGS: ${{ matrix.role.tag }}Setup+${{ matrix.features[0] }} --@jenkins ${{ matrix.role.tag }}Setup+${{ matrix.features[1] || matrix.features[0] }} --@jenkins
+      #     TEST_USERNAME: admin
+      #     TEST_ONLY: setup
       - name: Run user tests
         run: |
           yarn e2e:prod

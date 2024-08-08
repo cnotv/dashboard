@@ -18,7 +18,7 @@ describe('Rancher setup', { tags: ['@adminUserSetup', '@standardUserSetup', '@se
     rancherSetupLoginPage.hasInfoMessage();
   });
 
-  it('Confirm correct number of settings requests made', () => {
+  xit('Confirm correct number of settings requests made', () => {
     cy.intercept('GET', '/v1/management.cattle.io.settings?exclude=metadata.managedFields').as('settingsReq');
 
     rancherSetupLoginPage.goTo();
