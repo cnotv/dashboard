@@ -3,6 +3,8 @@ env:
     STORYBOOK_TOKEN: ${{ secrets.STORYBOOK_TOKEN }}
 on:
   push:
+    branches:
+      - master
   pull_request:
     branches:
       - master

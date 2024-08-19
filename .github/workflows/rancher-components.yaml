@@ -1,6 +1,5 @@
 name: rancher-components
 on:
-  push:
   pull_request:
     paths:
       - 'pkg/rancher-components/**/*'
