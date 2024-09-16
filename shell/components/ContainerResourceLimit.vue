@@ -1,158 +1,98 @@
-<script>
-import isEmpty from 'lodash/isEmpty';
+<script setup lang="ts">
+import pick from 'lodash/pick';
 import UnitInput from '@shell/components/form/UnitInput';
 import { CONTAINER_DEFAULT_RESOURCE_LIMIT } from '@shell/config/labels-annotations';
-import { cleanUp } from '@shell/utils/object';
+import { cleanUp, isEmpty } from '@shell/utils/object';
 import { _VIEW } from '@shell/config/query-params';
+import { onMounted, Ref, ref, watch } from 'vue';
 
-export default {
-  components: { UnitInput },
+interface ResourceLimit {
+  limitsCpu: string;
+  limitsMemory: number;
+  requestsCpu: string;
+  requestsMemory: number;
+  limitsGpu: string;
+}
 
-  props: {
-    mode: {
-      type:    String,
-      default: 'create'
-    },
-
-    namespace: {
-      type:    Object,
-      default: null
-    },
-
-    value: {
-      type:    Object,
-      default: () => {
-        return {};
-      }
-    },
-
-    handleGpuLimit: {
-      type:    Boolean,
-      default: true
-    },
-
-    registerBeforeHook: {
-      type:    Function,
-      default: null
-    },
-
-    showTip: {
-      type:    Boolean,
-      default: true
+const fields = ['limitsCpu', 'limitsMemory', 'requestsCpu', 'requestsMemory', 'limitsGpu'];
+const viewMode = ref(_VIEW);
+const props = defineProps({
+  mode: {
+    type:    String,
+    default: 'create'
+  },
+  namespace: {
+    type:    Object,
+    default: null
+  },
+  value: {
+    type:    Object,
+    default: () => {
+      return {};
     }
   },
-
-  data() {
-    const {
-      limitsCpu, limitsMemory, requestsCpu, requestsMemory, limitsGpu
-    } = this.value;
-
-    return {
-      limitsCpu, limitsMemory, requestsCpu, requestsMemory, limitsGpu, viewMode: _VIEW
-    };
+  handleGpuLimit: {
+    type:    Boolean,
+    default: true
   },
-
-  watch: {
-    value() {
-      const {
-        limitsCpu, limitsMemory, requestsCpu, requestsMemory, limitsGpu
-      } = this.value;
-
-      this.limitsCpu = limitsCpu;
-      this.limitsMemory = limitsMemory;
-      this.requestsCpu = requestsCpu;
-      this.requestsMemory = requestsMemory;
-      this.limitsGpu = limitsGpu;
-    }
+  registerBeforeHook: {
+    type:    Function,
+    default: null
   },
+  showTip: {
+    type:    Boolean,
+    default: true
+  }
+});
+const controls = ref(pick(props.value, fields)) as Ref<ResourceLimit>;
+const emit = defineEmits(['update'])
 
-  computed: {
-    detailTopColumns() {
-      return [
-        {
-          title: this.$store.getters['i18n/t']('generic.created'),
-          name:  'created'
-        },
-      ];
-    },
-  },
+/**
+ * Set the default limits from the namespace annotation
+ */
+const initLimits = () => {
+  const namespace = props.namespace;
+  const defaults = namespace?.metadata?.annotations[CONTAINER_DEFAULT_RESOURCE_LIMIT];
 
-  created() {
-    if (this?.namespace?.id) {
-      this.initLimits();
-    }
+  // Ember UI can set the defaults to the string literal 'null'
+  if (!isEmpty(defaults) && defaults !== 'null') {
+    controls.value = pick(JSON.parse(defaults), fields) as ResourceLimit;
+  }
+}
 
-    if (this.registerBeforeHook) {
-      this.registerBeforeHook(this.updateBeforeSave);
-    }
-  },
+/**
+ * no deep copy in destructure proxy yet
+ */
+const updateBeforeSave = () => {
+  const namespace = props.namespace; 
+  if (props.namespace) {
+    const cleanValue = cleanUp(controls);
+    namespace.setAnnotation(CONTAINER_DEFAULT_RESOURCE_LIMIT, JSON.stringify(cleanValue));
+  }
+}
 
-  methods: {
-    updateLimits() {
-      const {
-        limitsCpu,
-        limitsMemory,
-        requestsCpu,
-        requestsMemory,
-        limitsGpu
-      } = this;
+/**
+ * Emit all controls
+ */
+const onUpdate = (value: string, key: keyof ResourceLimit) => {
+  controls.value = {
+    ...cleanUp(controls.value),
+    [key]: value
+  };
+  emit('update', cleanUp(controls));
+}
 
-      this.$emit('update:value', cleanUp({
-        limitsCpu,
-        limitsMemory,
-        requestsCpu,
-        limitsGpu,
-        requestsMemory
-      }));
-    },
+watch(() => props.value, value => (controls.value = pick(value, fields) as ResourceLimit));
 
-    updateBeforeSave(value) {
-      const {
-        limitsCpu,
-        limitsMemory,
-        requestsCpu,
-        requestsMemory,
-        limitsGpu
-      } = this;
-      const namespace = this.namespace; // no deep copy in destructure proxy yet
-
-      const out = cleanUp({
-        limitsCpu,
-        limitsMemory,
-        requestsCpu,
-        limitsGpu,
-        requestsMemory
-      });
-
-      if (namespace) {
-        namespace.setAnnotation(CONTAINER_DEFAULT_RESOURCE_LIMIT, JSON.stringify(out));
-      }
-    },
-
-    initLimits() {
-      const namespace = this.namespace;
-      const defaults = namespace?.metadata?.annotations[CONTAINER_DEFAULT_RESOURCE_LIMIT];
-
-      // Ember UI can set the defaults to the string literal 'null'
-      if (!isEmpty(defaults) && defaults !== 'null') {
-        const {
-          limitsCpu,
-          limitsMemory,
-          requestsCpu,
-          requestsMemory,
-          limitsGpu
-        } = JSON.parse(defaults);
-
-        this.limitsCpu = limitsCpu;
-        this.limitsMemory = limitsMemory;
-        this.requestsCpu = requestsCpu;
-        this.requestsMemory = requestsMemory;
-        this.limitsGpu = limitsGpu;
-      }
-    },
+onMounted(() => {
+  if (props.namespace?.id) {
+    initLimits();
   }
 
-};
+  if (props.registerBeforeHook) {
+    props.registerBeforeHook(updateBeforeSave);
+  }
+});
 </script>
 
 <template>
@@ -178,7 +118,7 @@ export default {
     <div class="row mb-20">
       <span class="col span-6">
         <UnitInput
-          v-model:value="requestsCpu"
+          :value="controls.requestsCpu"
           :placeholder="t('containerResourceLimit.cpuPlaceholder')"
           :label="t('containerResourceLimit.requestsCpu')"
           :mode="mode"
@@ -186,12 +126,12 @@ export default {
           :output-modifier="true"
           :base-unit="t('suffix.cpus')"
           data-testid="cpu-reservation"
-          @update:value="updateLimits"
+          @update:value="onUpdate($event, 'requestsCpu')"
         />
       </span>
       <span class="col span-6">
         <UnitInput
-          v-model:value="requestsMemory"
+          :value="controls.requestsMemory"
           :placeholder="t('containerResourceLimit.memPlaceholder')"
           :label="t('containerResourceLimit.requestsMemory')"
           :mode="mode"
@@ -199,7 +139,7 @@ export default {
           :increment="1024"
           :output-modifier="true"
           data-testid="memory-reservation"
-          @update:value="updateLimits"
+          @update:value="onUpdate($event, 'requestsMemory')"
         />
       </span>
     </div>
@@ -207,7 +147,7 @@ export default {
     <div class="row mb-20">
       <span class="col span-6">
         <UnitInput
-          v-model:value="limitsCpu"
+          :value="controls.limitsCpu"
           :placeholder="t('containerResourceLimit.cpuPlaceholder')"
           :label="t('containerResourceLimit.limitsCpu')"
           :mode="mode"
@@ -215,12 +155,12 @@ export default {
           :output-modifier="true"
           :base-unit="t('suffix.cpus')"
           data-testid="cpu-limit"
-          @update:value="updateLimits"
+          @update:value="onUpdate($event, 'limitsCpu')"
         />
       </span>
       <span class="col span-6">
         <UnitInput
-          v-model:value="limitsMemory"
+          :value="controls.limitsMemory"
           :placeholder="t('containerResourceLimit.memPlaceholder')"
           :label="t('containerResourceLimit.limitsMemory')"
           :mode="mode"
@@ -228,7 +168,7 @@ export default {
           :increment="1024"
           :output-modifier="true"
           data-testid="memory-limit"
-          @update:value="updateLimits"
+          @update:value="onUpdate($event, 'limitsMemory')"
         />
       </span>
     </div>
@@ -238,13 +178,13 @@ export default {
     >
       <span class="col span-6">
         <UnitInput
-          v-model:value="limitsGpu"
+          :value="controls.limitsGpu"
           :placeholder="t('containerResourceLimit.gpuPlaceholder')"
           :label="t('containerResourceLimit.limitsGpu')"
           :mode="mode"
           :base-unit="t('suffix.gpus')"
           data-testid="gpu-limit"
-          @update:value="updateLimits"
+          @update:value="onUpdate($event, 'limitsGpu')"
         />
       </span>
     </div>
