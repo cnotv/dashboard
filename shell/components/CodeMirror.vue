@@ -194,7 +194,8 @@ export default {
 <style lang="scss">
   $code-mirror-animation-time: 0.1s;
 
-  .codemirror-container {
+  .codemirror-container,
+  .code-mirror {
     z-index: 0;
 
     // Keyboard mapping overlap

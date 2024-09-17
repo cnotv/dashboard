@@ -256,7 +256,8 @@ export default {
     flex: 1;
   }
 
-  .codemirror-container  {
+  .codemirror-container,
+  .code-mirror {
     position: relative;
 
     .CodeMirror {
