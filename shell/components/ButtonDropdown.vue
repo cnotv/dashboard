@@ -226,7 +226,7 @@ export default {
 
 <style lang='scss' scoped>
 .button-dropdown.btn-sm {
-  :deep() > .vs__dropdown-toggle {
+  :deep( > .vs__dropdown-toggle ) {
     .vs__actions {
       &:after {
         font-size: 1.6rem;
@@ -235,7 +235,7 @@ export default {
   }
 }
 .button-dropdown.btn-lg {
-  :deep() > .vs__dropdown-toggle {
+  :deep( > .vs__dropdown-toggle ) {
     .vs__actions {
       &:after {
         font-size: 2.6rem;
@@ -249,28 +249,28 @@ export default {
   color: var(--link);
   padding: 0;
 
-  &.vs--open :deep() {
+  &.vs--open :deep( ) {
     outline: none;
     box-shadow: none;
   }
 
   &:hover {
     :deep() .vs__dropdown-toggle .vs__actions,
-    :deep() .vs__selected-options {
+    :deep( .vs__selected-options ) {
       background: var(--accent-btn-hover);
     }
-    :deep() .vs__selected-options .vs__selected button {
+    :deep( .vs__selected-options .vs__selected button ) {
       background-color: transparent;
       color: var(--accent-btn-hover-text);
     }
-    :deep() .vs__dropdown-toggle .vs__actions {
+    :deep( .vs__dropdown-toggle .vs__actions ) {
       &:after {
         color: var(--accent-btn-hover-text);
       }
     }
   }
 
-  :deep() > .vs__dropdown-toggle {
+  :deep( > .vs__dropdown-toggle ) {
     width: 100%;
     display: grid;
     grid-template-columns: 75% 25%;
@@ -286,7 +286,7 @@ export default {
     }
   }
 
-  :deep() .vs__selected-options {
+  :deep( .vs__selected-options ) {
     .vs__selected {
       margin: unset;
       border: none;
@@ -307,7 +307,7 @@ export default {
     }
   }
 
-  :deep() .vs__dropdown-menu {
+  :deep( .vs__dropdown-menu ) {
     min-width: unset;
     width: fit-content;
   }

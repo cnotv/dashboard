@@ -252,7 +252,7 @@ export default {
 </template>
 
 <style lang='scss' scoped>
-:deep() .radio-group.label>SPAN {
+:deep( .radio-group.label>SPAN ) {
   font-size: 1em;
 }
 </style>

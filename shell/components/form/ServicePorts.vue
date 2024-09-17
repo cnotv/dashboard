@@ -317,7 +317,7 @@ export default {
       height: 100%;
     }
 
-    .port-protocol :deep() {
+    .port-protocol :deep( ) {
       .unlabeled-select {
         .v-select.inline {
           margin-top: 2px;

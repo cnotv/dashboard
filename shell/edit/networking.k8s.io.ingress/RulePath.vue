@@ -182,7 +182,7 @@ export default {
 <style lang="scss" scoped>
 $row-height: 40px;
 
-.labeled-input :deep(), :deep() .labeled-input {
+.labeled-input :deep(, :deep() .labeled-input ) {
   padding: 0 !important;
   height: 100%;
   input.no-label {
@@ -190,7 +190,7 @@ $row-height: 40px;
     padding: 10px;
   }
 }
-.rule-path :deep() {
+.rule-path :deep( ) {
   .col, INPUT {
     height: $row-height;
   }

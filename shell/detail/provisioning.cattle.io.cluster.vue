@@ -1111,7 +1111,7 @@ export default {
   }
 }
 
-.snapshots :deep() .state-description{
+.snapshots :deep( .state-description) {
   font-size: .8em;
   color: var(--error);
 }
