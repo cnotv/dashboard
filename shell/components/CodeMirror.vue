@@ -57,7 +57,7 @@ export default {
         theme:                   `base16-${ theme }`,
         lineNumbers:             true,
         line:                    true,
-        styleActiveLine:         true,
+        styleActiveLine:         false,
         lineWrapping:            true,
         foldGutter:              true,
         styleSelectedText:       true,
