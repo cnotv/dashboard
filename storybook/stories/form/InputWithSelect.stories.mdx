@@ -1,0 +1,46 @@
+import { Meta, Canvas, Story, ArgsTable, Source } from '@storybook/addon-docs';
+import InputWithSelect from '@shell/components/form/InputWithSelect';
+
+export const Template = (args, { argTypes }) => ({
+  components: { InputWithSelect },
+  props:      Object.keys(argTypes),
+  template:   '<InputWithSelect v-bind="$props" />',
+})
+
+<Meta 
+  title="Form/InputWithSelect" 
+  argTypes={{
+    options: {
+      options: ['a', 'b'],
+      control: { type: 'select' }
+    }
+  }}
+/>
+
+# InputWithSelect
+Combination of input and select elements.
+
+<Canvas>
+  <Story
+    name="Default"
+    args={{
+      options: ['a', 'b'],
+      textLabel: 'Select',
+      selectLabel: 'Type',
+    }}>
+  >
+    {Template.bind({})}
+  </Story>
+</Canvas>
+
+### Import
+
+<Source
+  language='js'
+  code={`
+     import InputWithSelect from '@shell/components/form/InputWithSelect';
+  `}
+/>
+
+### Props table
+<ArgsTable of={InputWithSelect} />
