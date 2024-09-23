@@ -284,18 +284,18 @@ export default {
       border: 1px solid var(--outline) !important;
     }
 
-    &.labeled-select.focused :deep(),
-    &.unlabeled-select.focused :deep() {
+    &.labeled-select.focused,
+    &.unlabeled-select.focused {
       outline: none;
     }
 
-    &.labeled-select:not(.disabled):not(.view) :deep(),
-    &.unlabeled-select:not(.disabled):not(.view) :deep() {
+    &.labeled-select:not(.disabled):not(.view),
+    &.unlabeled-select:not(.disabled):not(.view) {
       border: solid 1px var(--input-border);
     }
 
-    &.labeled-select :deep(),
-    &.unlabeled-select :deep() {
+    &.labeled-select,
+    &.unlabeled-select {
       box-shadow: none;
       width: 20%;
       margin-right: 1px; // push the input box right so the full focus outline of the select can be seen, z-index borks
