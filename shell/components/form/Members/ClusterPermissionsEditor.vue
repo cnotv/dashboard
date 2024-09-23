@@ -293,8 +293,8 @@ export default {
 <style lang="scss" scoped>
 $detailSize: 11px;
 
-:deep() .type-description {
-    font-size: $detailSize;
+.type-description {
+  font-size: $detailSize;
 }
 
 label.radio {
@@ -306,9 +306,6 @@ label.radio {
   grid-template-columns: 1fr 1fr 1fr;
   &.two-column {
     grid-template-columns: 1fr 1fr;
-  }
-  :deep() .checkbox-label {
-    margin-right: 0;
   }
 }
 </style>
