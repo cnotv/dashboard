@@ -526,18 +526,6 @@ button {
     max-height: $input-height;
   }
 
-  .namespace-select :deep() {
-    .labeled-select {
-      min-width: 40%;
-
-      .v-select.inline {
-        &.vs--single {
-          padding-bottom: 2px;
-        }
-      }
-    }
-  }
-
   &.flip-direction {
     flex-direction: column;
 
