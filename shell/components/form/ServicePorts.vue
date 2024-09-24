@@ -318,14 +318,6 @@ export default {
     > div {
       height: 100%;
     }
-
-    .port-protocol :deep() {
-      .unlabeled-select {
-        .v-select.inline {
-          margin-top: 2px;
-        }
-      }
-    }
   }
 
   .footer {
