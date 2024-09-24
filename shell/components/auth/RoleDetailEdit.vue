@@ -802,28 +802,26 @@ export default {
     color: var(--error);
   }
 
-  :deep() {
-    .column-headers {
-      margin-right: 75px;
-      margin-bottom: 5px;
-    }
+.column-headers {
+  margin-right: 75px;
+  margin-bottom: 5px;
+}
 
-    .box {
-      align-items: initial;
+:deep(.box) {
+  align-items: initial;
 
-      .remove {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: flex-end;
-      }
-    }
-
-    .columns {
-      .col > .unlabeled-select:not(.taggable) {
-        // override the odd padding-top from shell/assets/styles/global/_select.scss
-        padding: $unlabaled-select-padding
-      }
-    }
+  .remove {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
   }
+}
+
+.columns {
+  .col > .unlabeled-select:not(.taggable) {
+    // override the odd padding-top from shell/assets/styles/global/_select.scss
+    padding: $unlabaled-select-padding
+  }
+}
 </style>
