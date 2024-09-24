@@ -503,68 +503,63 @@ export default {
 </template>
 <style lang="scss" scoped>
 .project-namespaces {
-  & :deep() {
-    .project-namespaces-table table {
-      table-layout: fixed;
+  .project-namespaces-table table {
+    table-layout: fixed;
+  }
+
+  .project-bar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    .group-tab {
+      max-width: calc(100% - 230px);
+    }
+  }
+
+  :deep(.project-name) {
+    line-height: 30px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    span:first-child {
+      padding-right: 8px;
     }
 
-    .project-name {
-      line-height: 30px;
+    span:last-child {
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
     }
+  }
 
-    .project-bar {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-
-      .group-tab {
-        max-width: calc(100% - 230px);
+  &.has-description {
+    .right {
+      margin-top: 5px;
+    }
+    .group-tab {
+      &, &::after {
+          height: 50px;
       }
 
-      .project-name {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-
-        span:first-child {
-          padding-right: 8px;
-        }
-
-        span:last-child {
-          text-overflow: ellipsis;
-          overflow: hidden;
-          white-space: nowrap;
-        }
+      &::after {
+          right: -20px;
       }
 
-      &.has-description {
-        .right {
-          margin-top: 5px;
-        }
-        .group-tab {
-          &, &::after {
-              height: 50px;
-          }
-
-          &::after {
-              right: -20px;
-          }
-
-          .description {
-              margin-top: -20px;
-          }
-        }
+      .description {
+          margin-top: -20px;
       }
     }
+  }
+}
 
-    .namespace-name {
-      display: flex;
-      align-items: center;
+.namespace-name {
+  display: flex;
+  align-items: center;
 
-      .icon-istio {
-        color: var(--primary);
-      }
-    }
+  .icon-istio {
+    color: var(--primary);
   }
 }
 </style>
