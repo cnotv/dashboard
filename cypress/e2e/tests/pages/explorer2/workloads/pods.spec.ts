@@ -271,7 +271,7 @@ describe('Pods', { testIsolation: 'off', tags: ['@explorer2', '@adminUser'] }, (
     });
   });
 
-  describe.skip('[Vue3 Skip]: should delete pod', () => {
+  describe('[Vue3 Skip]: should delete pod', () => {
     const podName = `pod-${ Date.now() }`;
 
     beforeEach(() => {
