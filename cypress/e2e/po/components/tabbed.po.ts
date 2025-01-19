@@ -6,10 +6,27 @@ export default class TabbedPo extends ComponentPo {
   }
 
   clickNthTab(optionIndex: number) {
-    return this.self().get(`li:nth-child(${ optionIndex }) a`).click();
+    return this.self().find(`li:nth-child(${ optionIndex }) a`).click();
   }
 
   clickTabWithSelector(selector: string) {
-    return this.self().get(`${ selector }`).click();
+    return this.self().find(`${ selector }`).click();
+  }
+
+  allTabs() {
+    return this.self().get('[data-testid="tabbed-block"] > li');
+  }
+
+  /**
+   * Get tab labels
+   * @param tabLabelsSelector
+   * @returns
+   */
+  tabNames(tabLabelsSelector = 'a > span') {
+    return this.allTabs().find(tabLabelsSelector).then(($els: any) => {
+      return (
+        Cypress.$.makeArray<string>($els).map((el: any) => el.innerText as string)
+      );
+    });
   }
 }

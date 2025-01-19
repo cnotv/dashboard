@@ -3,17 +3,11 @@
  * so that it doesn't all get loaded put into vendor.js
  */
 
-import Vue from 'vue';
-import VueCodemirror from 'vue-codemirror';
 import CodeMirror from 'codemirror';
 
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/yaml/yaml.js';
 import 'codemirror/mode/javascript/javascript.js';
-
-// import 'codemirror/mode/dockerfile/dockerfile.js';
-// import 'codemirror/mode/shell/shell.js';
-// import 'codemirror/mode/markdown/markdown.js';
 
 import 'codemirror/theme/base16-light.css';
 import 'codemirror/theme/base16-dark.css';
@@ -34,9 +28,6 @@ import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/hint/anyword-hint.js';
 
 import { strPad } from '@shell/utils/string';
-
-Vue.use(VueCodemirror);
-export default VueCodemirror;
 
 function isLineComment(cm, lineNo) {
   return /\bcomment\b/.test(cm.getTokenTypeAt(CodeMirror.Pos(lineNo, 0)));
@@ -120,6 +111,47 @@ CodeMirror.defineExtension('foldLinesMatching', function(regex) {
 
       if ( line.match(regex) ) {
         this.foldCode(CodeMirror.Pos(i, 0), null, 'fold');
+      }
+    }
+  });
+});
+
+function countSpaces(line) {
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] !== ' ') {
+      return i;
+    }
+  }
+
+  return line.length;
+}
+
+CodeMirror.defineExtension('foldYaml', function(path) {
+  this.operation(() => {
+    let elements = [];
+
+    for (let i = this.firstLine(), e = this.lastLine(); i <= e; i++) {
+      const line = this.getLine(i);
+      const index = countSpaces(line);
+      const trimmed = line.trim();
+
+      if (trimmed.endsWith(':') || trimmed.endsWith(': >-')) {
+        const name = trimmed.split(':')[0].substr(0, trimmed.length - 1);
+
+        // Remove all elements of the same are greater index
+        elements = elements.filter((e) => e.index < index);
+
+        // Add on this one
+        elements.push({
+          index,
+          name
+        });
+
+        const currentPath = elements.map((e) => e.name).join('.');
+
+        if (currentPath === path) {
+          this.foldCode(CodeMirror.Pos(i, 0), null, 'fold');
+        }
       }
     }
   });

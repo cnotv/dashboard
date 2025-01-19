@@ -15,10 +15,7 @@ export default {
   },
 
   async fetch() {
-    this.clusters = await this.$store.dispatch('management/findAll', {
-      type: MANAGEMENT.CLUSTER,
-      opt:  { url: MANAGEMENT.CLUSTER }
-    });
+    this.clusters = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.CLUSTER });
   },
 
   data() {
@@ -114,18 +111,19 @@ export default {
       :value="afterLoginRoute"
       name="login-route"
       :options="routeRadioOptions"
-      @input="updateLoginRoute"
+      @update:value="updateLoginRoute"
     >
-      <template #2="{option, listeners}">
+      <template #2="{option}">
         <div class="custom-page">
           <RadioButton
             :label="option.label"
             :val="false"
             :value="afterLoginRoute=== 'home' || afterLoginRoute === 'last-visited'"
-            v-on="listeners"
+            :v-bind="$attrs"
+            @update:value="afterLoginRoute = false"
           />
           <Select
-            v-model="routeFromDropdown"
+            v-model:value="routeFromDropdown"
             :searchable="true"
             :disabled="afterLoginRoute === 'home' || afterLoginRoute === 'last-visited'"
             :clearable="false"

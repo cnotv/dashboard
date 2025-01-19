@@ -4,7 +4,10 @@
 
 // Steve-specific virtual types
 // Base: /v1
-export const STEVE = { PREFERENCE: 'userpreference' };
+export const STEVE = {
+  PREFERENCE:        'userpreference',
+  SCHEMA_DEFINITION: 'schemaDefinition'
+};
 
 // Old APIs via Norman
 // Base: /v3
@@ -14,7 +17,7 @@ export const NORMAN = {
   ETCD_BACKUP:                   'etcdbackup',
   CLUSTER:                       'cluster',
   CLUSTER_TOKEN:                 'clusterregistrationtoken',
-  CLUSTER_ROLE_TEMPLATE_BINDING: 'clusterRoleTemplateBinding',
+  CLUSTER_ROLE_TEMPLATE_BINDING: 'clusterroletemplatebinding',
   CLOUD_CREDENTIAL:              'cloudcredential',
   FLEET_WORKSPACES:              'fleetworkspace',
   GLOBAL_ROLE:                   'globalRole',
@@ -26,10 +29,13 @@ export const NORMAN = {
   PRINCIPAL:                     'principal',
   PROJECT:                       'project',
   PROJECT_ROLE_TEMPLATE_BINDING: 'projectroletemplatebinding',
+  SETTING:                       'setting',
   SPOOFED:                       { GROUP_PRINCIPAL: 'group.principal' },
   ROLE_TEMPLATE:                 'roleTemplate',
   TOKEN:                         'token',
   USER:                          'user',
+  KONTAINER_DRIVER:              'kontainerDriver',
+  NODE_DRIVER:                   'nodeDriver'
 };
 
 // Public (via Norman)
@@ -53,8 +59,6 @@ export const NODE = 'node';
 export const NETWORK_POLICY = 'networking.k8s.io.networkpolicy';
 export const POD = 'pod';
 export const POD_DISRUPTION_BUDGET = 'policy.poddisruptionbudget';
-export const PSP = 'policy.podsecuritypolicy';
-export const PSPS = 'policy.podsecuritypolicies';
 export const PV = 'persistentvolume';
 export const PVC = 'persistentvolumeclaim';
 export const RESOURCE_QUOTA = 'resourcequota';
@@ -88,6 +92,24 @@ export const WORKLOAD_TYPES = {
   REPLICA_SET:            'apps.replicaset',
   REPLICATION_CONTROLLER: 'replicationcontroller',
 };
+
+export const WORKLOAD_TYPE_TO_KIND_MAPPING = {
+  // Each deployment creates a replicaset and the metrics are published for a replicaset.
+  [WORKLOAD_TYPES.DEPLOYMENT]:             'ReplicaSet',
+  [WORKLOAD_TYPES.CRON_JOB]:               'CronJob',
+  [WORKLOAD_TYPES.DAEMON_SET]:             'DaemonSet',
+  [WORKLOAD_TYPES.JOB]:                    'Job',
+  [WORKLOAD_TYPES.STATEFUL_SET]:           'StatefulSet',
+  [WORKLOAD_TYPES.REPLICA_SET]:            'ReplicaSet',
+  [WORKLOAD_TYPES.REPLICATION_CONTROLLER]: 'ReplicationController',
+};
+
+export const METRICS_SUPPORTED_KINDS = [
+  WORKLOAD_TYPES.DAEMON_SET,
+  WORKLOAD_TYPES.REPLICA_SET,
+  WORKLOAD_TYPES.STATEFUL_SET,
+  WORKLOAD_TYPES.DEPLOYMENT
+];
 
 const {
   DAEMON_SET, CRON_JOB, JOB, ...scalableWorkloads
@@ -126,19 +148,17 @@ export const MONITORING = {
   SERVICEMONITOR:     'monitoring.coreos.com.servicemonitor',
   THANOSRULER:        'monitoring.coreos.com.thanosruler',
   SPOOFED:            {
-    RECEIVER:                         'monitoring.coreos.com.receiver',
-    RECEIVER_SPEC:                    'monitoring.coreos.com.receiver.spec',
-    RECEIVER_EMAIL:                   'monitoring.coreos.com.receiver.email',
-    RECEIVER_SLACK:                   'monitoring.coreos.com.receiver.slack',
-    RECEIVER_WEBHOOK:                 'monitoring.coreos.com.receiver.webhook',
-    RECEIVER_PAGERDUTY:               'monitoring.coreos.com.receiver.pagerduty',
-    RECEIVER_OPSGENIE:                'monitoring.coreos.com.receiver.opsgenie',
-    RECEIVER_HTTP_CONFIG:             'monitoring.coreos.com.receiver.httpconfig',
-    RESPONDER:                        'monitoring.coreos.com.receiver.responder',
-    ROUTE:                            'monitoring.coreos.com.route',
-    ROUTE_SPEC:                       'monitoring.coreos.com.route.spec',
-    ALERTMANAGERCONFIG_RECEIVER_SPEC: 'monitoring.coreos.com.v1alpha1.alertmanagerconfig.spec.receivers',
-    ALERTMANAGERCONFIG_ROUTE_SPEC:    'monitoring.coreos.com.v1alpha1.alertmanagerconfig.spec.route'
+    RECEIVER:             'monitoring.coreos.com.receiver',
+    RECEIVER_SPEC:        'monitoring.coreos.com.receiver.spec',
+    RECEIVER_EMAIL:       'monitoring.coreos.com.receiver.email',
+    RECEIVER_SLACK:       'monitoring.coreos.com.receiver.slack',
+    RECEIVER_WEBHOOK:     'monitoring.coreos.com.receiver.webhook',
+    RECEIVER_PAGERDUTY:   'monitoring.coreos.com.receiver.pagerduty',
+    RECEIVER_OPSGENIE:    'monitoring.coreos.com.receiver.opsgenie',
+    RECEIVER_HTTP_CONFIG: 'monitoring.coreos.com.receiver.httpconfig',
+    RESPONDER:            'monitoring.coreos.com.receiver.responder',
+    ROUTE:                'monitoring.coreos.com.route',
+    ROUTE_SPEC:           'monitoring.coreos.com.route.spec',
   }
 };
 
@@ -152,6 +172,8 @@ export const LONGHORN = {
 };
 
 export const LONGHORN_DRIVER = 'driver.longhorn.io';
+export const LONGHORN_VERSION_V1 = 'LonghornV1';
+export const LONGHORN_VERSION_V2 = 'LonghornV2';
 
 export const SNAPSHOT = 'rke.cattle.io.etcdsnapshot';
 
@@ -183,14 +205,13 @@ export const MANAGEMENT = {
   TOKEN:                         'management.cattle.io.token',
   GLOBAL_ROLE:                   'management.cattle.io.globalrole',
   GLOBAL_ROLE_BINDING:           'management.cattle.io.globalrolebinding',
-  POD_SECURITY_POLICY_TEMPLATE:  'management.cattle.io.podsecuritypolicytemplate',
-  PSP_TEMPLATE_BINDING:          'management.cattle.io.podsecuritypolicytemplateprojectbinding',
   PSA:                           'management.cattle.io.podsecurityadmissionconfigurationtemplate',
   MANAGED_CHART:                 'management.cattle.io.managedchart',
   USER_NOTIFICATION:             'management.cattle.io.rancherusernotification',
   GLOBAL_DNS_PROVIDER:           'management.cattle.io.globaldnsprovider',
   RKE_TEMPLATE:                  'management.cattle.io.clustertemplate',
   RKE_TEMPLATE_REVISION:         'management.cattle.io.clustertemplaterevision',
+  CLUSTER_PROXY_CONFIG:          'management.cattle.io.clusterproxyconfig'
 };
 
 export const CAPI = {
@@ -283,7 +304,8 @@ export const UI = { NAV_LINK: 'ui.cattle.io.navlink' };
 export const VIRTUAL_TYPES = {
   CLUSTER_MEMBERS:    'cluster-members',
   PROJECT_NAMESPACES: 'projects-namespaces',
-  NAMESPACES:         'namespaces'
+  NAMESPACES:         'namespaces',
+  JWT_AUTHENTICATION: 'jwt.authentication'
 };
 
 // harvester
@@ -291,7 +313,9 @@ export const HCI = {
   CLUSTER:          'harvesterhci.io.management.cluster',
   DASHBOARD:        'harvesterhci.io.dashboard',
   IMAGE:            'harvesterhci.io.virtualmachineimage',
+  VGPU_DEVICE:      'devices.harvesterhci.io.vgpudevice',
   SETTING:          'harvesterhci.io.setting',
+  RESOURCE_QUOTA:   'harvesterhci.io.resourcequota',
   HARVESTER_CONFIG: 'rke-machine-config.cattle.io.harvesterconfig',
 };
 
@@ -313,3 +337,16 @@ export const AUTH_TYPE = {
 };
 
 export const LOCAL_CLUSTER = 'local';
+
+export const CLUSTER_REPO_TYPES = {
+  HELM_URL: 'helm-url',
+  GIT_REPO: 'git-repo',
+  OCI_URL:  'oci-url'
+};
+
+export const ZERO_TIME = '0001-01-01T00:00:00Z';
+
+export const DEFAULT_GRAFANA_STORAGE_SIZE = '10Gi';
+
+export const DEPRECATED = 'Deprecated';
+export const EXPERIMENTAL = 'Experimental';

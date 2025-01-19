@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-import { RouteConfig } from 'vue-router';
+import { RouteRecordRaw } from 'vue-router';
 import { DSL as STORE_DSL } from '@shell/store/type-map';
+import { _DETAIL } from '@shell/config/query-params';
 import {
   CoreStoreInit,
   Action,
@@ -11,11 +12,11 @@ import {
   IPlugin,
   LocationConfig,
   ExtensionPoint,
-
-  PluginRouteConfig, RegisterStore, UnregisterStore, CoreStoreSpecifics, CoreStoreConfig, OnNavToPackage, OnNavAwayFromPackage, OnLogOut
+  TabLocation,
+  PluginRouteRecordRaw, RegisterStore, UnregisterStore, CoreStoreSpecifics, CoreStoreConfig, OnNavToPackage, OnNavAwayFromPackage, OnLogOut
 } from './types';
 import coreStore, { coreStoreModule, coreStoreState } from '@shell/plugins/dashboard-store';
-import { registerLayout } from '@shell/initialize/layouts';
+import { defineAsyncComponent, markRaw, Component } from 'vue';
 
 export type ProductFunction = (plugin: IPlugin, store: any) => void;
 
@@ -27,7 +28,7 @@ export class Plugin implements IPlugin {
   public locales: { locale: string, label: string}[] = [];
   public products: ProductFunction[] = [];
   public productNames: string[] = [];
-  public routes: { parent?: string, route: RouteConfig }[] = [];
+  public routes: { parent?: string, route: RouteRecordRaw }[] = [];
   public stores: { storeName: string, register: RegisterStore, unregister: UnregisterStore }[] = [];
   public onEnter: OnNavToPackage = () => Promise.resolve();
   public onLeave: OnNavAwayFromPackage = () => Promise.resolve();
@@ -98,10 +99,10 @@ export class Plugin implements IPlugin {
     this.register('l10n', locale, fn);
   }
 
-  addRoutes(routes: PluginRouteConfig[] | RouteConfig[]) {
-    routes.forEach((r: PluginRouteConfig | RouteConfig) => {
+  addRoutes(routes: PluginRouteRecordRaw[] | RouteRecordRaw[]) {
+    routes.forEach((r: PluginRouteRecordRaw | RouteRecordRaw) => {
       if (Object.keys(r).includes('parent')) {
-        const pConfig = r as PluginRouteConfig;
+        const pConfig = r as PluginRouteRecordRaw;
 
         if (pConfig.parent) {
           this.addRoute(pConfig.parent, pConfig.route);
@@ -109,23 +110,38 @@ export class Plugin implements IPlugin {
           this.addRoute(pConfig.route);
         }
       } else {
-        this.addRoute(r as RouteConfig);
+        this.addRoute(r as RouteRecordRaw);
       }
     });
   }
 
-  addRoute(parentOrRoute: RouteConfig | string, optionalRoute?: RouteConfig): void {
+  addRoute(parentOrRoute: RouteRecordRaw | string, optionalRoute?: RouteRecordRaw): void {
     // Always add the pkg name to the route metadata
     const hasParent = typeof (parentOrRoute) === 'string';
     const parent: string | undefined = hasParent ? parentOrRoute as string : undefined;
-    const route: RouteConfig = hasParent ? optionalRoute as RouteConfig : parentOrRoute as RouteConfig;
+    const route: RouteRecordRaw = hasParent ? optionalRoute as RouteRecordRaw : parentOrRoute as RouteRecordRaw;
+
+    let parentOverride;
+
+    if (!parent) {
+      // TODO: Inspecting the route object in the browser clearly indicates it's not a RouteRecordRaw. The type needs to be changed or at least extended.
+      const typelessRoute: any = route;
+
+      if (typelessRoute.component?.layout) {
+        console.warn(`Layouts have been deprecated. We still have parent routes which use the same name and styling as the previous layouts. \n\nFound a component ${ typelessRoute.component.name } with the '${ typelessRoute.component.layout }' layout specified `); // eslint-disable-line no-console
+        parentOverride = typelessRoute.component.layout.toLowerCase();
+      } else {
+        console.warn(`Layouts have been deprecated. We still have parent routes which use the same name and styling as the previous layouts. You should specify a parent, we're currently setting the parent to 'default'`); // eslint-disable-line no-console
+        parentOverride = 'default';
+      }
+    }
 
     route.meta = {
       ...route?.meta,
       pkg: this.name,
     };
 
-    this.routes.push({ parent, route });
+    this.routes.push({ parent: parentOverride || parent, route });
   }
 
   private _addUIConfig(type: string, where: string, when: LocationConfig | string, config: any) {
@@ -147,21 +163,53 @@ export class Plugin implements IPlugin {
    * Adds a tab to the UI
    */
   addTab(where: string, when: LocationConfig | string, tab: Tab): void {
-    this._addUIConfig(ExtensionPoint.TAB, where, when, tab);
+    // tackling https://github.com/rancher/dashboard/issues/11122, we don't want the tab to added in _EDIT view, unless overriden
+    // on extensions side we won't document the mode param for this extension point
+    if (where === TabLocation.RESOURCE_DETAIL && (typeof when === 'object' && !when.mode)) {
+      when.mode = [_DETAIL];
+    }
+
+    this._addUIConfig(ExtensionPoint.TAB, where, when, this._createAsyncComponent(tab));
   }
 
   /**
    * Adds a panel/component to the UI
    */
   addPanel(where: string, when: LocationConfig | string, panel: Panel): void {
-    this._addUIConfig(ExtensionPoint.PANEL, where, when, panel);
+    this._addUIConfig(ExtensionPoint.PANEL, where, when, this._createAsyncComponent(panel));
   }
 
   /**
    * Adds a card to the to the UI
    */
   addCard( where: string, when: LocationConfig | string, card: Card): void {
-    this._addUIConfig(ExtensionPoint.CARD, where, when, card);
+    this._addUIConfig(ExtensionPoint.CARD, where, when, this._createAsyncComponent(card));
+  }
+
+  /**
+   * Wraps a component from an extensionConfig with defineAsyncComponent and
+   * markRaw. This prepares the component to be loaded dynamically and prevents
+   * Vue from making the component reactive.
+   *
+   * @param extensionConfig The extension configuration containing a component
+   * to render.
+   * @returns A new object with the same properties as the extension
+   * configuration, but with the component property wrapped in
+   * defineAsyncComponent and markRaw. If the extension configuration doesn't
+   * have a component property, it returns the extension configuration
+   * unchanged.
+   */
+  private _createAsyncComponent(extensionConfig: Card | Panel | Tab) {
+    const { component } = extensionConfig;
+
+    if (!component) {
+      return extensionConfig;
+    }
+
+    return {
+      ...extensionConfig,
+      component: markRaw(defineAsyncComponent(component as () => Promise<Component>)),
+    };
   }
 
   /**
@@ -250,11 +298,12 @@ export class Plugin implements IPlugin {
   }
 
   public register(type: string, name: string, fn: Function) {
+    const allowPaths = ['models', 'image'];
     const nparts = name.split('/');
 
     // Support components in a sub-folder - component_name/index.vue (and ignore other componnets in that folder)
     // Allow store-scoped models via sub-folder - pkgname/models/storename/type will be registered as storename/type to avoid overwriting shell/models/type
-    if (nparts.length === 2 && type !== 'models') {
+    if (nparts.length === 2 && !allowPaths.includes(type)) {
       if (nparts[1] !== 'index') {
         return;
       }
@@ -268,14 +317,6 @@ export class Plugin implements IPlugin {
       }
 
       this.l10n[name].push(fn);
-    } else if (type === 'layouts') {
-      fn().then((component: any) => {
-        if (component.default) {
-          registerLayout(name, component.default);
-        } else {
-          console.error(`Failed to load layout ${ name } because the file didn't export a default component.`); // eslint-disable-line no-console
-        }
-      });
     } else {
       if (!this.types[type]) {
         this.types[type] = {};

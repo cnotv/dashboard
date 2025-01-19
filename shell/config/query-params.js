@@ -6,6 +6,8 @@ export const LOCAL = 'local';
 export const SETUP = 'setup';
 export const STEP = 'step';
 export const LOGGED_OUT = 'logged-out';
+export const IS_SSO = 'is-sso';
+export const IS_SLO = 'is-slo';
 export const UPGRADED = 'upgraded';
 export const TIMED_OUT = 'timed-out';
 export const AUTH_TEST = 'test';
@@ -50,6 +52,7 @@ export const _SPLIT = 'split';
 
 // CruResource
 export const SUB_TYPE = 'type';
+export const RKE_TYPE = 'rkeType';
 
 // App launch
 export const REPO_TYPE = 'repo-type';

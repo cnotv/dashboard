@@ -8,6 +8,7 @@ import { mapGetters } from 'vuex';
 import InputWithSelect from '@shell/components/form/InputWithSelect';
 
 export default {
+  emits:      ['update:value'],
   components: {
     RadioGroup, UnitInput, InputWithSelect
   },
@@ -40,12 +41,13 @@ export default {
   data() {
     const {
       strategy:strategyObj = {},
+      updateStrategy: updateStrategyObj = {},
       minReadySeconds = 0,
       progressDeadlineSeconds = 600,
       revisionHistoryLimit = 10,
       podManagementPolicy = 'OrderedReady'
     } = this.value;
-    const strategy = strategyObj.type || 'RollingUpdate';
+    const strategy = strategyObj.type || updateStrategyObj.type || 'RollingUpdate';
     let maxSurge = '25';
     let maxUnavailable = '25';
     let surgeUnits = '%';
@@ -97,7 +99,7 @@ export default {
       case WORKLOAD_TYPES.DAEMON_SET:
       case WORKLOAD_TYPES.STATEFUL_SET:
         return {
-          options: ['RollingUpdate', 'Delete'],
+          options: ['RollingUpdate', 'OnDelete'],
           labels:  [this.t('workload.upgrading.strategies.labels.rollingUpdate'), this.t('workload.upgrading.strategies.labels.delete')]
         };
       default:
@@ -139,7 +141,7 @@ export default {
       }
 
       if (podSpec) {
-        this.$set(podSpec, 'terminationGracePeriodSeconds', terminationGracePeriodSeconds);
+        podSpec['terminationGracePeriodSeconds'] = terminationGracePeriodSeconds;
       }
 
       switch (this.type) {
@@ -195,7 +197,7 @@ export default {
         break;
       }
 
-      this.$emit('input', this.value);
+      this.$emit('update:value', this.value);
     },
 
     updateWithUnits({ selected:units, text:value }, target) {
@@ -228,12 +230,12 @@ export default {
         data-testid="input-policy-strategy"
       >
         <RadioGroup
-          v-model="strategy"
+          v-model:value="strategy"
           name="strategy"
           :options="strategyOptions.options"
           :labels="strategyOptions.labels"
           :mode="mode"
-          @input="update"
+          @update:value="update"
         />
       </div>
     </div>
@@ -246,12 +248,12 @@ export default {
         data-testid="input-policy-pod"
       >
         <RadioGroup
-          v-model="podManagementPolicy"
+          v-model:value="podManagementPolicy"
           name="podManagement"
           :mode="mode"
           :label="t('workload.upgrading.podManagementPolicy.label')"
           :options="['OrderedReady', 'Parallel']"
-          @input="update"
+          @update:value="update"
         />
       </div>
     </div>
@@ -273,7 +275,7 @@ export default {
             :mode="mode"
             type="number"
             :options="['Pods', '%']"
-            @input="e=>updateWithUnits(e, 'maxSurge')"
+            @update:value="e=>updateWithUnits(e, 'maxSurge')"
           />
         </div>
         <div
@@ -288,7 +290,7 @@ export default {
             :mode="mode"
             type="number"
             :options="['Pods', '%']"
-            @input="e=>updateWithUnits(e, 'maxUnavailable')"
+            @update:value="e=>updateWithUnits(e, 'maxUnavailable')"
           />
         </div>
       </div>
@@ -305,12 +307,12 @@ export default {
         data-testid="input-policy-min"
       >
         <UnitInput
-          v-model="minReadySeconds"
+          v-model:value="minReadySeconds"
           :suffix="t('suffix.seconds', {count: minReadySeconds})"
           label-key="workload.upgrading.minReadySeconds.label"
           tooltip-key="workload.upgrading.minReadySeconds.tip"
           :mode="mode"
-          @input="update"
+          @update:value="update"
         />
       </div>
       <div
@@ -319,12 +321,12 @@ export default {
         data-testid="input-policy-limit"
       >
         <UnitInput
-          v-model="revisionHistoryLimit"
+          v-model:value="revisionHistoryLimit"
           :suffix="t('suffix.revisions', {count: revisionHistoryLimit})"
           label-key="workload.upgrading.revisionHistoryLimit.label"
           tooltip-key="workload.upgrading.revisionHistoryLimit.tip"
           :mode="mode"
-          @input="update"
+          @update:value="update"
         />
       </div>
     </div>
@@ -337,12 +339,12 @@ export default {
         data-testid="input-policy-deadline"
       >
         <UnitInput
-          v-model="progressDeadlineSeconds"
+          v-model:value="progressDeadlineSeconds"
           :suffix="t('suffix.seconds', {count: progressDeadlineSeconds})"
           label-key="workload.upgrading.progressDeadlineSeconds.label"
           tooltip-key="workload.upgrading.progressDeadlineSeconds.tip"
           :mode="mode"
-          @input="update"
+          @update:value="update"
         />
       </div>
     </div>
@@ -357,12 +359,12 @@ export default {
         data-testid="input-policy-termination"
       >
         <UnitInput
-          v-model="terminationGracePeriodSeconds"
+          v-model:value="terminationGracePeriodSeconds"
           :suffix="t('suffix.seconds', {count: terminationGracePeriodSeconds})"
           label-key="workload.upgrading.terminationGracePeriodSeconds.label"
           tooltip-key="workload.upgrading.terminationGracePeriodSeconds.tip"
           :mode="mode"
-          @input="update"
+          @update:value="update"
         />
       </div>
     </div>

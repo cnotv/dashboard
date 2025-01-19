@@ -12,7 +12,8 @@ export const BASE_SCOPES = {
   github:       ['read:org'],
   googleoauth:  ['openid profile email'],
   azuread:      [],
-  keycloakoidc: ['openid profile email']
+  keycloakoidc: ['openid profile email'],
+  genericoidc:  ['openid profile email'],
 };
 
 const KEY = 'rc_nonce';
@@ -37,7 +38,7 @@ export const state = function() {
 };
 
 export const getters = {
-  fromHeader() {
+  fromHeader(state) {
     return state.fromHeader;
   },
 
@@ -344,24 +345,60 @@ export const actions = {
     }
   },
 
-  async logout({ dispatch, commit }) {
-    // Unload plugins - we will load again on login
-    await this.$plugin.logout();
-
-    try {
-      await dispatch('rancher/request', {
-        url:                  '/v3/tokens?action=logout',
-        method:               'post',
-        data:                 {},
-        headers:              { 'Content-Type': 'application/json' },
-        redirectUnauthorized: false,
-      }, { root: true });
-    } catch (e) {
-    }
-
+  uiLogout({ commit, dispatch }) {
     removeEmberPage();
 
     commit('loggedOut');
     dispatch('onLogout', null, { root: true });
+  },
+
+  async logout({ dispatch, getters, rootState }, options = {}) {
+    // So, we only do this check if auth has been initialized.
+    //
+    // It's possible to be logged in and visit auth/logout directly instead
+    // of navigating from the app while being logged in. Unfortunately auth/logout
+    // doesn't use the authenticated middleware which means auth will never be
+    // initialized and this check will be invalid. This interferes with how we sometimes
+    // logout in our e2e tests.
+    //
+    // I'm going to leave this as is because we will be modifying and removing authenticated
+    // middleware soon and we should remove `force` at that time.
+    //
+    // TODO: remove `force` once authenticated middleware is removed/made sane.
+    if (!options?.force && !getters['loggedIn']) {
+      return;
+    }
+
+    // Unload plugins - we will load again on login
+    await rootState.$plugin.logout();
+
+    let logoutAction = 'logout';
+    const data = {};
+
+    // SLO - Single-sign logout - will logout auth provider from all places where it's logged in
+    if (options.slo) {
+      logoutAction = 'logoutAll';
+      data.finalRedirectUrl = returnTo({ isSlo: true }, this);
+    }
+
+    try {
+      const res = await dispatch('rancher/request', {
+        url:                  `/v3/tokens?action=${ logoutAction }`,
+        method:               'post',
+        data,
+        headers:              { 'Content-Type': 'application/json' },
+        redirectUnauthorized: false,
+      }, { root: true });
+
+      // Single-sign logout for SAML providers that allow for it
+      if (res.baseType === 'samlConfigLogoutOutput' && res.idpRedirectUrl) {
+        window.location.href = res.idpRedirectUrl;
+
+        return;
+      }
+    } catch (e) {
+    }
+
+    dispatch('uiLogout');
   }
 };

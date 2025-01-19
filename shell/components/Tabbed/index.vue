@@ -4,9 +4,16 @@ import isEmpty from 'lodash/isEmpty';
 import { addObject, removeObject, findBy } from '@shell/utils/array';
 import { sortBy } from '@shell/utils/sort';
 import findIndex from 'lodash/findIndex';
+import { ExtensionPoint, TabLocation } from '@shell/core/types';
+import { getApplicableExtensionEnhancements } from '@shell/core/plugin-helpers';
+import Tab from '@shell/components/Tabbed/Tab';
 
 export default {
   name: 'Tabbed',
+
+  components: { Tab },
+
+  emits: ['changed', 'addTab', 'removeTab'],
 
   props: {
     defaultTab: {
@@ -15,6 +22,11 @@ export default {
     },
 
     sideTabs: {
+      type:    Boolean,
+      default: false
+    },
+
+    hideSingleTab: {
       type:    Boolean,
       default: false
     },
@@ -75,9 +87,19 @@ export default {
   },
 
   data() {
+    const extensionTabs = getApplicableExtensionEnhancements(this, ExtensionPoint.TAB, TabLocation.RESOURCE_DETAIL, this.$route, this, this.extensionParams) || [];
+
+    const parsedExtTabs = extensionTabs.map((item) => {
+      return {
+        ...item,
+        active: false
+      };
+    });
+
     return {
-      tabs:          [],
-      activeTabName: null,
+      tabs:          [...parsedExtTabs],
+      extensionTabs: parsedExtTabs,
+      activeTabName: null
     };
   },
 
@@ -86,6 +108,11 @@ export default {
     sortedTabs() {
       return sortBy(this.tabs, ['weight:desc', 'labelDisplay', 'name']);
     },
+
+    // hide tabs based on tab count IF flag is active
+    hideTabs() {
+      return this.hideSingleTab && this.sortedTabs.length === 1;
+    }
   },
 
   watch: {
@@ -160,10 +187,8 @@ export default {
        * Exclude logic with URL anchor (hash) for projects without routing logic (vue-router)
        */
       if ( this.useHash ) {
-        const {
-          $route: { hash: routeHash },
-          $router: { currentRoute },
-        } = this;
+        const currentRoute = this.$router.currentRoute._value;
+        const routeHash = currentRoute.hash;
 
         if (this.useHash && routeHash !== hashName) {
           const kurrentRoute = { ...currentRoute };
@@ -223,13 +248,18 @@ export default {
 </script>
 
 <template>
-  <div :class="{'side-tabs': !!sideTabs, 'tabs-only': tabsOnly }">
+  <div
+    :class="{'side-tabs': !!sideTabs, 'tabs-only': tabsOnly }"
+    data-testid="tabbed"
+  >
     <ul
+      v-if="!hideTabs"
       ref="tablist"
       role="tablist"
       class="tabs"
       :class="{'clearfix':!sideTabs, 'vertical': sideTabs, 'horizontal': !sideTabs}"
       tabindex="0"
+      data-testid="tabbed-block"
       @keydown.right.prevent="selectNext(1)"
       @keydown.left.prevent="selectNext(-1)"
       @keydown.down.prevent="selectNext(1)"
@@ -279,6 +309,7 @@ export default {
           <button
             type="button"
             class="btn bg-transparent"
+            data-testid="tab-list-add"
             @click="tabAddClicked"
           >
             <i class="icon icon-plus" />
@@ -287,6 +318,7 @@ export default {
             type="button"
             class="btn bg-transparent"
             :disabled="!sortedTabs.length"
+            data-testid="tab-list-remove"
             @click="tabRemoveClicked"
           >
             <i class="icon icon-minus" />
@@ -303,6 +335,24 @@ export default {
       }"
     >
       <slot />
+      <!-- Extension tabs -->
+      <Tab
+        v-for="tab, i in extensionTabs"
+        :key="`${tab.name}${i}`"
+        :name="tab.name"
+        :label="tab.label"
+        :label-key="tab.labelKey"
+        :weight="tab.weight"
+        :tooltip="tab.tooltip"
+        :show-header="tab.showHeader"
+        :display-alert-icon="tab.displayAlertIcon"
+        :error="tab.error"
+        :badge="tab.badge"
+      >
+        <component
+          :is="tab.component"
+        />
+      </Tab>
     </div>
   </div>
 </template>

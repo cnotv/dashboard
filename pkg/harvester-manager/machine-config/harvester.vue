@@ -3,7 +3,7 @@ import draggable from 'vuedraggable';
 import isEmpty from 'lodash/isEmpty';
 import jsyaml from 'js-yaml';
 import YAML from 'yaml';
-import isBase64 from 'is-base64';
+import { isBase64 } from '@shell/utils/string';
 
 import NodeAffinity from '@shell/components/form/NodeAffinity';
 import PodAffinity from '@shell/components/form/PodAffinity';
@@ -11,15 +11,17 @@ import InfoBox from '@shell/components/InfoBox';
 import Loading from '@shell/components/Loading';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import ArrayListSelect from '@shell/components/form/ArrayListSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import UnitInput from '@shell/components/form/UnitInput';
 import YamlEditor from '@shell/components/YamlEditor';
 import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
 import { clone, get } from '@shell/utils/object';
+import { uniq, removeObject } from '@shell/utils/array';
 
-import { _CREATE } from '@shell/config/query-params';
-import { removeObject } from '@shell/utils/array';
+import { _CREATE, _VIEW } from '@shell/config/query-params';
+
 import { mapGetters } from 'vuex';
 import {
   HCI,
@@ -39,6 +41,7 @@ import { stringify, exceptionToErrorsArray } from '@shell/utils/error';
 import { isValidMac } from '@shell/utils/validators/cidr';
 import { HCI as HCI_ANNOTATIONS, STORAGE } from '@shell/config/labels-annotations';
 import { isEqual } from 'lodash';
+import { FilterArgs, PaginationFilterField, PaginationParamFilter } from '@shell/types/store/pagination.types';
 
 const STORAGE_NETWORK = 'storage-network.settings.harvesterhci.io';
 
@@ -79,11 +82,13 @@ const SOURCE_TYPE = {
   IMAGE:  'image',
 };
 
+const VGPU_PREFIX = { NVIDIA: 'nvidia.com/' };
+
 export default {
   name: 'ConfigComponentHarvester',
 
   components: {
-    Checkbox, draggable, Loading, LabeledSelect, LabeledInput, UnitInput, Banner, YamlEditor, NodeAffinity, PodAffinity, InfoBox
+    ArrayListSelect, Checkbox, draggable, Loading, LabeledSelect, LabeledInput, UnitInput, Banner, YamlEditor, NodeAffinity, PodAffinity, InfoBox
   },
 
   mixins: [CreateEditView],
@@ -128,10 +133,25 @@ export default {
       const url = `/k8s/clusters/${ clusterId }/v1`;
 
       if (clusterId) {
+        let configMapsUrl = `${ url }/${ CONFIG_MAP }s`;
+
+        if (this.$store.getters[`cluster/paginationEnabled`](CONFIG_MAP)) {
+          const pagination = new FilterArgs({
+            filters: [
+              PaginationParamFilter.createMultipleFields([
+                new PaginationFilterField({ field: `metadata.label["${ HCI_ANNOTATIONS.CLOUD_INIT }"]`, value: 'user' }),
+                new PaginationFilterField({ field: `metadata.label["${ HCI_ANNOTATIONS.CLOUD_INIT }"]`, value: 'network' })
+              ])
+            ]
+          });
+
+          configMapsUrl = this.$store.getters[`cluster/urlFor`](CONFIG_MAP, null, { pagination, url: configMapsUrl });
+        }
+
         const res = await allHashSettled({
           namespaces:   this.$store.dispatch('cluster/request', { url: `${ url }/${ NAMESPACE }s` }),
           images:       this.$store.dispatch('cluster/request', { url: `${ url }/${ HCI.IMAGE }s` }),
-          configMaps:   this.$store.dispatch('cluster/request', { url: `${ url }/${ CONFIG_MAP }s` }),
+          configMaps:   this.$store.dispatch('cluster/request', { url: configMapsUrl }),
           networks:     this.$store.dispatch('cluster/request', { url: `${ url }/k8s.cni.cncf.io.network-attachment-definitions` }),
           storageClass: this.$store.dispatch('cluster/request', { url: `${ url }/${ STORAGE_CLASS }es` }),
           settings:     this.$store.dispatch('cluster/request', { url: `${ url }/${ MANAGEMENT.SETTING }s` })
@@ -296,6 +316,8 @@ export default {
       this.networksObj = JSON.parse(this.value.networkInfo);
       this.networksHistoric = this.value.networkInfo;
 
+      this.getAvailableVGpuDevices();
+
       this.update();
     } catch (e) {
       this.errors = exceptionToErrorsArray(e);
@@ -321,6 +343,7 @@ export default {
 
     vmAffinity = { affinity: clone(vmAffinityObj) };
 
+    let vGpus = [];
     let networkData = '';
     let userData = '';
     let installAgent;
@@ -348,6 +371,12 @@ export default {
         networkDataIsBase64 = false;
         networkData = this.value.networkData;
       }
+    }
+
+    if (this.value.vgpuInfo) {
+      const vGPURequests = JSON.parse(this.value.vgpuInfo)?.vGPURequests;
+
+      vGpus = vGPURequests?.map((r) => r?.deviceName).filter((f) => f) || [];
     }
 
     return {
@@ -378,7 +407,10 @@ export default {
       userDataIsBase64,
       networkDataIsBase64,
       vmAffinityIsBase64,
-      SOURCE_TYPE
+      SOURCE_TYPE,
+      vGpuDevices:        {},
+      vGpusInit:          vGpus,
+      vGpus,
     };
   },
 
@@ -448,6 +480,21 @@ export default {
         topologyKeyPlaceholder: this.t('harvesterManager.affinity.topologyKey.placeholder')
       };
     },
+
+    vGpuOptions() {
+      const vGpuTypes = uniq([
+        ...this.vGpusInit,
+        ...Object.values(this.vGpuDevices)
+          .filter((vGpu) => vGpu.enabled && !!vGpu.type && (vGpu.allocatable === null || vGpu.allocatable > 0))
+          .map((vGpu) => vGpu.type),
+      ]);
+
+      return vGpuTypes;
+    },
+
+    showVGpuAllocationInfo() {
+      return this.mode !== _VIEW && !!Object.values(this.vGpuDevices).find((d) => d.allocatable);
+    }
   },
 
   watch: {
@@ -566,6 +613,8 @@ export default {
 
       this.validatorDiskAndNetowrk(errors);
 
+      this.validatorVGpus(errors);
+
       podAffinityValidator(this.vmAffinity.affinity, this.$store.getters, errors);
 
       return { errors };
@@ -633,6 +682,39 @@ export default {
       }
     },
 
+    validatorVGpus(errors) {
+      const notAllocatable = this.vGpus
+        .map((type) => {
+          const allocated = this.machinePools.reduce((acc, machinePool) => {
+            const vGPURequests = JSON.parse(machinePool?.config?.vgpuInfo || '')?.vGPURequests;
+
+            const vGpuTypes = vGPURequests?.map((r) => r?.deviceName).filter((f) => f) || [];
+
+            if (vGpuTypes.includes(type)) {
+              return acc + machinePool.pool.quantity;
+            }
+
+            return acc;
+          }, 0);
+
+          return {
+            vGpu: Object.values(this.vGpuDevices).filter((f) => f.type === type)?.[0],
+            allocated
+          };
+        })
+        .filter(({ vGpu, allocated }) => vGpu && vGpu.allocatable > 0 && vGpu.allocatable < allocated);
+
+      notAllocatable.forEach(({ vGpu, allocated }) => {
+        const message = this.$store.getters['i18n/t']('cluster.credential.harvester.vGpus.errors.notAllocatable', {
+          vGpu:        vGpu?.type,
+          allocated,
+          allocatable: vGpu?.allocatable
+        });
+
+        errors.push(message);
+      });
+    },
+
     valuesChanged(value, type) {
       this.value[type] = base64Encode(value);
     },
@@ -644,15 +726,57 @@ export default {
     async getVmImage() {
       try {
         const clusterId = get(this.credential, 'decodedData.clusterId');
-        const url = `/k8s/clusters/${ clusterId }/v1`;
 
-        if (url) {
+        if (clusterId) {
+          const url = `/k8s/clusters/${ clusterId }/v1`;
           const res = await this.$store.dispatch('cluster/request', { url: `${ url }/${ HCI.IMAGE }s` });
 
           this.images = res?.data;
         }
       } catch (e) {
         this.errors = exceptionToErrorsArray(e);
+      }
+    },
+
+    async getAvailableVGpuDevices() {
+      const clusterId = get(this.credential, 'decodedData.clusterId');
+
+      if (clusterId) {
+        const url = `/k8s/clusters/${ clusterId }/v1`;
+
+        const vGpus = await this.$store.dispatch('cluster/request', { url: `${ url }/${ HCI.VGPU_DEVICE }` });
+
+        let deviceCapacity = null;
+
+        try {
+          const harvesterCluster = await this.$store.dispatch('cluster/request', { url: `${ url }/harvester/cluster/local` });
+
+          if (harvesterCluster?.links?.deviceCapacity) {
+            deviceCapacity = await this.$store.dispatch('cluster/request', { url: harvesterCluster?.links?.deviceCapacity });
+          }
+        } catch (e) {
+        }
+
+        this.vGpuDevices = (vGpus?.data || [])
+          .reduce((acc, v) => {
+            const type = v.spec.vGPUTypeName ? `${ VGPU_PREFIX.NVIDIA }${ v.spec.vGPUTypeName.replace(' ', '_') }` : '';
+
+            let allocatable = null;
+
+            if (deviceCapacity) {
+              allocatable = deviceCapacity[type] ? Number(deviceCapacity[type]) : 0;
+            }
+
+            return {
+              ...acc,
+              [v.id]: {
+                id:      v.id,
+                enabled: v.spec.enabled,
+                allocatable,
+                type,
+              },
+            };
+          }, {});
       }
     },
 
@@ -810,6 +934,19 @@ export default {
           message: this.t('harvesterManager.rke.templateError')
         }, { root: true });
       }
+    },
+
+    updateVGpu() {
+      const vGPURequests = this.vGpus?.filter((f) => f).map((deviceName) => ({
+        /**
+         * 'provisioned' is a placeholder.
+         * The real vGpu name is assigned to the provisioned VM by the backend and saved in 'harvesterhci.io/deviceAllocationDetails' annotation.
+         */
+        name: 'provisioned',
+        deviceName,
+      })) || [];
+
+      this.value.vgpuInfo = vGPURequests.length > 0 ? JSON.stringify({ vGPURequests }) : '';
     },
 
     addCloudConfigComment(value) {
@@ -1004,8 +1141,30 @@ export default {
       }
 
       this.$refs.userDataYamlEditor.updateValue(userDataYaml);
-      this.$set(this, 'userData', userDataYaml);
+      this['userData'] = userDataYaml;
     },
+
+    vGpuOptionLabel(opt) {
+      let label = opt.replace(VGPU_PREFIX.NVIDIA, '');
+
+      if (this.mode === _VIEW) {
+        return label;
+      }
+
+      /**
+       * We get the allocatable label from the first vGpu profile found for each vGpu type.
+       * This is consistent as long as vGpu profiles with the same vGpu type, have the same allocable number.
+       */
+      const vGpu = Object.values(this.vGpuDevices).filter((f) => f.type === opt)?.[0];
+
+      if (vGpu?.allocatable === null) {
+        label += ` (${ this.t('harvesterManager.vGpu.allocatableUnknown') })`;
+      } else if (vGpu?.allocatable > 0) {
+        label += ` (${ this.t('harvesterManager.vGpu.allocatable') }: ${ vGpu.allocatable })`;
+      }
+
+      return label;
+    }
   }
 };
 </script>
@@ -1020,7 +1179,7 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <UnitInput
-            v-model="value.cpuCount"
+            v-model:value="value.cpuCount"
             v-int-number
             label-key="cluster.credential.harvester.cpu"
             suffix="C"
@@ -1034,7 +1193,7 @@ export default {
 
         <div class="col span-6">
           <UnitInput
-            v-model="value.memorySize"
+            v-model:value="value.memorySize"
             v-int-number
             label-key="cluster.credential.harvester.memory"
             output-as="string"
@@ -1050,7 +1209,7 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <LabeledSelect
-            v-model="value.vmNamespace"
+            v-model:value="value.vmNamespace"
             :mode="mode"
             :options="namespaceOptions"
             :searchable="true"
@@ -1065,7 +1224,7 @@ export default {
 
         <div class="col span-6">
           <LabeledInput
-            v-model="value.sshUser"
+            v-model:value="value.sshUser"
             label-key="cluster.credential.harvester.sshUser"
             :required="true"
             :mode="mode"
@@ -1082,15 +1241,19 @@ export default {
         {{ t('cluster.credential.harvester.volume.title') }}
       </h2>
       <draggable
-        v-model="disks"
-        :disabled="isView"
+        :item-key="() => ''"
+        :list="disks"
+        :options="{disabled: isView}"
+        :drag-options="{
+          animation: 250,
+          group: 'people',
+          disabled: false,
+          ghostClass: 'ghost'
+        }"
         @end="update"
       >
-        <transition-group>
-          <div
-            v-for="(disk, i) in disks"
-            :key="`${disk.bootOrder}${i}`"
-          >
+        <template #item="{ element: disk, index: i }">
+          <div>
             <InfoBox
               class="box"
               :class="[disks.length === i +1 ? 'mb-10' : 'mb-20']"
@@ -1112,7 +1275,7 @@ export default {
                 <div class="col span-6">
                   <LabeledSelect
                     v-if="disk.hasOwnProperty('imageName')"
-                    v-model="disk.imageName"
+                    v-model:value="disk.imageName"
                     :mode="mode"
                     :options="imageOptions"
                     :required="true"
@@ -1121,24 +1284,24 @@ export default {
                     label-key="cluster.credential.harvester.image"
                     :placeholder="t('cluster.harvester.machinePool.image.placeholder')"
                     @on-open="onOpen"
-                    @input="update"
+                    @update:value="update"
                   />
 
                   <LabeledSelect
                     v-else
-                    v-model="disk.storageClassName"
+                    v-model:value="disk.storageClassName"
                     :options="storageClassOptions"
                     label-key="cluster.credential.harvester.volume.storageClass"
                     :mode="mode"
                     :disabled="disabled"
                     :required="true"
-                    @input="update"
+                    @update:value="update"
                   />
                 </div>
 
                 <div class="col span-6">
                   <UnitInput
-                    v-model="disk.size"
+                    v-model:value="disk.size"
                     v-int-number
                     label-key="cluster.credential.harvester.disk"
                     output-as="string"
@@ -1147,7 +1310,7 @@ export default {
                     :disabled="disabled"
                     required
                     :placeholder="t('cluster.harvester.machinePool.disk.placeholder')"
-                    @input="update"
+                    @update:value="update"
                   />
                 </div>
               </div>
@@ -1179,7 +1342,7 @@ export default {
               </div>
             </InfoBox>
           </div>
-        </transition-group>
+        </template>
       </draggable>
 
       <div class="volume">
@@ -1231,22 +1394,22 @@ export default {
           >
             <div class="col span-6">
               <LabeledSelect
-                v-model="network.networkName"
+                v-model:value="network.networkName"
                 :mode="mode"
                 :options="networkOptions"
                 :required="true"
                 label-key="cluster.credential.harvester.network.networkName"
                 :placeholder="t('cluster.harvester.machinePool.network.placeholder')"
-                @input="update"
+                @update:value="update"
               />
             </div>
 
             <!-- <div class="col span-6">
               <LabeledInput
-                v-model="network.macAddress"
+                v-model:value="network.macAddress"
                 label-key="cluster.credential.harvester.network.macAddress"
                 :mode="mode"
-                @input="update"
+                @update:value="update"
               />
             </div> -->
           </div>
@@ -1263,35 +1426,64 @@ export default {
 
       <portal :to="'advanced-'+uuid">
         <h3 class="mt-20">
+          {{ t("harvesterManager.vGpu.title") }}
+        </h3>
+        <div>
+          <Banner
+            v-if="showVGpuAllocationInfo"
+            color="warning"
+            :label="t('cluster.credential.harvester.vGpus.warnings.minimumAllocatable')"
+          />
+          <ArrayListSelect
+            v-model:value="vGpus"
+            class="mt-20"
+            :array-list-props="{
+              addAllowed: true,
+              addDisabled: vGpus.length > 0,
+              mode,
+              disabled
+            }"
+            :select-props="{
+              mode,
+              disabled,
+              getOptionLabel: vGpuOptionLabel
+            }"
+            :options="vGpuOptions"
+            label-key="harvesterManager.vGpu.label"
+            @update:value="updateVGpu"
+          />
+        </div>
+
+        <h3 class="mt-20">
           {{ t("cluster.credential.harvester.userData.title") }}
         </h3>
         <div>
           <LabeledSelect
             v-if="isCreate"
-            v-model="userDataTemplate"
+            v-model:value="userDataTemplate"
             class="mb-10"
             :options="userDataOptions"
             label-key="cluster.credential.harvester.userData.label"
             :mode="mode"
             :disabled="disabled"
-            @input="updateUserData"
+            @update:value="updateUserData"
           />
 
           <YamlEditor
             ref="userDataYamlEditor"
-            v-model="userData"
+            v-model:value="userData"
             class="yaml-editor mb-10"
             :editor-mode="mode === 'view' ? 'VIEW_CODE' : 'EDIT_CODE'"
             :disabled="disabled"
           />
 
           <Checkbox
-            v-model="installAgent"
+            v-model:value="installAgent"
             class="check mb-20"
             type="checkbox"
             label-key="cluster.credential.harvester.installGuestAgent"
             :mode="mode"
-            @input="updateAgent"
+            @update:value="updateAgent"
           />
         </div>
 
@@ -1299,7 +1491,7 @@ export default {
         <div>
           <LabeledSelect
             v-if="isCreate"
-            v-model="networkData"
+            v-model:value="networkData"
             class="mb-10"
             :options="networkDataOptions"
             label-key="cluster.credential.harvester.networkData.label"
@@ -1326,7 +1518,7 @@ export default {
         <NodeAffinity
           :mode="mode"
           :value="vmAffinity.affinity.nodeAffinity"
-          @input="updateNodeScheduling"
+          @update:value="updateNodeScheduling"
         />
 
         <h3 class="mt-20">
@@ -1362,7 +1554,7 @@ export default {
 <style lang="scss" scoped>
 $yaml-height: 200px;
 
-::v-deep .yaml-editor {
+:deep() .yaml-editor {
   flex: 1;
   min-height: $yaml-height;
   & .code-mirror .CodeMirror {
@@ -1372,7 +1564,7 @@ $yaml-height: 200px;
   }
 }
 
-::v-deep .info-box {
+:deep() .info-box {
   margin-bottom: 10px;
 }
 

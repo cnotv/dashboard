@@ -56,12 +56,12 @@ export default {
 </script>
 <template>
   <span class="cluster-link">
-    <n-link
+    <router-link
       v-if="to"
       :to="to"
     >
       {{ value }}
-    </n-link>
+    </router-link>
     <span v-else>{{ value }}</span>
     <i
       v-if="row.unavailableMachines"
@@ -93,7 +93,7 @@ export default {
     color: var(--error);
     margin-left: 4px;
   }
-  ::v-deep {
+  :deep() {
     .labeled-tooltip, .status-icon {
       position: relative;
       display: inline;

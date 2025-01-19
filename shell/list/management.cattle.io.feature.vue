@@ -1,6 +1,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 import AsyncButton from '@shell/components/AsyncButton';
+import AppModal from '@shell/components/AppModal';
 import { Card } from '@components/Card';
 import ResourceTable from '@shell/components/ResourceTable';
 import { Banner } from '@components/Banner';
@@ -8,6 +9,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import { MANAGEMENT } from '@shell/config/types';
 import { SETTING } from '@shell/config/settings';
 import ResourceFetch from '@shell/mixins/resource-fetch';
+import { getVendor } from '@shell/config/private-label';
 
 export default {
   components: {
@@ -15,7 +17,8 @@ export default {
     Banner,
     Card,
     ResourceTable,
-    LabeledInput
+    LabeledInput,
+    AppModal,
   },
   mixins: [ResourceFetch],
   props:  {
@@ -44,13 +47,7 @@ export default {
       this.serverUrl = this.serverUrlSetting.value;
     } else {
       this.noUrlSet = true;
-      if ( process.server ) {
-        const { req } = this.$nuxt.context;
-
-        this.serverUrl = req.headers.host;
-      } else {
-        this.serverUrl = window.location.origin;
-      }
+      this.serverUrl = window.location.origin;
     }
   },
 
@@ -66,6 +63,8 @@ export default {
       serverUrlSetting: {},
       serverUrl:        '',
       noUrlSet:         false,
+      showModal:        false,
+      vendor:           getVendor(),
     };
   },
 
@@ -96,9 +95,9 @@ export default {
   watch: {
     showPromptUpdate(show) {
       if (show) {
-        this.$modal.show('toggleFlag');
+        this.showModal = true;
       } else {
-        this.$modal.hide('toggleFlag');
+        this.showModal = false;
       }
     },
 
@@ -166,15 +165,17 @@ export default {
           const response = await this.$axios.get(url, { timeout: 5000 });
 
           if (response?.status === 200) {
-            this.rows = await this.$store.dispatch('management/findAll', { type: this.resource, opt: { force: true } });
+            await this.$store.dispatch('management/findAll', { type: this.resource, opt: { force: true } });
             btnCB(true);
             this.close();
             this.waiting = false;
           }
         } catch (e) {}
 
-        this.waitForBackend(btnCB, id);
-      }, 2500);
+        if (this.waiting) {
+          this.waitForBackend(btnCB, id);
+        }
+      }, 5000);
     },
 
     async saveUrl(btnCB) {
@@ -201,10 +202,7 @@ export default {
       :use-query-params-for-simple-filtering="useQueryParamsForSimpleFiltering"
       :force-update-live-and-delayed="forceUpdateLiveAndDelayed"
     >
-      <template
-        slot="cell:name"
-        slot-scope="scope"
-      >
+      <template #cell:name="scope">
         <div class="feature-name">
           <div>{{ scope.row.nameDisplay }}</div>
           <i
@@ -214,27 +212,27 @@ export default {
         </div>
       </template>
     </ResourceTable>
-    <modal
+    <app-modal
+      v-if="showModal"
       class="update-modal"
       name="toggleFlag"
-      :width="350"
+      :width="450"
       height="auto"
       styles="max-height: 100vh;"
       :click-to-close="!restart || !waiting"
-      @closed="close"
+      @close="close"
     >
       <Card
         v-if="!waiting"
         class="prompt-update"
         :show-highlight-border="false"
       >
-        <h4
-          slot="title"
-          class="text-default-text"
-        >
-          Are you sure?
-        </h4>
-        <div slot="body">
+        <template #title>
+          <h4 class="text-default-text">
+            {{ t('featureFlags.title') }}
+          </h4>
+        </template>
+        <template #body>
           <div
             v-if="update"
             class="mb-10"
@@ -253,7 +251,7 @@ export default {
                   class="row mt-10"
                 >
                   <LabeledInput
-                    v-model="serverUrl"
+                    v-model:value="serverUrl"
                     :label="t('setup.serverUrl.label')"
                   />
                   <div class="col pl-5">
@@ -267,14 +265,14 @@ export default {
             </span>
             <Banner
               v-if="restart"
-              color="warning"
-              :label="t('featureFlags.restartRequired')"
+              color="error"
+              :label="t('featureFlags.restartRequired', vendor)"
             />
           </div>
           <div class="text-error mb-10">
             {{ error }}
           </div>
-        </div>
+        </template>
         <template #actions>
           <button
             class="btn role-secondary"
@@ -295,21 +293,19 @@ export default {
         class="prompt-update"
         :show-highlight-border="false"
       >
-        <h4
-          slot="title"
-          class="text-default-text"
-        >
-          {{ t('featureFlags.restart.title') }}
-        </h4>
-        <div
-          slot="body"
-          class="waiting"
-        >
-          <p>{{ t('featureFlags.restart.wait') }}</p>
-          <span class="restarting-icon">
-            <i class=" icon icon-spinner icon-spin" />
-          </span>
-        </div>
+        <template #title>
+          <h4 class="text-default-text">
+            {{ t('featureFlags.restart.title') }}
+          </h4>
+        </template>
+        <template #body>
+          <div class="waiting">
+            <p>{{ t('featureFlags.restart.wait') }}</p>
+            <span class="restarting-icon">
+              <i class=" icon icon-spinner icon-spin" />
+            </span>
+          </div>
+        </template>
         <template #actions>
           <button
             class="btn role-secondary"
@@ -319,7 +315,7 @@ export default {
           </button>
         </template>
       </Card>
-    </modal>
+    </app-modal>
   </div>
 </template>
 
@@ -329,7 +325,7 @@ export default {
       box-shadow: none;
     }
 
-    ::v-deep .card-actions {
+    :deep() .card-actions {
       display: flex;
       justify-content: center;
     }

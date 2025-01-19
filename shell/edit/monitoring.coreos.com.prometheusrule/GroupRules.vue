@@ -6,6 +6,7 @@ import { _VIEW } from '@shell/config/query-params';
 import ArrayListGrouped from '@shell/components/form/ArrayListGrouped';
 import AlertingRule from './AlertingRule';
 import RecordingRule from './RecordingRule';
+import { clone } from '@shell/utils/object';
 
 export default {
   components: {
@@ -105,7 +106,7 @@ export default {
         });
         break;
       case 'alert':
-        value.push(this.defaultAlert);
+        value.push(clone(this.defaultAlert));
         break;
       default:
         break;
@@ -143,6 +144,7 @@ export default {
             :disabled="disableAddRecord"
             type="button"
             class="btn role-tertiary"
+            data-testid="v2-monitoring-add-record"
             @click="addRule('record')"
           >
             <t k="prometheusRule.recordingRules.addLabel" />
@@ -192,6 +194,7 @@ export default {
             :disabled="disableAddAlert"
             type="button"
             class="btn role-tertiary"
+            data-testid="v2-monitoring-add-alert"
             @click="addRule('alert')"
           >
             <t k="prometheusRule.alertingRules.addLabel" />

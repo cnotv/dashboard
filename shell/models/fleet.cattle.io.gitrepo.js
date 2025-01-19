@@ -1,14 +1,16 @@
-import Vue from 'vue';
 import { convert, matching, convertSelectorObj } from '@shell/utils/selector';
 import jsyaml from 'js-yaml';
-import { escapeHtml, randomStr } from '@shell/utils/string';
+import { escapeHtml } from '@shell/utils/string';
 import { FLEET } from '@shell/config/types';
 import { FLEET as FLEET_ANNOTATIONS } from '@shell/config/labels-annotations';
 import { addObject, addObjects, findBy, insertAt } from '@shell/utils/array';
 import { set } from '@shell/utils/object';
 import SteveModel from '@shell/plugins/steve/steve-class';
-import { STATES_ENUM, colorForState, stateDisplay, stateSort } from '@shell/plugins/dashboard-store/resource-class';
+import {
+  colorForState, mapStateToEnum, primaryDisplayStatusFromCount, stateDisplay, stateSort
+} from '@shell/plugins/dashboard-store/resource-class';
 import { NAME } from '@shell/config/product/explorer';
+import FleetUtils from '@shell/utils/fleet';
 
 function quacksLikeAHash(str) {
   if (str.match(/^[a-f0-9]{40,}$/i)) {
@@ -34,7 +36,7 @@ export default class GitRepo extends SteveModel {
     spec.paths = spec.paths || [];
     spec.clientSecretName = spec.clientSecretName || null;
 
-    Vue.set(spec, 'correctDrift', { enabled: false });
+    spec['correctDrift'] = { enabled: false };
 
     set(this, 'spec', spec);
     set(this, 'metadata', meta);
@@ -103,6 +105,8 @@ export default class GitRepo extends SteveModel {
     const groups = workspace?.clusterGroups || [];
 
     if (workspace?.id === 'fleet-local') {
+      // should we be getting the clusters from workspace.clusters instead of having to rely on the groups,
+      // which takes an additional request to be done on the Fleet dashboard screen?
       const local = findBy(groups, 'id', 'fleet-local/default');
 
       if (local) {
@@ -173,6 +177,10 @@ export default class GitRepo extends SteveModel {
   get repoDisplay() {
     let repo = this.spec.repo;
 
+    if (!repo) {
+      return null;
+    }
+
     repo = repo.replace(/.git$/, '');
     repo = repo.replace(/^https:\/\//, '');
     repo = repo.replace(/\/+$/, '');
@@ -201,17 +209,6 @@ export default class GitRepo extends SteveModel {
     }
 
     return hash;
-  }
-
-  get clusterInfo() {
-    const ready = this.status?.readyClusters || 0;
-    const total = this.status?.desiredReadyClusters || 0;
-
-    return {
-      ready,
-      unready: total - ready,
-      total,
-    };
   }
 
   get targetInfo() {
@@ -315,12 +312,11 @@ export default class GitRepo extends SteveModel {
       bundle.namespacedName.startsWith(`${ this.namespace }:${ this.name }`));
   }
 
+  /**
+   * Bundles with state of active
+   */
   get bundlesReady() {
-    if (this.bundles && this.bundles.length) {
-      return this.bundles.filter((bundle) => bundle.state === 'active');
-    }
-
-    return 0;
+    return this.bundles?.filter((bundle) => bundle.state === 'active');
   }
 
   get bundleDeployments() {
@@ -330,35 +326,29 @@ export default class GitRepo extends SteveModel {
   }
 
   get resourcesStatuses() {
-    const clusters = this.targetClusters || [];
-    const resources = this.status?.resources || [];
-    const conditions = this.status?.conditions || [];
+    const bundleDeployments = this.bundleDeployments || [];
+    const clusters = (this.targetClusters || []).reduce((res, c) => {
+      res[c.id] = c;
+
+      return res;
+    }, {});
 
     const out = [];
 
-    for (const c of clusters) {
-      const clusterBundleDeploymentResources = this.bundleDeployments
-        .find((bd) => bd.metadata?.labels?.[FLEET_ANNOTATIONS.CLUSTER] === c.metadata.name)
-        ?.status?.resources || [];
+    for (const bd of bundleDeployments) {
+      const clusterId = FleetUtils.clusterIdFromBundleDeploymentLabels(bd.metadata?.labels);
+      const c = clusters[clusterId];
 
-      resources.forEach((r, i) => {
-        let namespacedName = r.name;
+      if (!c) {
+        continue;
+      }
 
-        if (r.namespace) {
-          namespacedName = `${ r.namespace }:${ r.name }`;
-        }
+      const resources = FleetUtils.resourcesFromBundleDeploymentStatus(bd.status);
 
-        let state = r.state;
-        const perEntry = r.perClusterState?.find((x) => x.clusterId === c.id);
-        const tooMany = r.perClusterState?.length >= 10 || false;
-
-        if (perEntry) {
-          state = perEntry.state;
-        } else if (tooMany) {
-          state = STATES_ENUM.UNKNOWN;
-        } else {
-          state = STATES_ENUM.READY;
-        }
+      resources.forEach((r) => {
+        const id = FleetUtils.resourceId(r);
+        const type = FleetUtils.resourceType(r);
+        const state = r.state;
 
         const color = colorForState(state).replace('text-', 'bg-');
         const display = stateDisplay(state);
@@ -368,37 +358,92 @@ export default class GitRepo extends SteveModel {
           params: {
             product:   NAME,
             cluster:   c.metadata.labels[FLEET_ANNOTATIONS.CLUSTER_NAME],
-            resource:  r.type,
+            resource:  type,
             namespace: r.namespace,
             id:        r.name,
           }
         };
 
+        const key = `${ c.id }-${ type }-${ r.namespace }-${ r.name }`;
+
         out.push({
-          key:                    `${ r.id }-${ c.id }-${ r.type }-${ r.namespace }-${ r.name }`,
-          tableKey:               `${ r.id }-${ c.id }-${ r.type }-${ r.namespace }-${ r.name }-${ randomStr(8) }`,
-          kind:                   r.kind,
-          apiVersion:             r.apiVersion,
-          type:                   r.type,
-          id:                     r.id,
-          namespace:              r.namespace,
-          name:                   r.name,
-          clusterId:              c.id,
-          clusterName:            c.nameDisplay,
-          state,
-          stateBackground:        color,
-          stateDisplay:           display,
-          stateSort:              stateSort(color, display),
-          namespacedName,
+          key,
+          tableKey: key,
+
+          // Needed?
+          id,
+          type,
+          clusterId: c.id,
+
+          // columns, see FleetResources.vue
+          state:             mapStateToEnum(state),
+          clusterName:       c.nameDisplay,
+          apiVersion:        r.apiVersion,
+          kind:              r.kind,
+          name:              r.name,
+          namespace:         r.namespace,
+          creationTimestamp: r.createdAt,
+
+          // other properties
+          clusterLabel:    c.metadata.labels[FLEET_ANNOTATIONS.CLUSTER_NAME],
+          stateBackground: color,
+          stateDisplay:    display,
+          stateSort:       stateSort(color, display),
           detailLocation,
-          conditions:             conditions[i],
-          bundleDeploymentStatus: clusterBundleDeploymentResources?.[i],
-          creationTimestamp:      clusterBundleDeploymentResources?.[i]?.createdAt
         });
       });
     }
 
     return out;
+  }
+
+  get clusterInfo() {
+    const ready = this.status?.readyClusters || 0;
+    const total = this.status?.desiredReadyClusters || 0;
+
+    return {
+      ready,
+      unready: total - ready,
+      total,
+    };
+  }
+
+  get clusterResourceStatus() {
+    const clusterStatuses = this.resourcesStatuses.reduce((prev, curr) => {
+      const { clusterId, clusterLabel, state } = curr;
+
+      if (!prev[clusterId]) {
+        prev[clusterId] = {
+          clusterLabel,
+          resourceCounts: { [state]: 0, desiredReady: 0 }
+
+        };
+      }
+
+      if (!prev[clusterId].resourceCounts[state]) {
+        prev[clusterId].resourceCounts[state] = 0;
+      }
+
+      prev[clusterId].resourceCounts[state] += 1;
+      prev[clusterId].resourceCounts.desiredReady += 1;
+
+      return prev;
+    }, {});
+
+    const values = Object.keys(clusterStatuses).map((key) => {
+      const { clusterLabel, resourceCounts } = clusterStatuses[key];
+
+      return {
+        clusterId: key,
+        clusterLabel, // FLEET LABEL
+        status:    {
+          displayStatus:  primaryDisplayStatusFromCount(resourceCounts),
+          resourceCounts: { ...resourceCounts }
+        }
+      };
+    });
+
+    return values;
   }
 
   get clustersList() {

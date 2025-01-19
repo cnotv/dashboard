@@ -1,3 +1,5 @@
+import { CYPRESS_SAFE_RESOURCE_REVISION } from '../../../blueprint.utils';
+
 export const createDeploymentBlueprint = {
   apiVersion: 'apps/v1',
   kind:       'Deployment',
@@ -13,7 +15,7 @@ export const createDeploymentBlueprint = {
         containers: [
           {
             name:      'nginx',
-            image:     'nginx',
+            image:     'nginx:alpine',
             resources: {
               requests: {
                 cpu:    '200m',
@@ -23,6 +25,36 @@ export const createDeploymentBlueprint = {
                 cpu:    '500m',
                 memory: '1Gi'
               }
+            }
+          }
+        ],
+        volumes: [
+          {
+            name:      'test-vol',
+            projected: {
+              defaultMode: 420,
+              sources:     [
+                {
+                  configMap: {
+                    items: [{ key: 'test-vol-key', path: 'test-vol-path' }],
+                    name:  'configmap-name'
+                  }
+                }
+              ]
+            }
+          },
+          {
+            name:      'test-vol1',
+            projected: {
+              defaultMode: 420,
+              sources:     [
+                {
+                  configMap: {
+                    items: [{ key: 'test-vol-key1', path: 'test-vol-path1' }],
+                    name:  'configmap-name1'
+                  }
+                }
+              ]
             }
           }
         ]
@@ -37,7 +69,6 @@ export const createDeploymentBlueprint = {
 };
 
 export const deploymentCreateRequest = {
-  type:     'apps.deployment',
   metadata: {
     namespace: 'default',
     labels:    { 'workload.user.cattle.io/workloadselector': 'apps.deployment-default-test-deployment' },
@@ -58,9 +89,7 @@ export const deploymentCreateRequest = {
               privileged:               false,
               allowPrivilegeEscalation: false
             },
-            _init:        false,
             volumeMounts: [],
-            __active:     true,
             image:        'nginx'
           }
         ],
@@ -80,7 +109,6 @@ export const deploymentCreateRequest = {
 
 export const deploymentCreateResponse = {
   id:    'default/test-deployment',
-  type:  'apps.deployment',
   links: {
     remove: 'https://localhost:8005/v1/apps.deployments/default/test-deployment',
     self:   'https://localhost:8005/v1/apps.deployments/default/test-deployment',
@@ -183,7 +211,7 @@ export const deploymentCreateResponse = {
         rel:    'uses'
       }
     ],
-    resourceVersion: '12999795',
+    resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
     state:           {
       error:         false,
       message:       'replicas: 0/1',

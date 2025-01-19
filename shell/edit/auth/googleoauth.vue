@@ -7,11 +7,11 @@ import CruResource from '@shell/components/CruResource';
 import InfoBox from '@shell/components/InfoBox';
 import { Checkbox } from '@components/Form/Checkbox';
 import { LabeledInput } from '@components/Form/LabeledInput';
-import { Banner } from '@components/Banner';
 import AllowedPrincipals from '@shell/components/auth/AllowedPrincipals';
 import FileSelector from '@shell/components/form/FileSelector';
 import AuthBanner from '@shell/components/auth/AuthBanner';
 import CopyToClipboardText from '@shell/components/CopyToClipboardText';
+import AuthProviderWarningBanners from '@shell/edit/auth/AuthProviderWarningBanners';
 
 const NAME = 'googleoauth';
 
@@ -21,23 +21,19 @@ export default {
     CruResource,
     InfoBox,
     LabeledInput,
-    Banner,
     Checkbox,
     AllowedPrincipals,
     FileSelector,
     AuthBanner,
-    CopyToClipboardText
+    CopyToClipboardText,
+    AuthProviderWarningBanners
   },
 
   mixins: [CreateEditView, AuthConfig],
 
   computed: {
     tArgs() {
-      let hostname = '';
-
-      if (process.client) {
-        hostname = window.location.hostname;
-      }
+      const hostname = window.location.hostname;
 
       return {
         hostname,
@@ -86,7 +82,7 @@ export default {
           :disable="disable"
           :edit="goToEdit"
         >
-          <template slot="rows">
+          <template #rows>
             <tr><td>{{ t(`authConfig.${NAME}.adminEmail`) }}: </td><td>{{ model.adminEmail }}</td></tr>
             <tr><td>{{ t(`authConfig.${NAME}.domain`) }}: </td><td>{{ model.hostname }}</td></tr>
 
@@ -104,10 +100,9 @@ export default {
       </template>
 
       <template v-else>
-        <Banner
+        <AuthProviderWarningBanners
           v-if="!model.enabled"
-          :label="t('authConfig.stateBanner.disabled', tArgs)"
-          color="warning"
+          :t-args="tArgs"
         />
         <div
           :style="{'align-items':'center'}"
@@ -115,7 +110,7 @@ export default {
         >
           <div class="col span-5">
             <LabeledInput
-              v-model="model.adminEmail"
+              v-model:value="model.adminEmail"
               :label="t(`authConfig.${NAME}.adminEmail`)"
               :mode="mode"
               required
@@ -123,7 +118,7 @@ export default {
           </div>
           <div class="col span-5">
             <LabeledInput
-              v-model="model.hostname"
+              v-model:value="model.hostname"
               :label="t(`authConfig.${NAME}.domain`)"
               :mode="mode"
               required
@@ -131,7 +126,7 @@ export default {
           </div>
           <div class="col span-2">
             <Checkbox
-              v-model="model.nestedGroupMembershipEnabled"
+              v-model:value="model.nestedGroupMembershipEnabled"
               :mode="mode"
               :label="t('authConfig.ldap.nestedGroupMembership.label')"
             />
@@ -189,7 +184,7 @@ export default {
             </div>
             <div class="col span-6">
               <LabeledInput
-                v-model="model.oauthCredential"
+                v-model:value="model.oauthCredential"
                 :label="t(`authConfig.googleoauth.oauthCredentials.label`)"
                 :mode="mode"
                 required
@@ -201,7 +196,7 @@ export default {
                 class="role-tertiary add mt-5"
                 :label="t('generic.readFromFile')"
                 :mode="mode"
-                @selected="$set(model, 'oauthCredential', $event)"
+                @selected="model.oauthCredential = $event"
               />
             </div>
           </div>
@@ -224,7 +219,7 @@ export default {
             </div>
             <div class="col span-6">
               <LabeledInput
-                v-model="model.serviceAccountCredential"
+                v-model:value="model.serviceAccountCredential"
                 :label="t(`authConfig.googleoauth.serviceAccountCredentials.label`)"
                 :mode="mode"
                 required
@@ -236,23 +231,11 @@ export default {
                 class="role-tertiary add mt-5"
                 :label="t('generic.readFromFile')"
                 :mode="mode"
-                @selected="$set(model, 'serviceAccountCredential', $event)"
+                @selected="model.serviceAccountCredential = $event"
               />
             </div>
           </div>
         </InfoBox>
-
-        <div
-          v-if="!model.enabled"
-          class="row"
-        >
-          <div class="col span-12 google">
-            <Banner
-              v-clean-html="t('authConfig.associatedWarning', tArgs, true)"
-              color="info"
-            />
-          </div>
-        </div>
       </template>
     </CruResource>
   </div>
@@ -265,7 +248,7 @@ export default {
   .banner {
     display: block;
 
-    &::v-deep code {
+    &:deep() code {
       padding: 0 3px;
       margin: 0 3px;
     }

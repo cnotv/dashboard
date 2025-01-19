@@ -1,4 +1,3 @@
-import Vue from 'vue';
 import { CATALOG, CLUSTER_BADGE } from '@shell/config/labels-annotations';
 import { NODE, FLEET, MANAGEMENT, CAPI } from '@shell/config/types';
 import { insertAt, addObject, removeObject } from '@shell/utils/array';
@@ -11,10 +10,13 @@ import { addParams } from '@shell/utils/url';
 import { isEmpty } from '@shell/utils/object';
 import { HARVESTER_NAME as HARVESTER } from '@shell/config/features';
 import { isHarvesterCluster } from '@shell/utils/cluster';
-import HybridModel from '@shell/plugins/steve/hybrid-class';
-import { LINUX, WINDOWS } from '@shell/config/os';
+import SteveModel from '@shell/plugins/steve/steve-class';
+import { LINUX, WINDOWS } from '@shell/store/catalog';
 import { KONTAINER_TO_DRIVER } from './management.cattle.io.kontainerdriver';
 import { PINNED_CLUSTERS } from '@shell/store/prefs';
+import { copyTextToClipboard } from '@shell/utils/clipboard';
+
+const DEFAULT_BADGE_COLOR = '#707070';
 
 // See translation file cluster.providers for list of providers
 // If the logo is not named with the provider name, add an override here
@@ -27,7 +29,7 @@ function findRelationship(verb, type, relationships = []) {
   return relationships.find((r) => r[from] === type)?.[id];
 }
 
-export default class MgmtCluster extends HybridModel {
+export default class MgmtCluster extends SteveModel {
   get details() {
     const out = [
       {
@@ -111,10 +113,11 @@ export default class MgmtCluster extends HybridModel {
   get providerForEmberParam() {
     // Ember wants one word called provider to tell what component to show, but has much indirect mapping to figure out what it is.
     let provider;
-    // Provisioner is the "<something>Config" in the model
+
+    //  provisioner is status.driver
     const provisioner = KONTAINER_TO_DRIVER[(this.provisioner || '').toLowerCase()] || this.provisioner;
 
-    if ( provisioner === 'rancherKubernetesEngine' ) {
+    if ( provisioner === 'rancherKubernetesEngine') {
       // Look for a cloud provider in one of the node templates
       if ( this.machinePools?.[0] ) {
         provider = this.machinePools[0]?.nodeTemplate?.spec?.driver || null;
@@ -293,22 +296,37 @@ export default class MgmtCluster extends HybridModel {
     return this.providerLogo;
   }
 
+  // Color to use as the underline for the icon in the app bar
+  get iconColor() {
+    return this.metadata?.annotations[CLUSTER_BADGE.COLOR];
+  }
+
   // Custom badge to show for the Cluster (if the appropriate annotations are set)
   get badge() {
-    const text = this.metadata?.annotations?.[CLUSTER_BADGE.TEXT];
+    const icon = this.metadata?.annotations?.[CLUSTER_BADGE.ICON_TEXT];
+    const comment = this.metadata?.annotations?.[CLUSTER_BADGE.TEXT];
 
-    if (!text) {
+    if (!icon && !comment) {
       return undefined;
     }
 
-    const color = this.metadata?.annotations[CLUSTER_BADGE.COLOR] || '#7f7f7f';
+    let color = this.iconColor || DEFAULT_BADGE_COLOR;
     const iconText = this.metadata?.annotations[CLUSTER_BADGE.ICON_TEXT] || '';
+    let foregroundColor;
+
+    try {
+      foregroundColor = textColor(parseColor(color.trim())); // Remove any whitespace
+    } catch (_e) {
+      // If we could not parse the badge color, use the defaults
+      color = DEFAULT_BADGE_COLOR;
+      foregroundColor = textColor(parseColor(color));
+    }
 
     return {
-      text,
+      text:      comment || undefined,
       color,
-      textColor: textColor(parseColor(color)),
-      iconText:  iconText.substr(0, 2)
+      textColor: foregroundColor,
+      iconText:  iconText.substr(0, 3)
     };
   }
 
@@ -404,9 +422,13 @@ export default class MgmtCluster extends HybridModel {
   }
 
   async copyKubeConfig() {
-    const config = await this.generateKubeConfig();
+    try {
+      const config = await this.generateKubeConfig();
 
-    Vue.prototype.$copyText(config);
+      if (config) {
+        await copyTextToClipboard(config);
+      }
+    } catch {}
   }
 
   async fetchNodeMetrics() {

@@ -1,13 +1,15 @@
 import { CAPI, MANAGEMENT, NORMAN } from '@shell/config/types';
 import { sortBy } from '@shell/utils/sort';
 import HybridModel from '@shell/plugins/steve/hybrid-class';
+import { notOnlyOfRole } from '@shell/models/cluster.x-k8s.io.machine';
 
 export default class MgmtNodePool extends HybridModel {
-  get nodeTemplate() {
-    const id = (this.spec?.nodeTemplateName || '').replace(/:/, '/');
-    const template = this.$getters['byId'](MANAGEMENT.NODE_TEMPLATE, id);
+  get nodeTemplateId() {
+    return (this.spec?.nodeTemplateName || '').replace(/:/, '/');
+  }
 
-    return template;
+  get nodeTemplate() {
+    return this.$getters['byId'](MANAGEMENT.NODE_TEMPLATE, this.nodeTemplateId);
   }
 
   get provider() {
@@ -159,6 +161,22 @@ export default class MgmtNodePool extends HybridModel {
 
   get canUpdate() {
     return this.norman?.hasLink('update');
+  }
+
+  get isControlPlane() {
+    return this.spec?.controlPlane === true;
+  }
+
+  get isEtcd() {
+    return this.spec?.etcd === true;
+  }
+
+  canScaleDownPool() {
+    if (!this.isEtcd && !this.isControlPlane) {
+      return true;
+    }
+
+    return notOnlyOfRole(this, this?.provisioningCluster?.nodes);
   }
 
   remove() {

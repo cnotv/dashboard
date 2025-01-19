@@ -11,13 +11,16 @@ import { getVendor, getProduct, setVendor } from '@shell/config/private-label';
 import { RadioGroup } from '@components/Form/Radio';
 import { setSetting } from '@shell/utils/settings';
 import { SETTING } from '@shell/config/settings';
-import { _ALL_IF_AUTHED } from '@shell/plugins/dashboard-store/actions';
-import { isDevBuild } from '@shell/utils/version';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import Password from '@shell/components/form/Password';
 import { applyProducts } from '@shell/store/type-map';
 import BrandImage from '@shell/components/BrandImage';
 import { waitFor } from '@shell/utils/async';
+import { Banner } from '@components/Banner';
+import FormValidation from '@shell/mixins/form-validation';
+import isUrl from 'is-url';
+import { isLocalhost } from '@shell/utils/validators/setting';
+import Loading from '@shell/components/Loading';
 
 const calcIsFirstLogin = (store) => {
   const firstLoginSetting = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.FIRST_LOGIN);
@@ -34,80 +37,78 @@ const calcMustChangePassword = async(store) => {
 };
 
 export default {
-  layout: 'unauthenticated',
+  mixins: [FormValidation],
 
   data() {
     return {
       passwordOptions: [
         { label: this.t('setup.useRandom'), value: true },
         { label: this.t('setup.useManual'), value: false }],
+      fvFormRuleSets: [{
+        path:       'serverUrl',
+        rootObject: this,
+        rules:      ['required', 'https', 'url', 'trailingForwardSlash']
+      }],
+      productName: '',
+      vendor:      getVendor(),
+      product:     getProduct(),
+      step:        parseInt(this.$route.query.step, 10) || 1,
+
+      useRandom:          true,
+      haveCurrent:        false,
+      username:           null,
+      isFirstLogin:       false,
+      mustChangePassword: false,
+      current:            null,
+      password:           randomStr(),
+      confirm:            null,
+      v3User:             null,
+      serverUrl:          null,
+      mcmEnabled:         null,
+      eula:               false,
+      principals:         null,
+      errors:             []
     };
   },
 
-  async middleware({ store, redirect, route } ) {
-    try {
-      await store.dispatch('management/findAll', {
-        type: MANAGEMENT.SETTING,
-        opt:  {
-          load: _ALL_IF_AUTHED, url: `/v1/${ MANAGEMENT.SETTING }`, redirectUnauthorized: false
-        }
-      });
-    } catch (e) {
-    }
-
-    const isFirstLogin = await calcIsFirstLogin(store);
-    const mustChangePassword = await calcMustChangePassword(store);
+  async beforeCreate() {
+    const isFirstLogin = calcIsFirstLogin(this.$store);
+    const mustChangePassword = await calcMustChangePassword(this.$store);
 
     if (isFirstLogin) {
       // Always show setup if this is the first log in
       return;
     } else if (mustChangePassword) {
       // If the password needs changing and this isn't the first log in ensure we have the password
-      if (!!store.getters['auth/initialPass']) {
+      if (!!this.$store.getters['auth/initialPass']) {
         // Got it... show setup
         return;
       }
       // Haven't got it... redirect to log in so we get it
-      await store.dispatch('auth/logout', null, { root: true });
+      await this.$store.dispatch('auth/logout', null, { root: true });
 
-      return redirect(302, `/auth/login?${ LOGGED_OUT }`);
+      return this.$router.replace(`/auth/login?${ LOGGED_OUT }`);
     }
 
     // For all other cases we don't need to show setup
-    return redirect('/');
+    return this.$router.replace('/');
   },
 
   components: {
-    AsyncButton, LabeledInput, CopyToClipboard, Checkbox, RadioGroup, Password, BrandImage
+    AsyncButton, LabeledInput, CopyToClipboard, Checkbox, RadioGroup, Password, BrandImage, Banner, Loading
   },
 
-  async asyncData({ route, req, store }) {
-    const telemetrySetting = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.TELEMETRY);
-    const serverUrlSetting = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.SERVER_URL);
-    const rancherVersionSetting = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.VERSION_RANCHER);
-    let telemetry = true;
-
-    if (telemetrySetting?.value && telemetrySetting.value !== 'prompt') {
-      telemetry = telemetrySetting.value !== 'out';
-    } else if (!rancherVersionSetting?.value || isDevBuild(rancherVersionSetting?.value)) {
-      telemetry = false;
-    }
+  async fetch() {
+    const serverUrlSetting = this.$store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.SERVER_URL);
 
     let plSetting;
 
     try {
-      await store.dispatch('management/findAll', {
-        type: MANAGEMENT.SETTING,
-        opt:  {
-          load: _ALL_IF_AUTHED, url: `/v1/${ MANAGEMENT.SETTING }`, redirectUnauthorized: false
-        },
-      });
-
-      plSetting = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.PL);
+      plSetting = this.$store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.PL);
     } catch (e) {
       // Older versions used Norman API to get these
-      plSetting = await store.dispatch('rancher/find', {
-        type: 'setting',
+      plSetting = await this.$store.dispatch('rancher/find', {
+        type: NORMAN.SETTING,
         id:   SETTING.PL,
         opt:  { url: `/v3/settings/${ SETTING.PL }` }
       });
@@ -119,58 +120,39 @@ export default {
 
     const productName = plSetting.default;
 
-    const principals = await store.dispatch('rancher/findAll', { type: NORMAN.PRINCIPAL, opt: { url: '/v3/principals' } });
+    const principals = await this.$store.dispatch('rancher/findAll', { type: NORMAN.PRINCIPAL, opt: { url: '/v3/principals' } });
     const me = findBy(principals, 'me', true);
 
-    const current = route.query[SETUP] || store.getters['auth/initialPass'];
-    const v3User = store.getters['auth/v3User'] ?? {};
+    const current = this.$route.query[SETUP] || this.$store.getters['auth/initialPass'];
+    const v3User = this.$store.getters['auth/v3User'] ?? {};
 
-    const mcmFeature = await store.dispatch('management/find', {
+    const mcmFeature = await this.$store.dispatch('management/find', {
       type: MANAGEMENT.FEATURE, id: 'multi-cluster-management', opt: { url: `/v1/${ MANAGEMENT.FEATURE }/multi-cluster-management` }
     });
 
-    const mcmEnabled = mcmFeature?.spec?.value || mcmFeature?.status?.default;
+    const mcmEnabled = (mcmFeature?.spec?.value || mcmFeature?.status?.default) && productName !== 'Harvester';
 
     let serverUrl;
 
     if (serverUrlSetting?.value) {
       serverUrl = serverUrlSetting.value;
-    } else if ( process.server ) {
-      serverUrl = req.headers.host;
     } else {
       serverUrl = window.location.origin;
     }
 
-    const isFirstLogin = await calcIsFirstLogin(store);
-    const mustChangePassword = await calcMustChangePassword(store);
+    const isFirstLogin = await calcIsFirstLogin(this.$store);
+    const mustChangePassword = await calcMustChangePassword(this.$store);
 
-    return {
-      productName,
-      vendor:  getVendor(),
-      product: getProduct(),
-      step:    parseInt(route.query.step, 10) || 1,
-
-      useRandom:   true,
-      haveCurrent: !!current,
-      username:    me?.loginName || 'admin',
-      isFirstLogin,
-      mustChangePassword,
-      current,
-      password:    randomStr(),
-      confirm:     '',
-
-      v3User,
-
-      serverUrl,
-      mcmEnabled,
-
-      telemetry,
-
-      eula: false,
-      principals,
-
-      errors: []
-    };
+    this['productName'] = productName;
+    this['haveCurrent'] = !!current;
+    this['username'] = me?.loginName || 'admin';
+    this['isFirstLogin'] = isFirstLogin;
+    this['mustChangePassword'] = mustChangePassword;
+    this['current'] = current;
+    this['v3User'] = v3User;
+    this['serverUrl'] = serverUrl;
+    this['mcmEnabled'] = mcmEnabled;
+    this['principals'] = principals;
   },
 
   computed: {
@@ -191,6 +173,10 @@ export default {
         }
       }
 
+      if (!isUrl(this.serverUrl) || this.fvGetPathErrors(['serverUrl']).length > 0) {
+        return false;
+      }
+
       return true;
     },
 
@@ -198,6 +184,10 @@ export default {
       const out = findBy(this.principals, 'me', true);
 
       return out;
+    },
+
+    showLocalhostWarning() {
+      return isLocalhost(this.serverUrl);
     }
   },
 
@@ -242,7 +232,6 @@ export default {
 
         if (this.isFirstLogin) {
           promises.push( setSetting(this.$store, SETTING.EULA_AGREED, (new Date()).toISOString()) );
-          promises.push( setSetting(this.$store, SETTING.TELEMETRY, this.telemetry ? 'in' : 'out') );
 
           if ( this.mcmEnabled && this.serverUrl ) {
             promises.push( setSetting(this.$store, SETTING.SERVER_URL, this.serverUrl) );
@@ -265,12 +254,24 @@ export default {
     done() {
       this.$router.replace('/');
     },
+
+    onServerUrlChange(value) {
+      this.serverUrl = value.trim();
+    },
   },
 };
 </script>
 
 <template>
-  <form class="setup">
+  <Loading
+    v-if="$fetchState.pending"
+    mode="relative"
+  />
+  <form
+    v-else
+    class="setup"
+    @submit.prevent
+  >
     <div class="row">
       <div class="col span-6 form-col">
         <div>
@@ -288,7 +289,7 @@ export default {
             />
             <Password
               v-if="!haveCurrent"
-              v-model.trim="current"
+              v-model:value.trim="current"
               autocomplete="current-password"
               type="password"
               :label="t('setup.currentPassword')"
@@ -305,7 +306,7 @@ export default {
             >
             <div class="mb-20">
               <RadioGroup
-                v-model="useRandom"
+                v-model:value="useRandom"
                 data-testid="setup-password-mode"
                 name="password-mode"
                 :options="passwordOptions"
@@ -315,7 +316,7 @@ export default {
               <LabeledInput
                 v-if="useRandom"
                 ref="password"
-                v-model.trim="password"
+                v-model:value.trim="password"
                 :type="useRandom ? 'text' : 'password'"
                 :disabled="useRandom"
                 data-testid="setup-password-random"
@@ -339,7 +340,7 @@ export default {
               <Password
                 v-else
                 ref="password"
-                v-model.trim="password"
+                v-model:value.trim="password"
                 :label="t('setup.newPassword')"
                 data-testid="setup-password"
                 :required="true"
@@ -347,7 +348,7 @@ export default {
             </div>
             <Password
               v-show="!useRandom"
-              v-model.trim="confirm"
+              v-model:value.trim="confirm"
               autocomplete="new-password"
               data-testid="setup-password-confirm"
               :label="t('setup.confirmPassword')"
@@ -368,32 +369,34 @@ export default {
                 />
               </p>
               <div class="mt-20">
+                <Banner
+                  v-if="showLocalhostWarning"
+                  color="warning"
+                  :label="t('validation.setting.serverUrl.localhost')"
+                  data-testid="setup-serverurl-localhost-warning"
+                />
+                <Banner
+                  v-for="(err, i) in fvGetPathErrors(['serverUrl'])"
+                  :key="i"
+                  color="error"
+                  :label="err"
+                  data-testid="setup-error-banner"
+                />
                 <LabeledInput
-                  v-model="serverUrl"
+                  v-model:value="serverUrl"
                   :label="t('setup.serverUrl.label')"
                   data-testid="setup-server-url"
+                  :rules="fvGetAndReportPathRules('serverUrl')"
+                  :required="true"
+                  @update:value="onServerUrlChange"
                 />
               </div>
             </template>
 
-            <div class="checkbox mt-40">
-              <Checkbox
-                id="checkbox-telemetry"
-                v-model="telemetry"
-              >
-                <template #label>
-                  <t
-                    k="setup.telemetry"
-                    :raw="true"
-                    :name="productName"
-                  />
-                </template>
-              </Checkbox>
-            </div>
             <div class="checkbox pt-10 eula">
               <Checkbox
                 id="checkbox-eula"
-                v-model="eula"
+                v-model:value="eula"
                 data-testid="setup-agreement"
               >
                 <template #label>
@@ -423,13 +426,16 @@ export default {
 
           <div class="setup-errors mt-20">
             <h4
-              v-for="err in errors"
-              :key="err"
+              v-for="(err, i) in errors"
+              :key="i"
               class="text-error text-center"
             >
               {{ err }}
             </h4>
           </div>
+        </div>
+        <div>
+          &nbsp;
         </div>
       </div>
       <BrandImage
@@ -466,6 +472,7 @@ export default {
 
       .span-6 {
         padding: 0 60px;
+        margin: 0;
       }
 
       .landscape {
@@ -473,6 +480,7 @@ export default {
         margin: 0;
         object-fit: cover;
         padding: 0;
+        width: 49%;
       }
     }
 
@@ -482,17 +490,21 @@ export default {
       overflow-y: auto;
       position: relative;
       height: 100vh;
+      width: 51%;
 
       & > div:first-of-type {
-        flex:3;
+        flex: 3;
       }
       & > div:nth-of-type(2) {
         flex: 9;
       }
+      & > div:nth-of-type(3) {
+        flex: 2;
+      }
     }
 
     .setup-title {
-      ::v-deep code {
+      :deep() code {
         font-size: 12px;
         padding: 0;
       }

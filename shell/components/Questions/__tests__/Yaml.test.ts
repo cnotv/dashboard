@@ -1,23 +1,12 @@
 import Questions from '@shell/components/Questions';
 import { mount } from '@vue/test-utils';
 import { _EDIT } from '@shell/config/query-params';
-const defaultStubs = {
-  Tab:        true,
-  Tabbed:     true,
-  CodeMirror: true
-};
-const defaultGetters = {
-  currentStore:           () => 'current_store',
-  'management/schemaFor': jest.fn(),
-  'current_store/all':    jest.fn(),
-  'i18n/t':               jest.fn(),
-  'i18n/withFallback':    jest.fn((key, args, fallback) => fallback),
-};
+import defaults from './utils/questions-defaults';
 
 describe('the yaml Component', () => {
   it('input field is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -27,8 +16,11 @@ describe('the yaml Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="yaml-input-var_name"]');
@@ -47,7 +39,7 @@ describe('the yaml Component', () => {
 
   it('description is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -57,8 +49,11 @@ describe('the yaml Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="yaml-input-var_name"]');
@@ -73,7 +68,7 @@ describe('the yaml Component', () => {
 
   it('label is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -83,8 +78,11 @@ describe('the yaml Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="yaml-input-var_name"]');
@@ -99,7 +97,7 @@ describe('the yaml Component', () => {
 
   it('tooltip is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -109,15 +107,18 @@ describe('the yaml Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="yaml-input-var_name"]');
 
     expect(inputFields).toHaveLength(1);
 
-    const labelFields = wrapper.findAll('[data-testid="yaml-row-var_name"] .has-tooltip');
+    const labelFields = wrapper.findAll('[data-testid="yaml-row-var_name"] .v-popper--has-tooltip');
 
     expect(labelFields).toHaveLength(1);
   });

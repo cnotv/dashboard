@@ -1,4 +1,4 @@
-import Vue from 'vue';
+import * as vue3 from 'vue';
 import $ from 'jquery';
 import JSZip from 'jszip';
 import jsyaml from 'js-yaml';
@@ -14,20 +14,18 @@ export default function({
   $axios,
   redirect,
   $plugin,
-  nuxt
 }, inject) {
   if (dynamicLoader) {
     dynamicLoader.default($plugin);
   }
 
-  if (process.client) {
-    // The libraries we build have Vue externalised, so we need to expose Vue as a global for
-    // them to pick up - see: https://cli.vuejs.org/guide/build-targets.html#library
-    window.Vue = Vue;
+  // The libraries we build have Vue externalised, so we need to expose Vue as a global for
+  // them to pick up - see: https://cli.vuejs.org/guide/build-targets.html#library
+  // window.Vue = Vue;
 
-    // Global libraries - allows us to externalise these to reduce package bundle size
-    window.$ = $;
-    window.__jszip = JSZip;
-    window.__jsyaml = jsyaml;
-  }
+  // Global libraries - allows us to externalise these to reduce package bundle size
+  window.Vue = vue3;
+  window.$ = $;
+  window.__jszip = JSZip;
+  window.__jsyaml = jsyaml;
 }

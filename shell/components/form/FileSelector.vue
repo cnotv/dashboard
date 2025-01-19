@@ -9,6 +9,8 @@ export function createOnSelected(field) {
 }
 
 export default {
+  emits: ['error', 'selected'],
+
   props: {
     label: {
       type:     String,
@@ -148,6 +150,7 @@ export default {
     :disabled="disabled"
     type="button"
     class="file-selector btn"
+    data-testid="file-selector__uploader-button"
     @click="selectFile"
   >
     <span>{{ label }}</span>

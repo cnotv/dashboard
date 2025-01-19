@@ -37,20 +37,18 @@ export default {
         STATE,
         NAME,
         {
-          name:     'nodesReady',
-          labelKey: 'tableHeaders.nodesReady',
+          name:     'bundlesReady',
+          labelKey: 'tableHeaders.bundlesReady',
           value:    'status.display.readyBundles',
           sort:     'status.summary.ready',
           search:   false,
-          align:    'center',
         },
         {
           name:     'reposReady',
           labelKey: 'tableHeaders.reposReady',
-          value:    'status.display.readyBundles',
+          value:    'status.readyGitRepos',
           sort:     'status.summary.ready',
           search:   false,
-          align:    'center',
         },
         FLEET_SUMMARY,
         {
@@ -62,7 +60,6 @@ export default {
           formatter:     'LiveDate',
           formatterOpts: { addSuffix: true },
           width:         120,
-          align:         'right'
         },
         AGE,
       ];
@@ -91,7 +88,6 @@ export default {
     :loading="loading"
     :use-query-params-for-simple-filtering="useQueryParamsForSimpleFiltering"
     key-field="_key"
-    v-on="$listeners"
   >
     <template #cell:workspace="{row}">
       <span v-if="row.type !== MANAGEMENT_CLUSTER && row.metadata.namespace">{{ row.metadata.namespace }}</span>
@@ -113,19 +109,19 @@ export default {
       <span v-else>{{ row.repoInfo.total }}</span>
     </template>
 
-    <template #cell:nodesReady="{row}">
+    <template #cell:bundlesReady="{row}">
       <span
-        v-if="!row.nodeInfo"
+        v-if="row.bundleInfo.noValidData"
         class="text-muted"
       >&mdash;</span>
       <span
-        v-else-if="row.nodeInfo.unready"
+        v-else-if="row.bundleInfo.ready !== row.bundleInfo.total"
         class="text-warning"
-      >{{ row.nodeInfo.ready }}/{{ row.nodeInfo.total }}</span>
+      >{{ row.bundleInfo.ready }}/{{ row.bundleInfo.total }}</span>
       <span
         v-else
-        :class="{'text-error': !row.nodeInfo.total}"
-      >{{ row.nodeInfo.total }}</span>
+        :class="{'text-error': !row.bundleInfo.total}"
+      >{{ row.bundleInfo.total }}</span>
     </template>
   </ResourceTable>
 </template>

@@ -75,11 +75,7 @@ const createAxiosInstance = (axiosOptions) => {
 };
 
 const setupProgress = (axios) => {
-  if (process.server) {
-    return;
-  }
-
-  // A noop loading inteterface for when $nuxt is not yet ready
+  // A noop loading inteterface for when $loading is not yet ready
   const noopLoading = {
     finish: () => { },
     start:  () => { },
@@ -88,9 +84,9 @@ const setupProgress = (axios) => {
   };
 
   const $loading = () => {
-    const $nuxt = typeof window !== 'undefined' && window['$nuxt'];
+    const $globalApp = window.$globalApp;
 
-    return ($nuxt && $nuxt.$loading && $nuxt.$loading.set) ? $nuxt.$loading : noopLoading;
+    return ($globalApp && $globalApp.$loading && $globalApp.$loading.set) ? $globalApp.$loading : noopLoading;
   };
 
   let currentRequests = 0;
@@ -166,21 +162,6 @@ export default (ctx, inject) => {
     baseURL,
     headers
   };
-
-  // Proxy SSR request headers headers
-  if (process.server && ctx.req && ctx.req.headers) {
-    const reqHeaders = { ...ctx.req.headers };
-
-    for (const h of ['accept', 'host', 'cf-ray', 'cf-connecting-ip', 'content-length', 'content-md5', 'content-type']) {
-      delete reqHeaders[h];
-    }
-    axiosOptions.headers.common = { ...reqHeaders, ...axiosOptions.headers.common };
-  }
-
-  if (process.server) {
-    // Don't accept brotli encoding because Node can't parse it
-    axiosOptions.headers.common['accept-encoding'] = 'gzip, deflate';
-  }
 
   const axios = createAxiosInstance(axiosOptions);
 

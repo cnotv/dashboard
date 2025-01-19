@@ -1,14 +1,10 @@
-import { mount, createLocalVue } from '@vue/test-utils';
+import { mount } from '@vue/test-utils';
 import GitRepo from '@shell/edit/fleet.cattle.io.gitrepo.vue';
-import Vuex from 'vuex';
-
-const localVue = createLocalVue();
-
-localVue.use(Vuex);
 
 describe('view: fleet.cattle.io.gitrepo should', () => {
   const mockStore = {
-    getters: {
+    dispatch: jest.fn(),
+    getters:  {
       'i18n/t':                  (text: string) => text,
       t:                         (text: string) => text,
       currentStore:              () => 'current_store',
@@ -27,15 +23,14 @@ describe('view: fleet.cattle.io.gitrepo should', () => {
           return false;
         }
       }
-    }
+    },
   };
   const values = {
     metadata: { namespace: 'test' }, spec: { template: {}, correctDrift: { enabled: false } }, targetInfo: { mode: 'all' },
   };
   const wrapper = mount(GitRepo, {
-    localVue,
-    propsData: { value: values },
-    mocks
+    props:  { value: values },
+    global: { mocks }
   });
 
   it('should have self-healing checkbox and banner', () => {
@@ -44,19 +39,19 @@ describe('view: fleet.cattle.io.gitrepo should', () => {
 
     expect(correctDriftCheckbox.exists()).toBeTruthy();
     expect(correctDriftBanner.exists()).toBeTruthy();
-    expect(correctDriftCheckbox.props().value).toBeFalsy();
+    expect(correctDriftCheckbox.attributes().value).toBeFalsy();
   });
 
   it('should enable drift if self-healing is checked', async() => {
-    const correctDriftCheckbox = wrapper.find('[data-testid="GitRepo-correctDrift-checkbox"]');
+    const correctDriftCheckbox = wrapper.findComponent('[data-testid="GitRepo-correctDrift-checkbox"]');
     const correctDriftContainer = wrapper.find('[data-testid="GitRepo-correctDrift-checkbox"] .checkbox-container');
 
     expect(correctDriftContainer.exists()).toBeTruthy();
 
     await correctDriftContainer.trigger('click');
 
-    expect(correctDriftCheckbox.emitted('input')).toHaveLength(1);
-    expect(correctDriftCheckbox.emitted('input')![0][0]).toBe(true);
+    expect(correctDriftCheckbox.emitted('update:value')).toHaveLength(1);
+    expect(correctDriftCheckbox.emitted('update:value')![0][0]).toBe(true);
     expect(correctDriftCheckbox.props().value).toBeTruthy();
   });
 });

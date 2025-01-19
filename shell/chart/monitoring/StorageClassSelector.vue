@@ -2,7 +2,10 @@
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 
 export default {
-  name:       'StorageClassSelector',
+  name: 'StorageClassSelector',
+
+  emits: ['updateName'],
+
   components: { LabeledSelect },
   props:      {
     options: {
@@ -41,6 +44,6 @@ export default {
     :options="options"
     :push-tags="true"
     :taggable="true"
-    @input="updateName"
+    @update:value="updateName"
   />
 </template>

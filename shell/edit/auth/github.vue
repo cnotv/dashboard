@@ -4,7 +4,6 @@ import CreateEditView from '@shell/mixins/create-edit-view';
 import CruResource from '@shell/components/CruResource';
 import { RadioGroup } from '@components/Form/Radio';
 import { LabeledInput } from '@components/Form/LabeledInput';
-import { Banner } from '@components/Banner';
 import CopyToClipboard from '@shell/components/CopyToClipboard';
 import AllowedPrincipals from '@shell/components/auth/AllowedPrincipals';
 import { MANAGEMENT } from '@shell/config/types';
@@ -12,6 +11,7 @@ import { findBy } from '@shell/utils/array';
 import AuthConfig from '@shell/mixins/auth-config';
 import AuthBanner from '@shell/components/auth/AuthBanner';
 import InfoBox from '@shell/components/InfoBox';
+import AuthProviderWarningBanners from '@shell/edit/auth/AuthProviderWarningBanners';
 
 const NAME = 'github';
 
@@ -21,11 +21,11 @@ export default {
     CruResource,
     RadioGroup,
     LabeledInput,
-    Banner,
     CopyToClipboard,
     AllowedPrincipals,
     AuthBanner,
-    InfoBox
+    InfoBox,
+    AuthProviderWarningBanners
   },
 
   mixins: [CreateEditView, AuthConfig],
@@ -137,7 +137,7 @@ export default {
           :disable="disable"
           :edit="goToEdit"
         >
-          <template slot="rows">
+          <template #rows>
             <tr><td>{{ t(`authConfig.${ NAME }.table.server`) }}: </td><td>{{ baseUrl }}</td></tr>
             <tr><td>{{ t(`authConfig.${ NAME }.table.clientId`) }}: </td><td>{{ value.clientId }}</td></tr>
           </template>
@@ -153,15 +153,14 @@ export default {
       </template>
 
       <template v-else>
-        <Banner
+        <AuthProviderWarningBanners
           v-if="!model.enabled"
-          :label="t('authConfig.stateBanner.disabled', tArgs)"
-          color="warning"
+          :t-args="tArgs"
         />
 
         <h3 v-t="`authConfig.${NAME}.target.label`" />
         <RadioGroup
-          v-model="targetType"
+          v-model:value="targetType"
           name="targetType"
           data-testid="authConfig-gitHub"
           :options="['public','private']"
@@ -173,7 +172,7 @@ export default {
           <div class="col span-6">
             <LabeledInput
               v-if="!isPublic"
-              v-model="targetUrl"
+              v-model:value="targetUrl"
               :label-key="`authConfig.${NAME}.host.label`"
               :placeholder="t(`authConfig.${NAME}.host.placeholder`)"
               :required="true"
@@ -236,28 +235,17 @@ export default {
         <div class="row mb-20">
           <div class="col span-6">
             <LabeledInput
-              v-model="model.clientId"
+              v-model:value="model.clientId"
               :label="t(`authConfig.${NAME}.clientId.label`)"
               :mode="mode"
             />
           </div>
           <div class="col span-6">
             <LabeledInput
-              v-model="model.clientSecret"
+              v-model:value="model.clientSecret"
               type="password"
               :label="t(`authConfig.${NAME}.clientSecret.label`)"
               :mode="mode"
-            />
-          </div>
-        </div>
-        <div
-          v-if="!model.enabled"
-          class="row"
-        >
-          <div class="col span-12">
-            <Banner
-              v-clean-html="t('authConfig.associatedWarning', tArgs, true)"
-              color="info"
             />
           </div>
         </div>
@@ -273,7 +261,7 @@ export default {
   .banner {
     display: block;
 
-    &::v-deep code {
+    &:deep() code {
       padding: 0 3px;
       margin: 0 3px;
     }

@@ -1,7 +1,9 @@
 import { BACK_TO } from '@shell/config/local-storage';
 import { setBrand, setVendor } from '@shell/config/private-label';
 import { NAME as EXPLORER } from '@shell/config/product/explorer';
-import { LOGGED_OUT, TIMED_OUT, UPGRADED, _FLAGGED } from '@shell/config/query-params';
+import {
+  LOGGED_OUT, IS_SSO, IS_SLO, TIMED_OUT, UPGRADED, _FLAGGED
+} from '@shell/config/query-params';
 import { SETTING } from '@shell/config/settings';
 import {
   COUNT,
@@ -35,6 +37,8 @@ import { addParam } from '@shell/utils/url';
 import semver from 'semver';
 import { STORE, BLANK_CLUSTER } from '@shell/store/store-types';
 import { isDevBuild } from '@shell/utils/version';
+import { markRaw } from 'vue';
+import paginationUtils from '@shell/utils/pagination-utils';
 
 // Disables strict mode for all store instances to prevent warning about changing state outside of mutations
 // because it's more efficient to do that sometimes.
@@ -144,7 +148,7 @@ const getReadOnlyActiveNamespaces = (namespaces, activeNamespaces) => {
 };
 
 /**
- * Collect all the namespaces grouped by category, project or single pick
+ * Collect all the namespaces for the current cluster grouped by category, project or single pick
  * @returns Record<string, true>
  */
 const getActiveNamespaces = (state, getters, readonly = false) => {
@@ -222,6 +226,13 @@ const updateActiveNamespaceCache = (state, activeNamespaceCache) => {
   }
 };
 
+/**
+ * Are we in the vai enabled world where mgmt clusters are paginated?
+ */
+const paginateClusters = (rootGetters) => {
+  return paginationUtils.isEnabled({ rootGetters }, { store: 'management', resource: { id: MANAGEMENT.CLUSTER, context: 'side-bar' } });
+};
+
 export const state = () => {
   return {
     managementReady:         false,
@@ -238,11 +249,20 @@ export const state = () => {
     error:                   null,
     cameFromError:           false,
     pageActions:             [],
+    pageActionHandler:       null,
     serverVersion:           null,
     systemNamespaces:        [],
     isSingleProduct:         undefined,
     isRancherInHarvester:    false,
-    targetRoute:             null
+    targetRoute:             null,
+    rootProduct:             undefined,
+    $router:                 markRaw({}),
+    $route:                  markRaw({}),
+    $plugin:                 markRaw({}),
+    /**
+     * Cache state of side nav clusters. This avoids flickering when the user changes pages and the side nav component re-renders
+     */
+    sideNavCache:            undefined,
   };
 };
 
@@ -305,6 +325,13 @@ export const getters = {
     return out;
   },
 
+  // Get the root product - this is either the current product or the current product's root (if set)
+  // Used for navigation and other areas that don't want to re-evaluate when the product changes, but is still within
+  // a common root product
+  rootProduct(state) {
+    return state.rootProduct;
+  },
+
   getStoreNameByProductId(state) {
     const products = state['type-map']?.products;
 
@@ -328,13 +355,9 @@ export const getters = {
   },
 
   isExplorer(state, getters) {
-    const product = getters.currentProduct;
+    const product = getters.rootProduct;
 
-    if ( !product ) {
-      return false;
-    }
-
-    return product.name === EXPLORER || product.inStore === 'cluster';
+    return product?.name === EXPLORER;
   },
 
   defaultClusterId(state, getters) {
@@ -394,6 +417,9 @@ export const getters = {
     return !filters[0].startsWith(NAMESPACE_FILTER_NS_FULL_PREFIX);
   },
 
+  /**
+   * Namespace/Project filter for the current cluster
+   */
   namespaceFilters(state) {
     const filters = state.namespaceFilters.filter((x) => !!x && !`${ x }`.startsWith(NAMESPACED_PREFIX));
 
@@ -446,6 +472,9 @@ export const getters = {
     return state.namespaceFilters;
   },
 
+  /**
+   * All namespaces in the current cluster
+   */
   allNamespaces(state) {
     return state.allNamespaces;
   },
@@ -577,7 +606,7 @@ export const getters = {
   },
 
   releaseNotesUrl(state, getters) {
-    const version = getters['management/byId'](MANAGEMENT.SETTING, 'server-version')?.value;
+    const version = getters['management/byId'](MANAGEMENT.SETTING, SETTING.VERSION_RANCHER)?.value;
 
     const base = 'https://github.com/rancher/rancher/releases';
 
@@ -588,10 +617,22 @@ export const getters = {
     return `${ base }/latest`;
   },
 
+  sideNavCache(state) {
+    return state.sideNavCache;
+  },
+
   ...gcGetters
 };
 
 export const mutations = {
+  pageActionHandler(state, handler) {
+    if (handler && typeof handler === 'function') {
+      state.pageActionHandler = handler;
+    }
+  },
+  clearPageActionHandler(state) {
+    state.pageActionHandler = null;
+  },
   managementChanged(state, { ready, isRancher }) {
     state.managementReady = ready;
     state.isRancher = isRancher;
@@ -604,15 +645,19 @@ export const mutations = {
     state.isRancherInHarvester = neu;
   },
 
-  updateNamespaces(state, { filters, all }) {
+  /**
+   * Updates cluster specific ns settings, including the selected ns cache `activeNamespaceCache`
+   */
+  updateNamespaces(state, { filters, all, getters: optGetters }) {
     state.namespaceFilters = filters.filter((x) => !!x);
 
     if ( all ) {
       state.allNamespaces = all;
     }
-    // Create map that can be used to efficiently check if a
-    // resource should be displayed
-    getActiveNamespaces(state, getters);
+    // - Create map that can be used to efficiently check if a resource should be displayed.
+    // - The 'getters' parameter is required to preserve compatibility with older Harvester's versions in embedded mode.
+    //   see https://github.com/rancher/dashboard/issues/10647
+    getActiveNamespaces(state, optGetters || getters);
   },
 
   changeAllNamespaces(state, namespace) {
@@ -650,11 +695,28 @@ export const mutations = {
     state.clusterId = neu;
   },
 
-  setProduct(state, neu) {
-    state.productId = neu;
+  setProduct(state, value) {
+    state.productId = value;
+
+    // Update rootProduct ONLY if the root product has changed as a result of the product change
+    const newProduct = this.getters['type-map/productByName'](value);
+    let newRootProduct = newProduct;
+
+    if (newProduct?.rootProduct) {
+      newRootProduct = this.getters['type-map/productByName'](newProduct.rootProduct) || newProduct;
+    }
+
+    if (newRootProduct?.name !== state.rootProduct?.name) {
+      state.rootProduct = newRootProduct;
+    }
   },
 
   setError(state, { error: obj, locationError }) {
+    // We don't want to clobber one error with another, doing so can hide the original cause of an error
+    if (obj && state.error) {
+      return;
+    }
+
     const err = new ApiError(obj);
 
     console.log('Loading error', err); // eslint-disable-line no-console
@@ -685,10 +747,31 @@ export const mutations = {
 
   targetRoute(state, route) {
     state.targetRoute = route;
+  },
+
+  setRouter(state, router) {
+    state.$router = markRaw(router || {});
+  },
+
+  setRoute(state, route) {
+    state.$route = markRaw(route || {});
+  },
+
+  setPlugin(state, pluginDefinition) {
+    state.$plugin = markRaw(pluginDefinition || {});
+  },
+
+  setSideNavCache(state, sideNavCache) {
+    state.sideNavCache = sideNavCache;
   }
 };
 
 export const actions = {
+  handlePageAction({ state }, action) {
+    if (state.pageActionHandler) {
+      state.pageActionHandler(action);
+    }
+  },
   async loadManagement({
     getters, state, commit, dispatch, rootGetters
   }) {
@@ -711,16 +794,19 @@ export const actions = {
       rancherSchemas: dispatch('rancher/loadSchemas', true),
     });
 
-    const promises = {
-      // Clusters guaranteed always available or your money back
-      clusters: dispatch('management/findAll', {
-        type: MANAGEMENT.CLUSTER,
-        opt:  { url: MANAGEMENT.CLUSTER }
-      }),
+    // Note - why aren't we watching anything fetched in the `promises` object?
+    // To watch we need feature flags to know that the vai cache is enabled.
+    // So to work around this we won't watch anything initially... and then watch once we have feature flags
+    // The alternative is simpler (fetch features up front) but would add another blocking request in
 
+    const promises = {
       // Features checks on its own if they are available
       features: dispatch('features/loadServer'),
     };
+
+    const toWatch = [
+      MANAGEMENT.FEATURE,
+    ];
 
     const isRancher = res.rancherSchemas.status === 'fulfilled' && !!getters['management/schemaFor'](MANAGEMENT.PROJECT);
 
@@ -730,25 +816,41 @@ export const actions = {
     }
 
     if ( getters['management/schemaFor'](COUNT) ) {
-      promises['counts'] = dispatch('management/findAll', { type: COUNT });
+      promises['counts'] = dispatch('management/findAll', { type: COUNT, opt: { watch: false } });
+      toWatch.push(COUNT);
     }
 
     if ( getters['management/canList'](MANAGEMENT.SETTING) ) {
-      promises['settings'] = dispatch('management/findAll', { type: MANAGEMENT.SETTING });
+      promises['settings'] = dispatch('management/findAll', { type: MANAGEMENT.SETTING, opt: { watch: false } });
+      toWatch.push(MANAGEMENT.SETTING);
     }
 
     if ( getters['management/schemaFor'](NAMESPACE) ) {
-      promises['namespaces'] = dispatch('management/findAll', { type: NAMESPACE });
+      promises['namespaces'] = dispatch('management/findAll', { type: NAMESPACE, opt: { watch: false } });
+      toWatch.push(NAMESPACE);
     }
 
     const fleetSchema = getters['management/schemaFor'](FLEET.WORKSPACE);
 
     if (fleetSchema?.links?.collection) {
-      promises['workspaces'] = dispatch('management/findAll', { type: FLEET.WORKSPACE });
+      promises['workspaces'] = dispatch('management/findAll', { type: FLEET.WORKSPACE, opt: { watch: false } });
+      toWatch.push(FLEET.WORKSPACE);
     }
 
     res = await allHash(promises);
-    dispatch('i18n/init');
+
+    if (!res.settings || !paginateClusters(rootGetters)) {
+      // This introduces a synchronous request, however we need settings to determine if SSP is enabled
+      // Eventually it will be removed when SSP is always on
+      res.clusters = await dispatch('management/findAll', { type: MANAGEMENT.CLUSTER, opt: { watch: false } });
+      toWatch.push(MANAGEMENT.CLUSTER);
+    }
+
+    // See comment above. Now that we have feature flags we can watch resources
+    toWatch.forEach((type) => {
+      dispatch('management/watch', { type });
+    });
+
     const isMultiCluster = getters['isMultiCluster'];
 
     // If the local cluster is a Harvester cluster and 'rancher-manager-support' is true, it means that the embedded Rancher is being used.
@@ -796,18 +898,25 @@ export const actions = {
     console.log(`Done loading management; isRancher=${ isRancher }; isMultiCluster=${ isMultiCluster }`); // eslint-disable-line no-console
   },
 
+  // Note:
+  // - state.clusterId is the old cluster id (or undefined)
+  // - id is the new cluster id (or undefined)
   async loadCluster({
-    state, commit, dispatch, getters
+    state, commit, dispatch, getters, rootGetters
   }, {
     id, product, oldProduct, oldPkg, newPkg, targetRoute
   }) {
     commit('targetRoute', targetRoute);
     const sameCluster = state.clusterId && state.clusterId === id;
     const samePackage = oldPkg?.name === newPkg?.name;
+    const sameProduct = oldProduct === product;
     const isMultiCluster = getters['isMultiCluster'];
 
-    // Are we in the same cluster and package?
-    if ( sameCluster && samePackage) {
+    const productConfig = state['type-map']?.products?.find((p) => p.name === product);
+    const oldProductConfig = state['type-map']?.products?.find((p) => p.name === oldProduct);
+
+    // Are we in the same cluster and package or product or root product?
+    if (sameCluster && (samePackage || sameProduct || (productConfig?.rootProduct === oldProductConfig?.rootProduct))) {
       // Do nothing, we're already connected/connecting to this cluster
       return;
     }
@@ -820,8 +929,11 @@ export const actions = {
       (s) => getters[`${ s.storeName }/isClusterStore`]
     )?.storeName;
 
-    const productConfig = state['type-map']?.products?.find((p) => p.name === product);
-    const forgetCurrentCluster = ((state.clusterId && id) || !samePackage) && !productConfig?.inExplorer;
+    // Forget the cluster if we had a cluster and we have a new cluster OR if the store changed between the old and new products OR if the pkg store changed
+    // Package stores are only there for UI Extensions that have their own stores (normal case is this is undefined)
+    const forgetCurrentCluster = ((state.clusterId && id) ||
+      (productConfig?.inStore && productConfig.inStore !== oldProductConfig?.inStore)) ||
+      (oldPkgClusterStore !== newPkgClusterStore);
 
     // Should we leave/forget the current cluster? Only if we're going from an existing cluster to a new cluster, or the package has changed
     // (latter catches cases like nav from explorer cluster A to epinio cluster A)
@@ -832,7 +944,6 @@ export const actions = {
       // so that the nav and header stay the same when going to things like prefs
       commit('clusterReady', false);
       commit('clusterId', undefined);
-
       await dispatch('cluster/unsubscribe');
       commit('cluster/reset');
 
@@ -859,6 +970,13 @@ export const actions = {
 
       // Use a pseudo cluster ID to pretend we have a cluster... to ensure some screens that don't care about a cluster but 'require' one to show
       if (id === BLANK_CLUSTER) {
+        // Remove previous cluster context from cached namespaces
+        commit('updateNamespaces', {
+          filters: [],
+          all:     [],
+          getters
+        });
+
         commit('clusterReady', true);
 
         return;
@@ -887,6 +1005,11 @@ export const actions = {
     // This is a workaround for a timing issue where the mgmt cluster schema may not be available
     // Try and wait until the schema exists before proceeding
     await dispatch('management/waitForSchema', { type: MANAGEMENT.CLUSTER });
+
+    // If SSP is on we won't have requested all clusters
+    if (!paginateClusters(rootGetters)) {
+      await dispatch('management/waitForHaveAll', { type: MANAGEMENT.CLUSTER });
+    }
 
     // See if it really exists
     try {
@@ -957,6 +1080,7 @@ export const actions = {
     commit('updateNamespaces', {
       filters: filters || [ALL_USER],
       all:     allNamespaces,
+      getters
     });
 
     if (getters['currentCluster'] && getters['currentCluster'].isHarvester) {
@@ -979,10 +1103,20 @@ export const actions = {
       }
     });
 
-    commit('updateNamespaces', { filters: ids });
+    commit('updateNamespaces', { filters: ids, getters });
   },
 
-  async cleanNamespaces({ getters, dispatch }) {
+  async cleanNamespaces({ getters, dispatch, rootGetters }) {
+    if (paginateClusters(rootGetters)) {
+      // See https://github.com/rancher/dashboard/issues/12864
+      // old world...
+      // - loadManagement makes a request to fetch all mgmt clusters
+      // - we would block on that that request above before getting here (otherwise x2 requests for all clusters were made)
+      // new world...
+      // - we won't have all mgmt clusters, so this whole function needs updating (see issue)
+      return;
+    }
+
     // Initialise / Remove any filters that the user no-longer has access to
     await dispatch('management/findAll', { type: MANAGEMENT.CLUSTER }); // So they can be got byId below
 
@@ -1042,40 +1176,40 @@ export const actions = {
     commit('catalog/reset');
 
     const router = state.$router;
-    const route = router.currentRoute;
+    const route = router.currentRoute.value;
 
     if ( route.name === 'index' ) {
       router.replace('/auth/login');
     } else {
-      if (!process.server) {
-        const backTo = window.localStorage.getItem(BACK_TO);
+      const backTo = window.localStorage.getItem(BACK_TO);
 
-        const isLogin = route.name === 'auth-login' || route.path === '/login'; // Cover dashboard and case of log out from ember;
-        const isLogout = route.name === 'auth-logout';
+      const isLogin = route.name === 'auth-login' || route.path === '/login'; // Cover dashboard and case of log out from ember;
+      const isLogout = route.name === 'auth-logout';
 
-        if (!backTo && !isLogin && !isLogout) {
-          window.localStorage.setItem(BACK_TO, window.location.href);
-        }
+      if (!backTo && !isLogin && !isLogout) {
+        window.localStorage.setItem(BACK_TO, window.location.href);
       }
 
-      const QUERY = (LOGGED_OUT in route.query) ? LOGGED_OUT : TIMED_OUT;
+      let QUERY = (LOGGED_OUT in route.query) ? LOGGED_OUT : TIMED_OUT;
 
-      router.replace(`/auth/login?${ QUERY }`);
+      // adds IS_SSO query param to login route if logout came with an auth provider enabled
+      QUERY += (IS_SSO in route.query) ? `&${ IS_SSO }` : '';
+
+      // adds IS_SLO query param to login route if logout came with an auth provider with Single Logout enabled
+      QUERY += (IS_SLO in route.query) ? `&${ IS_SLO }` : '';
+
+      // Go back to login and force a full page reload, this ensures we unload any dangling resources the user is no longer authorized to use (like extensions).
+      // We use document instead of router because router does a clunky job of visiting a new page and reloading. In this case it would cause the login page to flash before actually reloading.
+      const base = process.env.routerBase || '/';
+
+      document.location.href = `${ base }auth/login?${ QUERY }`;
     }
   },
 
-  nuxtServerInit({ dispatch, rootState }, nuxt) {
-    // Models in SSR server mode have no way to get to the route or router, so hack one in...
-    Object.defineProperty(rootState, '$router', { value: nuxt.app.router });
-    Object.defineProperty(rootState, '$route', { value: nuxt.route });
-    dispatch('prefs/loadCookies');
-  },
-
-  nuxtClientInit({ dispatch, rootState }, nuxt) {
-    Object.defineProperty(rootState, '$router', { value: nuxt.app.router });
-    Object.defineProperty(rootState, '$route', { value: nuxt.route });
-    Object.defineProperty(rootState, '$plugin', { value: nuxt.app.$plugin });
-    Object.defineProperty(this, '$plugin', { value: nuxt.app.$plugin });
+  nuxtClientInit({ dispatch, commit, rootState }, nuxt) {
+    commit('setRouter', nuxt.app.router);
+    commit('setRoute', nuxt.route);
+    commit('setPlugin', nuxt.app.$plugin);
 
     dispatch('management/rehydrateSubscribe');
     dispatch('cluster/rehydrateSubscribe');
@@ -1146,6 +1280,10 @@ export const actions = {
         dispatch(`${ storeName }/unsubscribe`);
       }
     });
+  },
+
+  setSideNavCache({ commit }, sideNavCache) {
+    commit('setSideNavCache', sideNavCache);
   },
 
   ...gcActions

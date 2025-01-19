@@ -47,9 +47,18 @@ export default {
       selectedSeverityLabel: null,
       ignoredAnnotations:    IGNORED_ANNOTATIONS,
       severityOptions:       [
-        this.t('prometheusRule.alertingRules.labels.severity.choices.critical'),
-        this.t('prometheusRule.alertingRules.labels.severity.choices.warning'),
-        this.t('prometheusRule.alertingRules.labels.severity.choices.none'),
+        {
+          label: this.t('prometheusRule.alertingRules.labels.severity.choices.critical'),
+          value: 'critical'
+        },
+        {
+          label: this.t('prometheusRule.alertingRules.labels.severity.choices.warning'),
+          value: 'warning'
+        },
+        {
+          label: this.t('prometheusRule.alertingRules.labels.severity.choices.none'),
+          value: 'none'
+        },
       ],
     };
   },
@@ -69,12 +78,12 @@ export default {
       set(value) {
         if (value) {
           if (isEmpty(this.value?.labels)) {
-            this.$set(this.value, 'labels', { severity: 'none' });
+            this.value['labels'] = { severity: 'none' };
           } else {
-            this.$set(this.value.labels, 'severity', 'none');
+            this.value.labels['severity'] = 'none';
           }
         } else {
-          this.$set(this.value.labels, 'severity', '');
+          this.value.labels['severity'] = '';
           delete this.value.labels.severity;
         }
       },
@@ -91,12 +100,12 @@ export default {
       set(value) {
         if (value) {
           if (isEmpty(this.value?.annotations)) {
-            this.$set(this.value, 'annotations', { summary: '' });
+            this.value['annotations'] = { summary: '' };
           } else {
-            this.$set(this.value.annotations, 'summary', '');
+            this.value.annotations = { ...this.value.annotations, summary: '' };
           }
         } else {
-          this.$set(this.value.annotations, 'summary', '');
+          this.value.annotations['summary'] = '';
           delete this.value.annotations.summary;
         }
       },
@@ -113,12 +122,12 @@ export default {
       set(value) {
         if (value) {
           if (isEmpty(this.value?.annotations)) {
-            this.$set(this.value, 'annotations', { message: '' });
+            this.value['annotations'] = { message: '' };
           } else {
-            this.$set(this.value.annotations, 'message', '');
+            this.value.annotations = { ...this.value.annotations, message: '' };
           }
         } else {
-          this.$set(this.value.annotations, 'message', '');
+          this.value.annotations['message'] = '';
           delete this.value.annotations.message;
         }
       },
@@ -135,12 +144,12 @@ export default {
       set(value) {
         if (value) {
           if (isEmpty(this.value?.annotations)) {
-            this.$set(this.value, 'annotations', { description: '' });
+            this.value['annotations'] = { description: '' };
           } else {
-            this.$set(this.value.annotations, 'description', '');
+            this.value.annotations = { ...this.value.annotations, description: '' };
           }
         } else {
-          this.$set(this.value.annotations, 'description', '');
+          this.value.annotations['description'] = '';
           delete this.value.annotations.description;
         }
       },
@@ -157,12 +166,12 @@ export default {
       set(value) {
         if (value) {
           if (isEmpty(this.value?.annotations)) {
-            this.$set(this.value, 'annotations', { runbook_url: '' });
+            this.value['annotations'] = { runbook_url: '' };
           } else {
-            this.$set(this.value.annotations, 'runbook_url', '');
+            this.value.annotations = { ...this.value.annotations, runbook_url: '' };
           }
         } else {
-          this.$set(this.value.annotations, 'runbook_url', '');
+          this.value.annotations['runbook_url'] = '';
           delete this.value.annotations.runbook_url;
         }
       },
@@ -204,7 +213,7 @@ export default {
         return undefined;
       },
       set(v) {
-        this.$set(this.value, 'for', [null, undefined].includes(v) ? undefined : `${ v }s`);
+        this.value['for'] = [null, undefined].includes(v) ? undefined : `${ v }s`;
       }
     }
   },
@@ -214,9 +223,9 @@ export default {
       const neu = value === 'custom' ? '' : value;
 
       if (this.value?.labels) {
-        this.$set(this.value.labels, 'severity', neu);
+        this.value.labels['severity'] = neu;
       } else {
-        this.$set(this.value, 'labels', { severity: neu });
+        this.value['labels'] = { severity: neu };
       }
     },
   },
@@ -243,7 +252,7 @@ export default {
         neu['severity'] = this.selectedSeverityLabel;
       }
 
-      this.$set(this.value, 'labels', neu);
+      this.value['labels'] = neu;
     },
     updateAnnotations(value) {
       const {
@@ -258,10 +267,10 @@ export default {
         }
       });
 
-      this.$set(this.value, 'annotations', neu);
+      this.value['annotations'] = neu;
     },
     updateExpression(value) {
-      this.$set(this.value, 'expr', value);
+      this.value['expr'] = value;
     }
   },
 };
@@ -272,15 +281,16 @@ export default {
     <div class="row mt-25">
       <div class="col span-6">
         <LabeledInput
-          v-model="value.alert"
+          v-model:value="value.alert"
           :label="t('prometheusRule.alertingRules.name')"
           :required="true"
           :mode="mode"
+          data-testid="v2-monitoring-alerting-rules-alert-name"
         />
       </div>
       <div class="col span-6">
         <UnitInput
-          v-model="waitToFireFor"
+          v-model:value="waitToFireFor"
           :suffix="t('suffix.seconds', {count: value.for})"
           :placeholder="t('prometheusRule.alertingRules.for.placeholder')"
           :label="t('prometheusRule.alertingRules.for.label')"
@@ -291,7 +301,7 @@ export default {
     <div class="row">
       <div class="col span-12">
         <LabeledInput
-          v-model="value.expr"
+          v-model:value="value.expr"
           :label="t('prometheusRule.promQL.label')"
           :required="true"
           :mode="mode"
@@ -305,6 +315,7 @@ export default {
                 foldGutter: false,
                 readOnly: mode === 'view',
               }"
+              data-testid="v2-monitoring-alerting-rules-promql"
               @onInput="queueUpdate"
             />
           </template>
@@ -332,18 +343,19 @@ export default {
           class="severity col span-6"
         >
           <Checkbox
-            v-model="severityLabelChecked"
+            v-model:value="severityLabelChecked"
             :mode="mode"
             :label="t('prometheusRule.alertingRules.labels.severity.label')"
           />
           <LabeledSelect
             v-if="severityLabelChecked"
-            v-model="value.labels.severity"
+            v-model:value="value.labels.severity"
             class="mt-10"
             :mode="mode"
             :label="t('prometheusRule.alertingRules.labels.severity.choices.label')"
             :localized-label="false"
             :options="severityOptions"
+            data-testid="v2-monitoring-alerting-rules-severity"
           />
         </div>
       </div>
@@ -356,7 +368,7 @@ export default {
             :mode="mode"
             :read-allowed="false"
             :value-multiline="false"
-            @input="queueLabelUpdate"
+            @update:value="queueLabelUpdate"
           />
         </div>
       </div>
@@ -385,13 +397,13 @@ export default {
                 class="col span-6 annotation-checkbox-container"
               >
                 <Checkbox
-                  v-model="summaryAnnotationChecked"
+                  v-model:value="summaryAnnotationChecked"
                   :mode="mode"
                   :label="t('prometheusRule.alertingRules.annotations.summary.label')"
                 />
                 <LabeledInput
                   v-if="summaryAnnotationChecked"
-                  v-model="value.annotations.summary"
+                  v-model:value="value.annotations.summary"
                   class="mt-5"
                   :label="t('prometheusRule.alertingRules.annotations.summary.input')"
                   type="multiline"
@@ -414,13 +426,13 @@ export default {
                 class="col span-6 annotation-checkbox-container"
               >
                 <Checkbox
-                  v-model="messageAnnotationChecked"
+                  v-model:value="messageAnnotationChecked"
                   :mode="mode"
                   :label="t('prometheusRule.alertingRules.annotations.message.label')"
                 />
                 <LabeledInput
                   v-if="messageAnnotationChecked"
-                  v-model="value.annotations.message"
+                  v-model:value="value.annotations.message"
                   class="mt-5"
                   :label="t('prometheusRule.alertingRules.annotations.message.input')"
                   type="multiline"
@@ -443,13 +455,13 @@ export default {
                 class="col span-6 annotation-checkbox-container"
               >
                 <Checkbox
-                  v-model="descriptionAnnotationChecked"
+                  v-model:value="descriptionAnnotationChecked"
                   :mode="mode"
                   :label="t('prometheusRule.alertingRules.annotations.description.label')"
                 />
                 <LabeledInput
                   v-if="descriptionAnnotationChecked"
-                  v-model="value.annotations.description"
+                  v-model:value="value.annotations.description"
                   class="mt-5"
                   :label="t('prometheusRule.alertingRules.annotations.description.input')"
                   type="multiline"
@@ -472,13 +484,13 @@ export default {
                 class="col span-6 annotation-checkbox-container"
               >
                 <Checkbox
-                  v-model="runbookAnnotationChecked"
+                  v-model:value="runbookAnnotationChecked"
                   :mode="mode"
                   :label="t('prometheusRule.alertingRules.annotations.runbook.label')"
                 />
                 <LabeledInput
                   v-if="runbookAnnotationChecked"
-                  v-model="value.annotations.runbook_url"
+                  v-model:value="value.annotations.runbook_url"
                   class="mt-5"
                   :label="t('prometheusRule.alertingRules.annotations.runbook.input')"
                   type="multiline"
@@ -495,7 +507,7 @@ export default {
             :add-label="t('labels.addAnnotation')"
             :mode="mode"
             :read-allowed="false"
-            @input="queueAnnotationUpdate"
+            @update:value="queueAnnotationUpdate"
           />
         </div>
       </div>

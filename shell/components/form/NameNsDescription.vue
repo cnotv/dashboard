@@ -1,6 +1,5 @@
 <script>
-import Vue from 'vue';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import { get, set } from '@shell/utils/object';
 import { sortBy } from '@shell/utils/sort';
 import { NAMESPACE } from '@shell/config/types';
@@ -11,10 +10,13 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { normalizeName } from '@shell/utils/kube';
 
 export default {
-  name:       'NameNsDescription',
+  name: 'NameNsDescription',
+
+  emits: ['update:value', 'isNamespaceNew'],
+
   components: {
     LabeledInput,
-    LabeledSelect
+    LabeledSelect,
   },
 
   props: {
@@ -215,6 +217,7 @@ export default {
 
   computed: {
     ...mapGetters(['currentProduct', 'currentCluster', 'namespaces', 'allowedNamespaces']),
+    ...mapActions('cru-resource', ['setCreateNamespace']),
     namespaceReallyDisabled() {
       return (
         !!this.forceNamespace || this.namespaceDisabled || this.mode === _EDIT
@@ -289,6 +292,10 @@ export default {
       return this.mode === _CREATE;
     },
 
+    showCustomize() {
+      return this.mode === _CREATE && this.name && this.name.length > 0;
+    },
+
     colSpan() {
       if (!this.horizontal) {
         return `span-8`;
@@ -310,21 +317,21 @@ export default {
 
   watch: {
     name(val) {
-      if ( this.normalizeName ) {
+      if (this.normalizeName) {
         val = normalizeName(val);
       }
 
       if (this.nameKey) {
         set(this.value, this.nameKey, val);
       } else {
-        this.$set(this.value.metadata, 'name', val);
+        this.value.metadata['name'] = val;
       }
-      this.$emit('change');
+      this.$emit('update:value', this.value);
     },
 
     namespace(val) {
       this.updateNamespace(val);
-      this.$emit('change');
+      this.$emit('update:value', this.value);
     },
 
     description(val) {
@@ -333,7 +340,7 @@ export default {
       } else {
         this.value.setAnnotation(DESCRIPTION, val);
       }
-      this.$emit('change');
+      this.$emit('update:value', this.value);
     },
   },
 
@@ -370,22 +377,28 @@ export default {
     cancelCreateNamespace(e) {
       this.createNamespace = false;
       this.$parent.$emit('createNamespace', false);
-      // In practise we should always have a defaultNamespace... unless we're in non-kube extension world,  so fall back on options
-      this.namespace = this.$store.getters['defaultNamespace'] || this.options.find((o) => !!o.value)?.value ;
+      // In practice we should always have a defaultNamespace... unless we're in non-kube extension world,  so fall back on options
+      this.namespace = this.$store.getters['defaultNamespace'] || this.options.find((o) => !!o.value)?.value;
     },
 
     selectNamespace(e) {
       if (!e || e.value === '') { // The blank value in the dropdown is labeled "Create a New Namespace"
         this.createNamespace = true;
-        this.$parent.$emit('createNamespace', true);
+        this.$store.dispatch(
+          'cru-resource/setCreateNamespace',
+          true,
+        );
         this.$emit('isNamespaceNew', true);
-        Vue.nextTick(() => this.$refs.namespace.focus());
+        this.$nextTick(() => this.$refs.namespace.focus());
       } else {
         this.createNamespace = false;
-        this.$parent.$emit('createNamespace', false);
+        this.$store.dispatch(
+          'cru-resource/setCreateNamespace',
+          false,
+        );
         this.$emit('isNamespaceNew', false);
       }
-    }
+    },
   },
 };
 </script>
@@ -399,7 +412,7 @@ export default {
     >
       <LabeledInput
         ref="namespace"
-        v-model="namespace"
+        v-model:value="namespace"
         :label="t('namespace.label')"
         :placeholder="t('namespace.createNamespace')"
         :disabled="namespaceReallyDisabled"
@@ -425,7 +438,7 @@ export default {
     >
       <LabeledSelect
         v-show="!createNamespace"
-        v-model="namespace"
+        v-model:value="namespace"
         :clearable="true"
         :options="options"
         :disabled="namespaceReallyDisabled"
@@ -448,7 +461,7 @@ export default {
       <LabeledInput
         ref="name"
         key="name"
-        v-model="name"
+        v-model:value="name"
         :label="t(nameLabel)"
         :placeholder="t(namePlaceholder)"
         :disabled="nameReallyDisabled"
@@ -459,6 +472,8 @@ export default {
       />
     </div>
 
+    <slot name="customize" />
+    <!-- // TODO: here goes the custom component -->
     <div
       v-show="!descriptionHidden"
       :data-testid="componentTestid + '-description'"
@@ -466,7 +481,7 @@ export default {
     >
       <LabeledInput
         key="description"
-        v-model="description"
+        v-model:value="description"
         :mode="mode"
         :disabled="descriptionDisabled"
         :label="t(descriptionLabel)"
@@ -477,8 +492,8 @@ export default {
     </div>
 
     <div
-      v-for="slot in extraColumns"
-      :key="slot"
+      v-for="(slot, i) in extraColumns"
+      :key="i"
       :class="{ col: true, [colSpan]: true }"
     >
       <slot :name="slot" />
@@ -505,13 +520,16 @@ button {
     padding-top: 7px;
   }
 }
+
 .row {
   &.name-ns-description {
     max-height: $input-height;
   }
-  .namespace-select ::v-deep {
+
+  .namespace-select :deep() {
     .labeled-select {
       min-width: 40%;
+
       .v-select.inline {
         &.vs--single {
           padding-bottom: 2px;
@@ -527,9 +545,10 @@ button {
       max-height: initial;
     }
 
-    & > div > * {
+    &>div>* {
       margin-bottom: 20px;
     }
   }
+
 }
 </style>

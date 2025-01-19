@@ -1,13 +1,15 @@
-import { CATALOG } from '@shell/config/types';
+import { CATALOG, EXPERIMENTAL, DEPRECATED } from '@shell/config/types';
 import { CATALOG as CATALOG_ANNOTATIONS } from '@shell/config/labels-annotations';
 import { addParams } from '@shell/utils/url';
 import { allHash, allHashSettled } from '@shell/utils/promise';
 import { clone } from '@shell/utils/object';
-import { findBy, addObject, filterBy } from '@shell/utils/array';
+import { findBy, addObject, filterBy, isArray } from '@shell/utils/array';
 import { stringify } from '@shell/utils/error';
 import { classify } from '@shell/plugins/dashboard-store/classify';
 import { sortBy } from '@shell/utils/sort';
-import { importChart } from '@shell/utils/dynamic-importer';
+import { ensureRegex } from '@shell/utils/string';
+import { isPrerelease } from '@shell/utils/version';
+import difference from 'lodash/difference';
 import { lookup } from '@shell/plugins/dashboard-store/model-loader';
 
 const ALLOWED_CATEGORIES = [
@@ -28,6 +30,9 @@ const CERTIFIED_SORTS = {
   [CATALOG_ANNOTATIONS._PARTNER]:      2,
   other:                               3,
 };
+
+export const WINDOWS = 'windows';
+export const LINUX = 'linux';
 
 export const state = function() {
   return {
@@ -94,62 +99,38 @@ export const getters = {
     return sortBy(out, ['certifiedSort', 'repoName', 'chartName']);
   },
 
-  /**
-   * Returns matching chart for given parameters
-   * @returns
-   */
   chart(state, getters) {
     return ({
-      chart, // to extract parameters
-      key, // filtering mode 1
-      repoType, repoName, chartName, // filtering mode 2
-      preferRepoType, preferRepoName, // sorting
-      includeHidden
+      key, repoType, repoName, chartName, preferRepoType, preferRepoName, includeHidden, showDeprecated
     }) => {
-      // Get data from the Chart
-      if ( chart && !key && !repoType && !repoName && !chartName) {
-        chartName = chart.metadata?.name;
-        preferRepoType = chart.metadata?.annotations?.[CATALOG_ANNOTATIONS.SOURCE_REPO_TYPE];
-        preferRepoName = chart.metadata?.annotations?.[CATALOG_ANNOTATIONS.SOURCE_REPO_NAME];
-        repoType = chart.repoType;
-        repoName = chart.repoName;
-      }
-
-      // Return nothing if cannot filter the charts, to avoid mismatches
-      if (!(key || (repoType && repoName && chartName))) {
-        return;
-      }
-
-      // Get data as key of the retrieved Charts (currently same as ID)
       if ( key && !repoType && !repoName && !chartName) {
-        const keyParts = key.split('/');
+        const parsed = parseKey(key);
 
-        repoType = keyParts[0];
-        repoName = keyParts[1];
-        chartName = keyParts[2];
+        repoType = parsed.repoType;
+        repoName = parsed.repoName;
+        chartName = parsed.chartName;
       }
 
-      let matchingCharts = filterBy(getters.charts, {
+      let matching = filterBy(getters.charts, {
         repoType,
         repoName,
         chartName,
-        deprecated: false,
+        deprecated: !!showDeprecated,
       });
 
       if ( includeHidden === false ) {
-        matchingCharts = matchingCharts.filter((x) => !x.hidden);
+        matching = matching.filter((x) => !x.hidden);
       }
 
-      if ( !matchingCharts.length ) {
+      if ( !matching.length ) {
         return;
       }
 
-      // Sorting by preference
       if ( preferRepoType && preferRepoName ) {
-        preferSameRepo(matchingCharts, preferRepoType, preferRepoName);
+        preferSameRepo(matching, preferRepoType, preferRepoName);
       }
 
-      return matchingCharts[0];
+      return matching[0];
     };
   },
 
@@ -283,31 +264,6 @@ export const getters = {
     };
   },
 
-  chartSteps(state, getters) {
-    return (name) => {
-      const steps = [];
-
-      const stepsPath = `./${ name }/steps/`;
-      // require.context only takes literals, so find all candidate step files and filter out
-      const allPaths = require.context('@shell/chart', true, /\.vue$/).keys();
-
-      allPaths
-        .filter((path) => path.startsWith(stepsPath))
-        .forEach((path) => {
-          try {
-            steps.push({
-              name:      path.replace(stepsPath, ''),
-              component: importChart(path.substr(2, path.length)),
-            });
-          } catch (e) {
-            console.warn(`Failed to load step component ${ path } for chart ${ name }`, e); // eslint-disable-line no-console
-          }
-        });
-
-      return steps;
-    };
-  },
-
   inStore(state) {
     return state.inStore;
   },
@@ -342,12 +298,21 @@ export const mutations = {
     }
   },
 
+  setVersions(state, versions) {
+    state.versionInfos = versions;
+  },
+
   cacheVersion(state, { key, info }) {
     state.versionInfos[key] = info;
   }
 };
 
 export const actions = {
+  /**
+   * force: Always refresh catalog's helm repo by re-fetching index.yaml
+   *
+   * reset: clear existing charts and version cache
+   */
   async load(ctx, { force, reset } = {}) {
     const {
       state, getters, rootGetters, commit, dispatch
@@ -372,7 +337,7 @@ export const actions = {
 
     // As per comment above, when there are no clusters this will be management. Store it such that it can be used for those cases
     commit('setInStore', inStore);
-    hash.cluster = hash.cluster.filter((repo) => !(repo?.metadata?.annotations?.[CATALOG_ANNOTATIONS.HIDDEN_REPO] === 'true'));
+    hash.cluster = hash.cluster?.filter((repo) => !(repo?.metadata?.annotations?.[CATALOG_ANNOTATIONS.HIDDEN_REPO] === 'true'));
 
     commit('setRepos', hash);
 
@@ -415,6 +380,10 @@ export const actions = {
       errors,
       loaded,
     });
+
+    if (reset) {
+      commit('setVersions', {});
+    }
   },
 
   async refresh({ getters, commit, dispatch }) {
@@ -477,6 +446,16 @@ export function generateKey(repoType, repoName, chartName) {
   return `${ repoType }/${ repoName }/${ chartName }`;
 }
 
+export function parseKey(key) {
+  const parts = key.split('/');
+
+  return {
+    repoType:  parts[0],
+    repoName:  parts[1],
+    chartName: parts[2],
+  };
+}
+
 function addChart(ctx, map, chart, repo) {
   const repoType = (repo.type === CATALOG.CLUSTER_REPO ? 'cluster' : 'namespace');
   const repoName = repo.metadata.name;
@@ -496,8 +475,10 @@ function addChart(ctx, map, chart, repo) {
     certified = CATALOG_ANNOTATIONS._OTHER;
   }
 
-  if ( chart.annotations?.[CATALOG_ANNOTATIONS.EXPERIMENTAL] ) {
-    sideLabel = 'Experimental';
+  if ( chart.deprecated ) {
+    sideLabel = DEPRECATED;
+  } else if ( chart.annotations?.[CATALOG_ANNOTATIONS.EXPERIMENTAL] ) {
+    sideLabel = EXPERIMENTAL;
   } else if (
     !repo.isRancherSource &&
     certifiedAnnotation &&
@@ -531,6 +512,7 @@ function addChart(ctx, map, chart, repo) {
       versions:            [],
       categories:          filterCategories(chart.keywords),
       deprecated:          !!chart.deprecated,
+      experimental:        !!chart.annotations?.[CATALOG_ANNOTATIONS.EXPERIMENTAL],
       hidden:              !!chart.annotations?.[CATALOG_ANNOTATIONS.HIDDEN],
       targetNamespace:     chart.annotations?.[CATALOG_ANNOTATIONS.NAMESPACE],
       targetName:          chart.annotations?.[CATALOG_ANNOTATIONS.RELEASE_NAME],
@@ -591,4 +573,87 @@ function filterCategories(categories) {
 
 function normalizeCategory(c) {
   return c.replace(/\s+/g, '').toLowerCase();
+}
+
+/*
+catalog.cattle.io/deplys-on-os: OS -> requires global.cattle.OS.enabled: true
+  default: nothing
+catalog.cattle.io/permits-os: OS -> will break on clusters containing nodes that are not OS
+  default if not found: catalog.cattle.io/permits-os: linux
+*/
+export function compatibleVersionsFor(chart, os, includePrerelease = true) {
+  const versions = chart.versions;
+
+  if (os && !isArray(os)) {
+    os = [os];
+  }
+
+  return versions.filter((ver) => {
+    const osPermitted = (ver?.annotations?.[CATALOG_ANNOTATIONS.PERMITTED_OS] || LINUX).split(',');
+
+    if ( !includePrerelease && isPrerelease(ver.version) ) {
+      return false;
+    }
+
+    if ( !os || difference(os, osPermitted).length === 0) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
+export function filterAndArrangeCharts(charts, {
+  clusterProvider = '',
+  operatingSystems,
+  category,
+  searchQuery,
+  showDeprecated = false,
+  showHidden = false,
+  showPrerelease = true,
+  hideRepos = [],
+  showRepos = [],
+  showTypes = [],
+  hideTypes = [],
+} = {}) {
+  const out = charts.filter((c) => {
+    if (
+      ( c.deprecated && !showDeprecated ) ||
+      ( c.hidden && !showHidden ) ||
+      ( hideRepos?.length && hideRepos.includes(c.repoKey) ) ||
+      ( showRepos?.length && !showRepos.includes(c.repoKey) ) ||
+      ( hideTypes?.length && hideTypes.includes(c.chartType) ) ||
+      ( showTypes?.length && !showTypes.includes(c.chartType) ) ||
+      (c.chartName === 'rancher-wins-upgrader' && clusterProvider === 'rke2')
+    ) {
+      return false;
+    }
+
+    if (compatibleVersionsFor(c, operatingSystems, showPrerelease).length <= 0) {
+      // There's no versions compatible with the specified os
+      return false;
+    }
+
+    if ( category && !c.categories.includes(category) ) {
+      // The category filter doesn't match
+      return false;
+    }
+
+    if ( searchQuery ) {
+      // The search filter doesn't match
+      const searchTokens = searchQuery.split(/\s*[, ]\s*/).map((x) => ensureRegex(x, false));
+
+      for ( const token of searchTokens ) {
+        const chartDescription = c.chartDescription || '';
+
+        if ( !c.chartNameDisplay.match(token) && !chartDescription.match(token) ) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
+  return sortBy(out, ['certifiedSort', 'repoName', 'chartNameDisplay']);
 }

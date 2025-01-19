@@ -34,14 +34,12 @@ export default {
     Tab, Tabbed, ResourceTable, Loading
   },
 
-  async asyncData({ store }) {
-    const globalRoleSchema = store.getters[`management/schemaFor`](MANAGEMENT.GLOBAL_ROLE);
-    const roleTemplatesSchema = store.getters[`management/schemaFor`](MANAGEMENT.ROLE_TEMPLATE);
+  async fetch() {
+    const globalRoleSchema = this.$store.getters[`management/schemaFor`](MANAGEMENT.GLOBAL_ROLE);
+    const roleTemplatesSchema = this.$store.getters[`management/schemaFor`](MANAGEMENT.ROLE_TEMPLATE);
 
-    return {
-      globalRoles:   globalRoleSchema ? await store.dispatch(`management/findAll`, { type: MANAGEMENT.GLOBAL_ROLE }) : [],
-      roleTemplates: roleTemplatesSchema ? await store.dispatch(`management/findAll`, { type: MANAGEMENT.ROLE_TEMPLATE }) : [],
-    };
+    this['globalRoles'] = globalRoleSchema ? await this.$store.dispatch(`management/findAll`, { type: MANAGEMENT.GLOBAL_ROLE }) : [];
+    this['roleTemplates'] = roleTemplatesSchema ? await this.$store.dispatch(`management/findAll`, { type: MANAGEMENT.ROLE_TEMPLATE }) : [];
   },
 
   data() {
@@ -154,7 +152,7 @@ export default {
 </script>
 
 <template>
-  <Loading v-if="!globalRoles || !roleTemplates" />
+  <Loading v-if="$fetchState.pending" />
   <div v-else>
     <header>
       <div class="title">
@@ -164,13 +162,13 @@ export default {
       </div>
       <div class="actions-container">
         <div class="actions">
-          <n-link
+          <router-link
             v-if="canCreate"
             :to="createLocation"
             class="btn role-primary"
           >
             {{ createLabel }}
-          </n-link>
+          </router-link>
         </div>
       </div>
     </header>

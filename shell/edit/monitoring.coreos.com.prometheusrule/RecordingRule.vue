@@ -41,10 +41,10 @@ export default {
 
   methods: {
     updateExpression(value) {
-      this.$set(this.value, 'expr', value);
+      this.value['expr'] = value;
     },
     updateLabels(value) {
-      this.$set(this.value, 'labels', value);
+      this.value['labels'] = value;
     },
   }
 };
@@ -55,16 +55,17 @@ export default {
     <div class="row mt-25">
       <div class="col span-6">
         <LabeledInput
-          v-model="value.record"
+          v-model:value="value.record"
           :label="t('prometheusRule.recordingRules.name')"
           :required="true"
+          data-testid="v2-monitoring-prom-rules-recording-name"
         />
       </div>
     </div>
     <div class="row">
       <div class="col span-12">
         <LabeledInput
-          v-model="value.expr"
+          v-model:value="value.expr"
           :label="t('prometheusRule.promQL.label')"
           :required="true"
         >
@@ -77,6 +78,7 @@ export default {
                 foldGutter: false,
                 readOnly: mode === 'view',
               }"
+              data-testid="v2-monitoring-prom-rules-recording-promql"
               @onInput="queueUpdate"
             />
           </template>

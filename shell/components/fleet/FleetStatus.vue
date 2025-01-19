@@ -1,7 +1,7 @@
 <script>
 import { sortBy } from '@shell/utils/sort';
 import { get } from '@shell/utils/object';
-import { stateSort } from '@shell/plugins/dashboard-store/resource-class';
+import { stateSort, STATES_ENUM } from '@shell/plugins/dashboard-store/resource-class';
 
 export default {
 
@@ -50,8 +50,8 @@ export default {
   computed: {
     meta() {
       return {
-        total:      this.values.map((x) => x.value).reduce((a, b) => a + b),
-        readyCount: this.values.filter((x) => x.label === 'Success' || x.label === 'Ready').map((x) => x.value).reduce((a, b) => a + b)
+        total:      this.values.map((x) => x.value).reduce((a, b) => a + b, 0),
+        readyCount: this.values.filter((x) => x.status === STATES_ENUM.SUCCESS || x.status === STATES_ENUM.READY).map((x) => x.value).reduce((a, b) => a + b, 0)
       };
     },
 
@@ -150,41 +150,41 @@ function toPercent(value, min, max) {
           {{ title }}
         </div>
         <div
-          class="dropdwon resources-dropdown"
+          class="resources-dropdown"
           tabindex="0"
           @blur="showMenu(false)"
           @click="showMenu(true)"
           @focus.capture="showMenu(true)"
         >
-          <v-popover
+          <v-dropdown
             ref="popover"
-            placement="bottom-end"
+            placement="bottom"
             offset="-10"
-            trigger="manual"
+            :triggers="[]"
             :delay="{show: 0, hide: 0}"
-            :popper-options="{modifiers: { flip: { enabled: false } } }"
+            :flip="false"
             :container="false"
+            popper-class="fleet-summary-tooltip"
           >
             <div class="meta-title">
               {{ meta.readyCount }} / {{ meta.total }} {{ title }} ready <i class="icon toggle icon-chevron-down" />
             </div>
-            <template
-              slot="popover"
-              class="resources-status-list"
-            >
-              <ul
-                class="list-unstyled dropdown"
-                @click.stop="showMenu(false)"
-              >
-                <li
-                  v-for="(val, idx) in values"
-                  :key="idx"
+            <template #popper>
+              <div class="resources-status-list">
+                <ul
+                  class="list-unstyled dropdown"
+                  @click.stop="showMenu(false)"
                 >
-                  <span>{{ val.label }}</span><span class="list-count">{{ val.count }}</span>
-                </li>
-              </ul>
+                  <li
+                    v-for="(val, idx) in values"
+                    :key="idx"
+                  >
+                    <span>{{ val.label }}</span><span class="list-count">{{ val.count }}</span>
+                  </li>
+                </ul>
+              </div>
             </template>
-          </v-popover>
+          </v-dropdown>
         </div>
       </div>
       <div

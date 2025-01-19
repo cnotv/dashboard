@@ -3,7 +3,10 @@ import { KEYMAP } from '@shell/store/prefs';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 
 export default {
-  name:  'CodeMirror',
+  name: 'CodeMirror',
+
+  emits: ['onReady', 'onInput', 'onChanges', 'onFocus', 'validationChanged'],
+
   props: {
     /**
      * Sets the edit mode for Text Area.
@@ -24,18 +27,23 @@ export default {
     asTextArea: {
       type:    Boolean,
       default: false
-    }
+    },
+    showKeyMapBox: {
+      type:    Boolean,
+      default: false
+    },
   },
 
   data() {
     return {
-      codeMirrorRef: null,
-      loaded:        false
+      codeMirrorRef:   null,
+      loaded:          false,
+      removeKeyMapBox: false,
+      hasLintErrors:   false,
     };
   },
 
   computed: {
-
     isDisabled() {
       return this.mode === _VIEW;
     },
@@ -53,23 +61,44 @@ export default {
         theme:                   `base16-${ theme }`,
         lineNumbers:             true,
         line:                    true,
-        styleActiveLine:         true,
+        styleActiveLine:         false,
         lineWrapping:            true,
         foldGutter:              true,
         styleSelectedText:       true,
         showCursorWhenSelecting: true,
+        autocorrect:             false,
       };
 
       if (this.asTextArea) {
         out.lineNumbers = false;
+        out.foldGutter = false;
         out.tabSize = 0;
         out.extraKeys = { Tab: false };
       }
 
       Object.assign(out, this.options);
 
+      // parent components control lint with a boolean; if linting is enabled, we need to override that boolean with a custom error handler to wire lint errors into dashboard validation
+      if (this.options?.lint) {
+        out.lint = { onUpdateLinting: this.handleLintErrors };
+      }
+
       return out;
     },
+
+    keyMapTooltip() {
+      if (this.combinedOptions?.keyMap) {
+        const name = this.t(`prefs.keymap.${ this.combinedOptions.keyMap }`);
+
+        return this.t('codeMirror.keymap.indicatorToolip', { name });
+      }
+
+      return null;
+    },
+
+    isNonDefaultKeyMap() {
+      return this.combinedOptions?.keyMap !== 'sublime';
+    }
   },
 
   created() {
@@ -82,11 +111,28 @@ export default {
     }
   },
 
+  watch: {
+    hasLintErrors(neu) {
+      this.$emit('validationChanged', !neu);
+    }
+  },
+
   methods: {
+    /**
+     * Codemirror yaml linting uses js-yaml parse
+     * it does not distinguish between warnings and errors so we will treat all yaml lint messages as errors
+     * other codemirror linters (eg json) will report from, to, severity where severity may be 'warning' or 'error'
+     * only 'error' level linting will trigger a validation event from this component
+    */
+    handleLintErrors(diagnostics = []) {
+      const hasLintErrors = diagnostics.filter((d) => !d.severity || d.severity === 'error').length > 0;
+
+      this.hasLintErrors = hasLintErrors;
+    },
 
     focus() {
       if ( this.$refs.codeMirrorRef ) {
-        this.$refs.codeMirrorRef.codemirror.focus();
+        this.$refs.codeMirrorRef.cminstance.focus();
       }
     },
 
@@ -97,6 +143,8 @@ export default {
     },
 
     onReady(codeMirrorRef) {
+      this.$emit('validationChanged', true);
+
       this.$nextTick(() => {
         codeMirrorRef.refresh();
         this.codeMirrorRef = codeMirrorRef;
@@ -122,48 +170,63 @@ export default {
 
     updateValue(value) {
       if ( this.$refs.codeMirrorRef ) {
-        this.$refs.codeMirrorRef.codemirror.doc.setValue(value);
+        this.$refs.codeMirrorRef.cminstance.doc.setValue(value);
       }
-    }
+    },
+
+    closeKeyMapInfo() {
+      this.removeKeyMapBox = true;
+    },
   }
 };
 </script>
 
 <template>
-  <client-only placeholder=" Loading...">
-    <div
-      class="code-mirror"
-      :class="{['as-text-area']: asTextArea}"
-    >
-      <codemirror
-        v-if="loaded"
+  <div
+    class="code-mirror"
+    :class="{['as-text-area']: asTextArea}"
+  >
+    <div v-if="loaded">
+      <div
+        v-if="showKeyMapBox && !removeKeyMapBox && keyMapTooltip && isNonDefaultKeyMap"
+        class="keymap overlay"
+      >
+        <div
+          v-clean-tooltip="keyMapTooltip"
+          class="keymap-indicator"
+          data-testid="code-mirror-keymap"
+          @click="closeKeyMapInfo"
+        >
+          <i class="icon icon-keyboard keymap-icon" />
+          <div class="close-indicator">
+            <i class="icon icon-close icon-sm" />
+          </div>
+        </div>
+      </div>
+      <Codemirror
         ref="codeMirrorRef"
         :value="value"
         :options="combinedOptions"
         :disabled="isDisabled"
+        :original-style="true"
         @ready="onReady"
         @input="onInput"
         @changes="onChanges"
         @focus="onFocus"
         @blur="onBlur"
       />
-      <div v-else>
-        Loading...
-      </div>
     </div>
-  </client-only>
+    <div v-else>
+      Loading...
+    </div>
+  </div>
 </template>
 
 <style lang="scss">
+  $code-mirror-animation-time: 0.1s;
+
   .code-mirror {
-    z-index: 0;
-
-    .vue-codemirror .CodeMirror {
-      height: initial;
-      background: none
-    }
-
-    &.as-text-area {
+    &.as-text-area .codemirror-container{
       min-height: 40px;
       position: relative;
       display: block;
@@ -249,8 +312,86 @@ export default {
         color: var(--primary-text);
         background-color: var(--primary);
       }
+
+      .CodeMirror-gutters .CodeMirror-foldgutter:empty {
+        display: none;
+      }
+    }
+  }
+
+  .code-mirror {
+    position: relative;
+
+    .codemirror-container {
+      z-index: 0;
+      font-size: inherit !important;
+
+      //rm no longer extant selector
+      .CodeMirror {
+        height: initial;
+        background: none
+      }
+
+      .CodeMirror-gutters {
+        background: inherit;
+      }
     }
 
+    .keymap.overlay {
+      position: absolute;
+      display: flex;
+      top: 7px;
+      right: 7px;
+      z-index: 1;
+      cursor: pointer;
+
+      .keymap-indicator {
+        width: 48px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid transparent;
+        color: var(--darker);
+        background-color: var(--overlay-bg);
+        font-size: 12px;
+
+        .close-indicator {
+          width: 0;
+
+          .icon-close {
+            color: var(--primary);
+            opacity: 0;
+          }
+        }
+
+        .keymap-icon {
+          font-size: 24px;
+          opacity: 0.8;
+          transition: margin-right $code-mirror-animation-time ease-in-out;
+        }
+
+        &:hover {
+          border: 1px solid var(--primary);
+          border-radius: var(--border-radius);;
+
+          .close-indicator {
+            margin-left: -6px;
+            width: auto;
+
+            .icon-close {
+              opacity: 1;
+              transition: opacity $code-mirror-animation-time ease-in-out $code-mirror-animation-time; // Only animate when being shown
+            }
+          }
+
+          .keymap-icon {
+            opacity: 0.6;
+            margin-right: 10px;
+          }
+        }
+      }
+    }
   }
 
 </style>

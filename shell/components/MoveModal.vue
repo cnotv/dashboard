@@ -2,14 +2,17 @@
 import { mapState, mapGetters } from 'vuex';
 import { Card } from '@components/Card';
 import AsyncButton from '@shell/components/AsyncButton';
+import AppModal from '@shell/components/AppModal.vue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { MANAGEMENT } from '@shell/config/types';
 import Loading from '@shell/components/Loading';
 import { PROJECT } from '@shell/config/labels-annotations';
 
 export default {
+  emits: ['moving'],
+
   components: {
-    AsyncButton, Card, LabeledSelect, Loading
+    AsyncButton, Card, LabeledSelect, Loading, AppModal
   },
 
   async fetch() {
@@ -18,7 +21,7 @@ export default {
 
   data() {
     return {
-      modalName: 'move-modal', projects: [], targetProject: null
+      modalName: 'move-modal', projects: [], targetProject: null, showModal: false
     };
   },
 
@@ -47,9 +50,9 @@ export default {
   watch: {
     showPromptMove(show) {
       if (show) {
-        this.$modal.show(this.modalName);
+        this.showModal = true;
       } else {
-        this.$modal.hide(this.modalName);
+        this.showModal = false;
       }
     }
   },
@@ -84,12 +87,13 @@ export default {
 };
 </script>
 <template>
-  <modal
+  <app-modal
+    v-if="showModal"
     class="move-modal"
     :name="modalName"
     :width="440"
     height="auto"
-    @closed="close"
+    @close="close"
   >
     <Loading v-if="$fetchState.pending" />
     <Card
@@ -97,30 +101,29 @@ export default {
       class="move-modal-card"
       :show-highlight-border="false"
     >
-      <h4
-        slot="title"
-        class="text-default-text"
-      >
-        {{ t('moveModal.title') }}
-      </h4>
-      <div slot="body">
+      <template #title>
+        <h4 class="text-default-text">
+          {{ t('moveModal.title') }}
+        </h4>
+      </template>
+      <template #body>
         <div>
           {{ t('moveModal.description') }}
           <ul class="namespaces">
             <li
-              v-for="namespace in toMove"
-              :key="namespace.id"
+              v-for="(namespace, i) in toMove"
+              :key="i"
             >
               {{ namespace.nameDisplay }}
             </li>
           </ul>
         </div>
         <LabeledSelect
-          v-model="targetProject"
+          v-model:value="targetProject"
           :options="projectOptions"
           :label="t('moveModal.targetProject')"
         />
-      </div>
+      </template>
       <template #actions>
         <button
           class="btn role-secondary"
@@ -136,7 +139,7 @@ export default {
         />
       </template>
     </Card>
-  </modal>
+  </app-modal>
 </template>
 
 <style lang='scss'>

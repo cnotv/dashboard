@@ -1,7 +1,7 @@
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 
-export default Vue.extend({
+export default defineComponent({
   props: {
     /**
      * The Labeled Tooltip value.
@@ -29,8 +29,13 @@ export default Vue.extend({
     }
   },
   computed: {
-    iconClass() {
+    iconClass(): string {
       return this.status === 'error' ? 'icon-warning' : 'icon-info';
+    }
+  },
+  methods: {
+    isObject(value: string | Record<string, unknown>): value is Record<string, unknown> {
+      return typeof value === 'object' && value !== null && !!value.content;
     }
   }
 });
@@ -44,7 +49,7 @@ export default Vue.extend({
   >
     <template v-if="hover">
       <i
-        v-clean-tooltip="value.content ? { ...{content: value.content, classes: [`tooltip-${status}`]}, ...value } : value"
+        v-clean-tooltip="isObject(value) ? { ...{content: value.content, popperClass: [`tooltip-${status}`]}, ...value } : value"
         :class="{'hover':!value, [iconClass]: true}"
         class="icon status-icon"
       />
@@ -87,37 +92,9 @@ export default Vue.extend({
         z-index: z-index(hoverOverContent);
      }
 
-    .tooltip {
-        position: absolute;
-        width: calc(100% + 2px);
-        top: calc(100% + 6px);
-
-        .tooltip-arrow {
-            right: 30px;
-        }
-
-        .tooltip-inner {
-            padding: 10px;
-        }
-    }
-
     @mixin tooltipColors($color) {
         .status-icon {
             color: $color;
-        }
-        .tooltip {
-            .tooltip-inner {
-                color: var(--input-bg);
-                background: $color;
-                border-color: $color;
-            }
-
-            .tooltip-arrow {
-                border-bottom-color: $color;
-                &:after {
-                    border: none;
-                }
-            }
         }
     }
 
@@ -140,9 +117,9 @@ export default Vue.extend({
 }
 
 // Ensure code blocks inside tootips don't look awful
-.tooltip {
-  .tooltip-inner {
-    > pre {
+.v-popper__popper.v-popper--theme-tooltip {
+  .v-popper__inner {
+    pre {
       padding: 2px;
       vertical-align: middle;
     }

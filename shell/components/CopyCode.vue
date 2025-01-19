@@ -1,5 +1,7 @@
 <script>
 import { isArray } from '@shell/utils/array';
+import { copyTextToClipboard } from '@shell/utils/clipboard';
+import { exceptionToErrorsArray } from '@shell/utils/error';
 
 function flatten(node) {
   if ( node.text ) {
@@ -7,15 +9,19 @@ function flatten(node) {
   } else if ( isArray(node) ) {
     return node.map(flatten).join(' ');
   } else if ( node.children ) {
-    return node.children.map(flatten).join(' ');
-  } else if ( node.child ) {
-    return flatten(node.child);
+    if ( isArray(node.children) ) {
+      return node.children.map(flatten).join(' ');
+    } else {
+      return node.children;
+    }
   } else {
     return '';
   }
 }
 
 export default {
+  emits: ['copied', 'error'],
+
   data() {
     return { copied: false };
   },
@@ -25,16 +31,18 @@ export default {
       $event.stopPropagation();
       $event.preventDefault();
 
-      const content = flatten(this.$slots.default).trim();
+      const content = flatten(this.$slots.default()).trim();
 
-      this.$copyText(content).then(() => {
+      copyTextToClipboard(content).then(() => {
         this.copied = true;
 
         setTimeout(() => {
           this.copied = false;
         }, 2000);
+        this.$emit('copied');
+      }).catch((e) => {
+        this.$emit('error', exceptionToErrorsArray(e));
       });
-      this.$emit('copied');
     },
   },
 

@@ -1,22 +1,12 @@
 import Questions from '@shell/components/Questions';
 import { mount } from '@vue/test-utils';
 import { _EDIT } from '@shell/config/query-params';
-const defaultStubs = {
-  Tab:    true,
-  Tabbed: true,
-};
-const defaultGetters = {
-  currentStore:           () => 'current_store',
-  'management/schemaFor': jest.fn(),
-  'current_store/all':    jest.fn(),
-  'i18n/t':               jest.fn(),
-  'i18n/withFallback':    jest.fn((key, args, fallback) => fallback),
-};
+import defaults from './utils/questions-defaults';
 
 describe('the float Component', () => {
   it('input field is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -26,8 +16,11 @@ describe('the float Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="float-input-var_name"]');
@@ -46,7 +39,7 @@ describe('the float Component', () => {
 
   it('description is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -56,8 +49,11 @@ describe('the float Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="float-input-var_name"]');
@@ -72,7 +68,7 @@ describe('the float Component', () => {
 
   it('label is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -82,8 +78,11 @@ describe('the float Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="float-input-var_name"]');
@@ -98,7 +97,7 @@ describe('the float Component', () => {
 
   it('tooltip is present', () => {
     const wrapper = mount(Questions, {
-      propsData: {
+      props: {
         value:           {},
         targetNamespace: 'test',
         source:          [{
@@ -108,8 +107,11 @@ describe('the float Component', () => {
         }],
         mode: _EDIT
       },
-      mocks: { $store: { getters: defaultGetters } },
-      stubs: defaultStubs,
+
+      global: {
+        mocks: defaults.mocks,
+        stubs: defaults.stubs,
+      },
     });
 
     const inputFields = wrapper.findAll('[data-testid="float-input-var_name"]');

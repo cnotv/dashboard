@@ -8,6 +8,8 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 const DEFAULT_PROTIP = 'Tip: Paste lines into any list field for easy bulk entry';
 
 export default {
+  emits: ['add', 'remove', 'update:value'],
+
   components: { TextAreaAutoGrow, LabeledInput },
   props:      {
     value: {
@@ -47,20 +49,20 @@ export default {
       default: false,
     },
     addLabel: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('generic.add');
-      },
+      type:    String,
+      default: '',
     },
     addAllowed: {
       type:    Boolean,
       default: true,
     },
+    addDisabled: {
+      type:    Boolean,
+      default: false,
+    },
     removeLabel: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('generic.remove');
-      },
+      type:    String,
+      default: '',
     },
     removeAllowed: {
       type:    Boolean,
@@ -78,15 +80,19 @@ export default {
       type:    Boolean,
       default: false,
     },
+    required: {
+      type:    Boolean,
+      default: false
+    },
     rules: {
       default:   () => [],
       type:      Array,
       // we only want functions in the rules array
       validator: (rules) => rules.every((rule) => ['function'].includes(typeof rule))
-    }
+    },
   },
   data() {
-    const input = (this.value || []).slice();
+    const input = (Array.isArray(this.value) ? this.value : []).slice();
     const rows = [];
 
     for ( const value of input ) {
@@ -101,11 +107,21 @@ export default {
     return { rows, lastUpdateWasFromValue: false };
   },
   computed: {
+    _addLabel() {
+      return this.addLabel || this.t('generic.add');
+    },
+    _removeLabel() {
+      return this.removeLabel || this.t('generic.remove');
+    },
+
     isView() {
       return this.mode === _VIEW;
     },
     showAdd() {
       return this.addAllowed;
+    },
+    disableAdd() {
+      return this.addDisabled;
     },
     showRemove() {
       return this.removeAllowed;
@@ -122,10 +138,14 @@ export default {
     }
   },
   watch: {
-    value() {
-      this.lastUpdateWasFromValue = true;
-      this.rows = (this.value || []).map((v) => ({ value: v }));
+    value: {
+      deep: true,
+      handler() {
+        this.lastUpdateWasFromValue = true;
+        this.rows = (this.value || []).map((v) => ({ value: v }));
+      }
     },
+
     rows: {
       deep: true,
       handler(newValue, oldValue) {
@@ -182,7 +202,7 @@ export default {
           out.push(value);
         }
       }
-      this.$emit('input', out);
+      this.$emit('update:value', out);
     },
 
     /**
@@ -218,6 +238,10 @@ export default {
       <slot name="title">
         <h3>
           {{ title }}
+          <span
+            v-if="required"
+            class="required"
+          >*</span>
           <i
             v-if="showProtip"
             v-clean-tooltip="protip"
@@ -261,25 +285,25 @@ export default {
               <TextAreaAutoGrow
                 v-if="valueMultiline"
                 ref="value"
-                v-model="row.value"
+                v-model:value="row.value"
                 :data-testid="`textarea-${idx}`"
                 :placeholder="valuePlaceholder"
                 :mode="mode"
                 :disabled="disabled"
                 @paste="onPaste(idx, $event)"
-                @input="queueUpdate"
+                @update:value="queueUpdate"
               />
               <LabeledInput
                 v-else-if="rules.length > 0"
                 ref="value"
-                v-model="row.value"
+                v-model:value="row.value"
                 :data-testid="`labeled-input-${idx}`"
                 :placeholder="valuePlaceholder"
                 :disabled="isView || disabled"
                 :rules="rules"
                 :compact="false"
                 @paste="onPaste(idx, $event)"
-                @input="queueUpdate"
+                @update:value="queueUpdate"
               />
               <input
                 v-else
@@ -289,7 +313,6 @@ export default {
                 :placeholder="valuePlaceholder"
                 :disabled="isView || disabled"
                 @paste="onPaste(idx, $event)"
-                @input="queueUpdate"
               >
             </slot>
           </div>
@@ -311,24 +334,25 @@ export default {
               :data-testid="`remove-item-${idx}`"
               @click="remove(row, idx)"
             >
-              {{ removeLabel }}
+              {{ _removeLabel }}
             </button>
           </slot>
         </div>
       </div>
     </template>
-    <div
-      v-else-if="mode==='view'"
-      class="text-muted"
-    >
-      &mdash;
-    </div>
     <div v-else>
-      <slot name="empty" />
+      <slot name="empty">
+        <div
+          v-if="mode==='view'"
+          class="text-muted"
+        >
+          &mdash;
+        </div>
+      </slot>
     </div>
     <div
       v-if="showAdd && !isView"
-      class="footer"
+      class="footer mt-20"
     >
       <slot
         v-if="showAdd"
@@ -338,7 +362,7 @@ export default {
         <button
           type="button"
           class="btn role-tertiary add"
-          :disabled="loading"
+          :disabled="loading || disableAdd"
           data-testid="array-list-button"
           @click="add()"
         >
@@ -346,7 +370,7 @@ export default {
             v-if="loading"
             class="mr-5 icon icon-spinner icon-spin icon-lg"
           />
-          {{ addLabel }}
+          {{ _addLabel }}
         </button>
       </slot>
     </div>
@@ -357,6 +381,11 @@ export default {
   .title {
     margin-bottom: 10px;
   }
+
+  .required {
+    color: var(--error);
+  }
+
   .box {
     display: grid;
     grid-template-columns: auto $array-list-remove-margin;
@@ -365,7 +394,7 @@ export default {
     .value {
       flex: 1;
       INPUT {
-        height: $input-height;
+        height: $unlabeled-input-height;
       }
     }
   }
@@ -377,5 +406,9 @@ export default {
       float: right;
       padding: 5px 0;
     }
+  }
+
+  .required {
+    color: var(--error);
   }
 </style>

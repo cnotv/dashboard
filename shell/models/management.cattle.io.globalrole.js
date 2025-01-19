@@ -37,6 +37,7 @@ export default class GlobalRole extends SteveDescriptionModel {
   }
 
   get nameDisplay() {
+    // i18n-uses rbac.globalRoles.role.*.label
     const path = `rbac.globalRoles.role.${ this.id }.label`;
     const label = this.displayName || this.metadata?.name || this.id;
 
@@ -46,6 +47,7 @@ export default class GlobalRole extends SteveDescriptionModel {
   get descriptionDisplay() {
     return this.description ||
     this.metadata?.annotations?.[DESCRIPTION] ||
+    // i18n-uses rbac.globalRoles.role.*.description
     this.$rootGetters['i18n/withFallback'](`rbac.globalRoles.role.${ this.id }.description`, this.t(`rbac.globalRoles.unknownRole.description`));
   }
 
@@ -115,6 +117,7 @@ export default class GlobalRole extends SteveDescriptionModel {
       norman.id = this.id;
       norman.name = this.displayName;
       norman.description = this.description;
+      norman.inheritedClusterRoles = this.inheritedClusterRoles;
 
       return norman;
     })();
@@ -126,6 +129,12 @@ export default class GlobalRole extends SteveDescriptionModel {
     return schema?.resourceMethods.find((verb) => CREATE_VERBS.has(verb));
   }
 
+  /**
+   * Resource action redirects to the detail page with a query parameter 'clone'
+   * When the query parameter is present, the view will fetch the resource to clone define in the parameter
+   * E.g.: /my-id?mode=clone
+   * @param {*} moreQuery
+   */
   goToClone(moreQuery = {}) {
     const location = this.detailLocation;
 

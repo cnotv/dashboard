@@ -4,6 +4,7 @@ import { FLEET, NORMAN } from '@shell/config/types';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import KeyValue from '@shell/components/form/KeyValue';
 import AsyncButton from '@shell/components/AsyncButton';
+import AppModal from '@shell/components/AppModal.vue';
 import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import { exceptionToErrorsArray } from '@shell/utils/error';
@@ -16,6 +17,7 @@ export default {
     KeyValue,
     AsyncButton,
     Banner,
+    AppModal
   },
 
   data() {
@@ -25,6 +27,7 @@ export default {
       moveTo:        this.workspace,
       loaded:        false,
       allWorkspaces: [],
+      showModal:     false,
     };
   },
 
@@ -51,9 +54,9 @@ export default {
         this.allWorkspaces = await this.$store.dispatch('management/findAll', { type: FLEET.WORKSPACE });
         this.moveTo = this.workspace;
         this.loaded = true;
-        this.$modal.show('assignTo');
+        this.showModal = true;
       } else {
-        this.$modal.hide('assignTo');
+        this.showModal = false;
       }
     }
   },
@@ -105,53 +108,55 @@ export default {
 </script>
 
 <template>
-  <modal
+  <app-modal
+    v-if="showModal"
     class="assign-modal"
     name="assignTo"
     styles="background-color: var(--nav-bg); border-radius: var(--border-radius); max-height: 100vh;"
     height="auto"
     :scrollable="true"
+    @close="close"
   >
     <Card
       v-if="loaded"
       :show-highlight-border="false"
     >
-      <h4
-        slot="title"
-        v-clean-html="t('assignTo.title', {count: resourceCount}, true)"
-        class="text-default-text"
-      />
+      <template #title>
+        <h4
+          v-clean-html="t('assignTo.title', {count: resourceCount}, true)"
+          class="text-default-text"
+        />
+      </template>
+      <template #body>
+        <div class="pl-10 pr-10">
+          <form>
+            <LabeledSelect
+              v-model:value="moveTo"
+              data-testid="workspace_options"
+              :label="t('assignTo.workspace')"
+              :options="workspaceOptions"
+              placement="bottom"
+            />
 
-      <div
-        slot="body"
-        class="pl-10 pr-10"
-      >
-        <form>
-          <LabeledSelect
-            v-model="moveTo"
-            :label="t('assignTo.workspace')"
-            :options="workspaceOptions"
-            placement="bottom"
-          />
+            <KeyValue
+              key="labels"
+              v-model:value="labels"
+              class="mt-20"
+              :add-label="t('labels.addSetLabel')"
+              :read-allowed="false"
+            />
 
-          <KeyValue
-            key="labels"
-            v-model="labels"
-            class="mt-20"
-            :add-label="t('labels.addSetLabel')"
-            :read-allowed="false"
-          />
+            <Banner
+              v-for="(err, i) in errors"
+              :key="i"
+              color="error"
+              :label="err"
+            />
+          </form>
+        </div>
+      </template>
 
-          <Banner
-            v-for="(err, i) in errors"
-            :key="i"
-            color="error"
-            :label="err"
-          />
-        </form>
-      </div>
-
-      <div slot="actions">
+      <template #actions>
         <button
           class="btn role-secondary"
           @click="close"
@@ -163,9 +168,9 @@ export default {
           mode="apply"
           @click="apply"
         />
-      </div>
+      </template>
     </Card>
-  </modal>
+  </app-modal>
 </template>
 
 <style lang='scss'>

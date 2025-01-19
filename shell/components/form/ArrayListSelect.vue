@@ -3,6 +3,8 @@ import ArrayList from '@shell/components/form/ArrayList';
 import Select from '@shell/components/form/Select';
 
 export default {
+  emits: ['update:value'],
+
   components: { ArrayList, Select },
   props:      {
     value: {
@@ -21,9 +23,17 @@ export default {
       type:    Object,
       default: null
     },
+    enableDefaultAddValue: {
+      type:    Boolean,
+      default: true
+    },
     loading: {
       type:    Boolean,
       default: false
+    },
+    disabled: {
+      type:    Boolean,
+      default: true
     }
   },
   computed: {
@@ -33,14 +43,22 @@ export default {
     },
 
     addAllowed() {
-      return this.filteredOptions.length > 0;
+      return this.arrayListProps?.addAllowed || this.filteredOptions.length > 0;
+    },
+
+    defaultAddValue() {
+      return this.enableDefaultAddValue ? this.options[0]?.value : '';
+    },
+
+    getOptionLabel() {
+      return this.selectProps?.getOptionLabel ? (opt) => (this.selectProps?.getOptionLabel(opt) || opt) : undefined;
     }
   },
 
   methods: {
     updateRow(index, value) {
       this.value.splice(index, 1, value);
-      this.$emit(value);
+      this.$emit('update:value', this.value);
     },
     calculateOptions(value) {
       const valueOption = this.options.find((o) => o.value === value);
@@ -62,21 +80,24 @@ export default {
     class="array-list-select"
     :add-allowed="addAllowed || loading"
     :loading="loading"
-    @input="$emit('input', $event)"
+    :defaultAddValue="defaultAddValue"
+    :disabled="disabled"
+    @update:value="$emit('update:value', $event)"
   >
     <template v-slot:columns="scope">
       <Select
         :value="scope.row.value"
         v-bind="selectProps"
         :options="calculateOptions(scope.row.value)"
-        @input="updateRow(scope.i, $event)"
+        :get-option-label="getOptionLabel"
+        @update:value="updateRow(scope.i, $event)"
       />
     </template>
   </ArrayList>
 </template>
 
 <style lang="scss" scoped>
-::v-deep .unlabeled-select {
-    height: 61px;
-}
+:deep() .unlabeled-select {
+  height: 61px;
+  }
 </style>

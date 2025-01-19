@@ -16,63 +16,158 @@ export type CreateUserParams = {
     clusterId: string,
     projectName: string,
     role: string,
+  },
+  password?: string,
+}
+
+export type CreateAmazonRke2ClusterParams = {
+  machineConfig: {
+    instanceType: string,
+    region: string,
+    vpcId: string,
+    zone: string,
+    type: string,
+    clusterName: string,
+    namespace: string
+},
+  cloudCredentialsAmazon: {
+    workspace: string,
+    name: string,
+    region: string,
+    accessKey: string,
+    secretKey: string
+  },
+  rke2ClusterAmazon: {
+    clusterName: string,
+    namespace: string,
+  }
+}
+export type CreateAmazonRke2ClusterWithoutMachineConfigParams = {
+  cloudCredentialsAmazon: {
+    workspace: string,
+    name: string,
+    region: string,
+    accessKey: string,
+    secretKey: string
+  },
+  rke2ClusterAmazon: {
+    clusterName: string,
+    namespace: string,
   }
 }
 
-// eslint-disable-next-line no-unused-vars
-declare namespace Cypress {
-  interface Chainable {
+export interface CreateResourceNameOptions {
+  onlyContext?: boolean
+  prefixContext?: boolean
+}
 
-    state(state: any): any;
+declare global {
+  // eslint-disable-next-line no-unused-vars
+  namespace Cypress {
+    interface Chainable {
 
-    login(username?: string, password?: string, cacheSession?: boolean): Chainable<Element>;
-    logout(): Chainable;
-    byLabel(label: string): Chainable<Element>;
+      state(state: any): any;
 
-    createUser(params: CreateUserParams): Chainable;
-    setGlobalRoleBinding(userId: string, role: string): Chainable;
-    setClusterRoleBinding(clusterId: string, userPrincipalId: string, role: string): Chainable;
-    setProjectRoleBinding(clusterId: string, userPrincipalId: string, projectName: string, role: string): Chainable;
-    getProjectByName(clusterId: string, projectName: string): Chainable;
+      login(username?: string, password?: string, cacheSession?: boolean): Chainable<Element>;
+      logout(): Chainable;
+      byLabel(label: string): Chainable<Element>;
+      getRootE2EResourceName(): Chainable<string>;
+      createE2EResourceName(context: string, options?: CreateResourceNameOptions): Chainable<string>;
 
-    getRancherResource(prefix: 'v3' | 'v1', resourceType: string, resourceId: string, expectedStatusCode: string): Chainable;
-    setRancherResource(prefix: 'v3' | 'v1', resourceType: string, resourceId: string, body: string): Chainable;
+      createUser(params: CreateUserParams, options?: { createNameOptions?: CreateResourceNameOptions }): Chainable;
+      setGlobalRoleBinding(userId: string, role: string): Chainable;
+      setClusterRoleBinding(clusterId: string, userPrincipalId: string, role: string): Chainable;
+      setProjectRoleBinding(clusterId: string, userPrincipalId: string, projectName: string, role: string): Chainable;
+      getProjectByName(clusterId: string, projectName: string): Chainable;
+      createProject(projName: string, clusterId: string, userId: string): Chainable;
+      createNamespaceInProject(nsName: string, projId: string): Chainable;
+      createNamespace(nsName: string): Chainable;
+      createPod(nsName: string, podName: string, image: string, failOnStatusCode?: boolean, options?: { createNameOptions?: CreateResourceNameOptions }): Chainable;
+      createToken(description: string, ttl: number, failOnStatusCode?: boolean, clusterId?: string): Chainable;
+      createGlobalRole(name: string, apiGroups: string[], resourceNames: string[], resources: string[], verbs: string[], newUserDefault: boolean, failOnStatusCode?: boolean, options?: { createNameOptions?: CreateResourceNameOptions }): Chainable;
+      createFleetWorkspace(name: string, description?: string, failOnStatusCode?: boolean, options?: { createNameOptions?: CreateResourceNameOptions }): Chainable;
+      createAwsCloudCredentials(nsName: string, cloudCredName: string, defaultRegion: string, accessKey: string, secretKey: string): Chainable;
+      createAmazonMachineConfig(instanceType: string, region: string, vpcId: string, zone: string, type: string, clusterName: string, namespace: string): Chainable;
+      createAmazonRke2Cluster(params: CreateAmazonRke2ClusterParams): Chainable;
+      createAmazonRke2ClusterWithoutMachineConfig(params: CreateAmazonRke2ClusterWithoutMachineConfigParams): Chainable;
 
-    /**
-     *  Wrapper for cy.get() to simply define the data-testid value that allows you to pass a matcher to find the element.
-     * @param id Value used for the data-testid attribute of the element.
-     * @param matcher Matching character used for attribute value:
-     * - `$`: Suffixed with this value
-     * - `^`: Prefixed with this value
-     * - `~`: Contains this value as whitespace separated words
-     * - `*`: Contains this value
-     */
-    getId(id: string, matcher?: Matcher): Chainable<Element>;
+      getRancherResource(prefix: 'v3' | 'v1', resourceType: string, resourceId?: string, expectedStatusCode?: number): Chainable;
+      setRancherResource(prefix: 'v3' | 'v1', resourceType: string, resourceId: string, body: any): Chainable;
+      createRancherResource(prefix: 'v3' | 'v1', resourceType: string, body: any): Chainable;
+      waitForRancherResource(prefix: 'v3' | 'v1', resourceType: string, resourceId: string, testFn: (resp: any) => boolean, retries?: number): Chainable;
+      waitForRancherResources(prefix: 'v3' | 'v1', resourceType: string, expectedResourcesTotal: number, greaterThan: boolean): Chainable;
+      deleteRancherResource(prefix: 'v3' | 'v1' | 'k8s', resourceType: string, resourceId: string, failOnStatusCode?: boolean): Chainable;
+      deleteNodeTemplate(nodeTemplateId: string, timeout?: number, failOnStatusCode?: boolean)
 
-    /**
-     *  Wrapper for cy.find() to simply define the data-testid value that allows you to pass a matcher to find the element.
-     * @param id Value used for the data-testid attribute of the element.
-     * @param matcher Matching character used for attribute value:
-     * - `$`: Suffixed with this value
-     * - `^`: Prefixed with this value
-     * - `~`: Contains this value as whitespace separated words
-     * - `*`: Contains this value
-     */
-    findId(id: string, matcher?: Matcher): Chainable<Element>;
+      tableRowsPerPageAndNamespaceFilter(rows: number, clusterName: string, groupBy: string, namespaceFilter: string)
+      tableRowsPerPageAndPreferences(rows: number, preferences: { clusterName: string, groupBy: string, namespaceFilter: string, allNamespaces: string}, iteration?: number)
 
-    /**
-     * Override user preferences to default values, allowing to pass custom preferences for a deterministic scenario
-     * Leave empty for reset to default values
-     */
-    // eslint-disable-next-line no-undef
-    userPreferences(preferences?: Partial<UserPreferences>): Chainable<null>;
+      /**
+       * update namespace filter
+       * @param clusterName
+       * @param groupBy to update list view to 'flat list', 'group by namespaces', or 'group by node' ('none', 'metadata.namespace', or 'role')
+       * @param namespaceFilter to filter by 'only user namespaces', 'all namespace', etc. ('{"local":["all://user"]}', '{\"local\":[]}', etc.)
+       */
+      updateNamespaceFilter(clusterName: string, groupBy:string, namespaceFilter: string, iteration?: number): Chainable;
 
-    requestBase64Image(url: string): Chainable;
+      /**
+       *  Wrapper for cy.get() to simply define the data-testid value that allows you to pass a matcher to find the element.
+       * @param id Value used for the data-testid attribute of the element.
+       * @param matcher Matching character used for attribute value:
+       * - `$`: Suffixed with this value
+       * - `^`: Prefixed with this value
+       * - `~`: Contains this value as whitespace separated words
+       * - `*`: Contains this value
+       */
+      getId(id: string, matcher?: Matcher): Chainable<Element>;
 
-    keyboardControls(triggerKeys: Partial<any>, count: number): Chainable<Element>;
+      /**
+       *  Wrapper for cy.find() to simply define the data-testid value that allows you to pass a matcher to find the element.
+       * @param id Value used for the data-testid attribute of the element.
+       * @param matcher Matching character used for attribute value:
+       * - `$`: Suffixed with this value
+       * - `^`: Prefixed with this value
+       * - `~`: Contains this value as whitespace separated words
+       * - `*`: Contains this value
+       */
+      findId(id: string, matcher?: Matcher): Chainable<Element>;
 
-    interceptAllRequests(verbs: Verbs, urls: string[], timeout: number): Chainable<string>;
+      /**
+       * Override user preferences to default values, allowing to pass custom preferences for a deterministic scenario
+       * Leave empty for reset to default values
+       */
+      // eslint-disable-next-line no-undef
+      userPreferences(preferences?: Partial<UserPreferences>): Chainable<null>;
 
-    iFrame(): Chainable<Element>;
+      requestBase64Image(url: string): Chainable;
+
+      keyboardControls(triggerKeys: Partial<any>, count: number): Chainable<Element>;
+
+      interceptAllRequests(verbs: Verbs, urls: string[], timeout: number): Chainable<string>;
+
+      iFrame(): Chainable<Element>;
+
+      // Check if an element is visible to the user on the screen.
+      isVisible(): Chainable<Element>;
+
+      // Check if an element is disabled
+      isDisabled(): Chainable<Element>;
+
+      // Check if an element is disabled
+      isEnabled(): Chainable<Element>;
+
+      // Check css var
+      shouldHaveCssVar(name: string, value: string);
+
+      /**
+       * Fetch the steve `revision` / timestamp of request
+       */
+      fetchRevision(): Chainable<string>;
+
+      /**
+       * Check if the vai FF is enabled
+       */
+      isVaiCacheEnabled(): Chainable<boolean>;
+    }
   }
 }

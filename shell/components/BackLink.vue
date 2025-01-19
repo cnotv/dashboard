@@ -9,20 +9,23 @@ export default {
 };
 </script>
 <template>
-  <nuxt-link
+  <router-link
     v-if="link && link.name"
     :to="link"
     class="back-link"
+    role="link"
+    :aria-label="t('generic.back')"
   >
     <i class="icon icon-chevron-left" /> {{ t('generic.back') }}
-  </nuxt-link>
-  <nuxt-link
+  </router-link>
+  <router-link
     v-else
     to="/"
     class="back-link"
+    :aria-label="t('nav.home')"
   >
     <i class="icon icon-chevron-left" /> {{ t('nav.home') }}
-  </nuxt-link>
+  </router-link>
 </template>
 
 <style lang="scss" scoped>
@@ -30,9 +33,12 @@ export default {
     align-items: center;
     display: flex;
     font-size: 16px;
-    margin-bottom: 10px;
+    margin: 10px 0 20px 0;
     outline: 0;
-    padding: 10px 0;
     width: fit-content;
+
+    &:focus-visible {
+      @include focus-outline;
+    }
   }
 </style>

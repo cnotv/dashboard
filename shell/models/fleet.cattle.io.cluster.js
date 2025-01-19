@@ -107,23 +107,16 @@ export default class FleetCluster extends SteveModel {
     return this.metadata?.labels?.[FLEET_LABELS.CLUSTER_DISPLAY_NAME] || this.metadata?.name || this.id;
   }
 
+  get name() {
+    return this.metadata?.name || this.metadata?.labels?.[FLEET_LABELS.CLUSTER_NAME];
+  }
+
   get state() {
     if (this.spec?.paused === true) {
       return 'paused';
     }
 
     return this.metadata?.state?.name || 'unknown';
-  }
-
-  get nodeInfo() {
-    const ready = this.status?.agent?.readyNodes || 0;
-    const unready = this.status?.agent?.nonReadyNodes || 0;
-
-    return {
-      ready,
-      unready,
-      total: ready + unready,
-    };
   }
 
   get repoInfo() {
@@ -135,6 +128,29 @@ export default class FleetCluster extends SteveModel {
       unready: total - ready,
       total,
     };
+  }
+
+  get bundleInfo() {
+    const bundlesData = {
+      ready: 0,
+      total: 0
+    };
+    const readyBundles = this.status?.display?.readyBundles;
+
+    if (readyBundles && readyBundles.includes('/')) {
+      const dataArr = readyBundles.split('/');
+
+      if (dataArr.length === 2 && parseInt(dataArr[0]) >= 0 && parseInt(dataArr[1]) >= 0) {
+        bundlesData.ready = parseInt(dataArr[0]);
+        bundlesData.total = parseInt(dataArr[1]);
+
+        return bundlesData;
+      }
+    }
+
+    bundlesData.noValidData = true;
+
+    return bundlesData;
   }
 
   get mgmt() {

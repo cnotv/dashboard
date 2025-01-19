@@ -2,36 +2,35 @@
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { azureEnvironments } from '@shell/machine-config/azure';
+import { parseAzureError } from '@shell/utils/azure';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
-
-const AZURE_ERROR_MSG_REGEX = /^.*Message=\"(.*)\"$/;
-const AZURE_ERROR_JSON_REGEX = /^.*Response body: ({.*})/;
+import FormValidation from '@shell/mixins/form-validation';
 
 export default {
+  emits: ['validationChanged', 'valueChanged'],
+
   components: { LabeledInput, LabeledSelect },
-  mixins:     [CreateEditView],
+  mixins:     [CreateEditView, FormValidation],
 
   data() {
     if ( !this.value.decodedData.environment ) {
       this.value.setData('environment', 'AzurePublicCloud');
     }
 
-    return { azureEnvironments };
+    return {
+      azureEnvironments,
+      fvFormRuleSets: [
+        { path: 'decodedData.clientId', rules: ['required'] },
+        { path: 'decodedData.clientSecret', rules: ['required'] },
+        { path: 'decodedData.subscriptionId', rules: ['required'] },
+      ]
+    };
   },
 
   watch: {
-    'value.decodedData.clientId'(neu) {
-      this.$emit('validationChanged', !!neu);
-    },
-    'value.decodedData.clientSecret'(neu) {
-      this.$emit('validationChanged', !!neu);
-    },
-    'value.decodedData.subscriptionId'(neu) {
-      this.$emit('validationChanged', !!neu);
-    },
-    'value.decodedData.environment'(neu) {
-      this.$emit('validationChanged', !!neu);
-    },
+    fvFormIsValid(newValue) {
+      this.$emit('validationChanged', !!newValue);
+    }
   },
 
   methods: {
@@ -59,21 +58,10 @@ export default {
         return true;
       } catch (e) {
         if (e.error) {
-          // Try and parse the response from Azure a couple of ways
-          const msgMatch = e.error.match(AZURE_ERROR_MSG_REGEX);
+          const parsed = parseAzureError(e.error);
 
-          if (msgMatch?.length === 2) {
-            return { errors: [msgMatch[1]] };
-          } else {
-            const jsonMatch = e.error.match(AZURE_ERROR_JSON_REGEX);
-
-            if (jsonMatch?.length === 2) {
-              try {
-                const errorObj = JSON.parse(jsonMatch[1]);
-
-                return { errors: [errorObj.error_description] };
-              } catch (e) {}
-            }
+          if (parsed) {
+            return { errors: [parsed] };
           }
         }
 
@@ -96,10 +84,9 @@ export default {
           option-key="value"
           option-label="value"
           :searchable="false"
-          :required="true"
           :label="t('cluster.credential.azure.environment.label')"
           data-testid="azure-cloud-credentials-environment"
-          @input="value.setData('environment', $event)"
+          @update:value="$emit('valueChanged', 'environment', $event)"
         />
       </div>
       <div class="col span-6">
@@ -109,8 +96,9 @@ export default {
           type="text"
           :mode="mode"
           :required="true"
+          :rules="fvGetAndReportPathRules('decodedData.subscriptionId')"
           data-testid="azure-cloud-credentials-subscription-id"
-          @input="value.setData('subscriptionId', $event)"
+          @update:value="$emit('valueChanged', 'subscriptionId', $event)"
         />
       </div>
     </div>
@@ -122,8 +110,9 @@ export default {
           type="text"
           :mode="mode"
           :required="true"
+          :rules="fvGetAndReportPathRules('decodedData.clientId')"
           data-testid="azure-cloud-credentials-client-id"
-          @input="value.setData('clientId', $event)"
+          @update:value="$emit('valueChanged', 'clientId', $event)"
         />
       </div>
       <div class="col span-6">
@@ -133,8 +122,9 @@ export default {
           type="password"
           :mode="mode"
           :required="true"
+          :rules="fvGetAndReportPathRules('decodedData.clientSecret')"
           data-testid="azure-cloud-credentials-client-secret"
-          @input="value.setData('clientSecret', $event)"
+          @update:value="$emit('valueChanged', 'clientSecret', $event)"
         />
       </div>
     </div>

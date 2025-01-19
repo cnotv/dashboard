@@ -19,11 +19,10 @@ describe('component: ButtonGroup', () => {
     ];
 
     const wrapper = shallowMount(ButtonGroup, {
-      propsData: {
+      props: {
         options,
         value: 'val1'
-      },
-      directives: { 'trim-whitespace': jest.fn() },
+      }
     });
 
     const firstBtn = wrapper.find('[data-testid="button-group-child-0"]');
@@ -62,14 +61,13 @@ describe('component: ButtonGroup', () => {
     ];
 
     const wrapper = shallowMount(ButtonGroup, {
-      propsData: {
+      props: {
         options,
         activeClass:   'bg-another-active-class',
         inactiveClass: 'bg-some-inactive-class',
         iconSize:      'xxxxl',
         value:         'val1'
-      },
-      directives: { 'trim-whitespace': jest.fn() },
+      }
     });
 
     const firstBtn = wrapper.find('[data-testid="button-group-child-0"]');
@@ -107,18 +105,17 @@ describe('component: ButtonGroup', () => {
     ];
 
     const wrapper = shallowMount(ButtonGroup, {
-      propsData: {
+      props: {
         options,
         value: 'val1'
-      },
-      directives: { 'trim-whitespace': jest.fn() },
+      }
     });
 
     const firstBtn = wrapper.find('[data-testid="button-group-child-0"]');
 
     firstBtn.trigger('click');
 
-    expect(wrapper.emitted('input')).toHaveLength(1);
-    expect(wrapper.emitted('input')![0][0]).toBe('val1');
+    expect(wrapper.emitted('update:value')).toHaveLength(1);
+    expect(wrapper.emitted('update:value')![0][0]).toBe('val1');
   });
 });

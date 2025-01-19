@@ -1,12 +1,13 @@
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent, inject } from 'vue';
 import SortableTable from '@shell/components/SortableTable/index.vue';
 import RadioButton from '@components/Form/Radio/RadioButton.vue';
 import debounce from 'lodash/debounce';
 import { isArray } from '@shell/utils/array';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
-import { GitUtils } from '../../utils/git';
+import { GitUtils, Commit } from '@shell/utils/git';
+import type { DebouncedFunc } from 'lodash';
 
 interface commit {
   [key: string]: any,
@@ -17,21 +18,46 @@ interface Data {
     repo: boolean,
     branch: boolean,
     commits: boolean,
+    branches?: unknown,
   },
 
   repos: object[],
   branches: object[],
   commits: commit[],
 
-  selectedAccOrOrg: string| null,
-  selectedRepo: object| null,
-  selectedBranch: object| null,
-  selectedCommit: object | null,
+  selectedAccOrOrg: string | undefined,
+  selectedRepo: object | undefined,
+  selectedBranch: object | undefined,
+  selectedCommit: Commit | null,
 }
 
-const debounceTime = 1000;
+interface CommitHeader {
+  name: string;
+  label: string;
+  width?: number;
+  formatter?: string;
+  formatterOpts?: { [key: string]: any };
+  value?: string | string[];
+  sort?: string | string[];
+  defaultSort?: boolean;
+}
 
-export default Vue.extend<Data, any, any, any>({
+interface NonReactiveProps {
+  onSearchRepo: DebouncedFunc<(param: any) => Promise<any>> | undefined;
+  onSearchBranch: DebouncedFunc<(param: any) => Promise<any>> | undefined;
+  debounceTime: number;
+}
+
+const debounceTime = 1_000;
+
+const provideProps: NonReactiveProps = {
+  onSearchRepo:   undefined,
+  onSearchBranch: undefined,
+  debounceTime,
+};
+
+export default defineComponent({
+  emits: ['change'],
 
   components: {
     LabeledSelect,
@@ -52,10 +78,20 @@ export default Vue.extend<Data, any, any, any>({
     }
   },
 
-  data() {
-    return {
-      debounceTime,
+  setup() {
+    const onSearchRepo = inject('onSearchRepo', provideProps.onSearchRepo);
+    const onSearchBranch = inject('onSearchBranch', provideProps.onSearchBranch);
+    const debounceTime = inject('debounceTime', provideProps.debounceTime);
 
+    return {
+      onSearchRepo,
+      onSearchBranch,
+      debounceTime,
+    };
+  },
+
+  data(): Data {
+    return {
       hasError: {
         repo:    false,
         branch:  false,
@@ -66,10 +102,10 @@ export default Vue.extend<Data, any, any, any>({
       branches: [],
       commits:  [] as commit[],
 
-      selectedAccOrOrg: null,
-      selectedRepo:     null,
-      selectedBranch:   null,
-      selectedCommit:   {},
+      selectedAccOrOrg: undefined,
+      selectedRepo:     undefined,
+      selectedBranch:   undefined,
+      selectedCommit:   null,
     };
   },
 
@@ -95,13 +131,14 @@ export default Vue.extend<Data, any, any, any>({
   },
 
   computed: {
-    commitHeaders() {
+    commitHeaders(): CommitHeader[] {
       return [
         {
           name:  'index',
           label: this.t(`gitPicker.${ this.type }.tableHeaders.choose.label`),
           width: 60,
-        }, {
+        },
+        {
           name:          'sha',
           label:         this.t(`gitPicker.${ this.type }.tableHeaders.sha.label`),
           width:         90,
@@ -134,17 +171,20 @@ export default Vue.extend<Data, any, any, any>({
       ];
     },
 
-    preparedRepos() {
+    preparedRepos(): unknown {
       return this.normalizeArray(this.repos, (item: any) => ({ id: item.id, name: item.name }));
     },
 
-    preparedBranches() {
+    preparedBranches(): unknown {
       return this.normalizeArray(this.branches, (item: any) => ({ id: item.id, name: item.name }));
     },
 
-    preparedCommits() {
-      return this.normalizeArray(this.commits, (c: any) => GitUtils[this.type].normalize.commit(c));
+    preparedCommits(): Commit[] {
+      return this.normalizeArray(this.commits, (c) => GitUtils[this.type].normalize.commit(c));
     },
+    selectedCommitId(): string | undefined {
+      return this.selectedCommit?.commitId;
+    }
   },
 
   methods: {
@@ -164,10 +204,10 @@ export default Vue.extend<Data, any, any, any>({
 
     reset() {
       this.repos = [];
-      this.selectedAccOrOrg = null;
-      this.selectedRepo = null;
-      this.selectedBranch = null;
-      this.selectedCommit = {};
+      this.selectedAccOrOrg = undefined;
+      this.selectedRepo = undefined;
+      this.selectedBranch = undefined;
+      this.selectedCommit = null;
 
       this.communicateReset();
     },
@@ -217,13 +257,13 @@ export default Vue.extend<Data, any, any, any>({
 
     async fetchRepos() {
       this.repos = [];
-      this.selectedRepo = null;
-      this.selectedBranch = null;
-      this.selectedCommit = {};
+      this.selectedRepo = undefined;
+      this.selectedBranch = undefined;
+      this.selectedCommit = null;
 
       this.communicateReset();
 
-      if (this.selectedAccOrOrg.length) {
+      if (this.selectedAccOrOrg?.length) {
         try {
           const res = await this.$store.dispatch(`${ this.type }/fetchRecentRepos`, { username: this.selectedAccOrOrg });
 
@@ -237,8 +277,8 @@ export default Vue.extend<Data, any, any, any>({
     },
 
     async fetchBranches() {
-      this.selectedBranch = null;
-      this.selectedCommit = {};
+      this.selectedBranch = undefined;
+      this.selectedCommit = null;
 
       this.communicateReset();
 
@@ -253,7 +293,7 @@ export default Vue.extend<Data, any, any, any>({
     },
 
     async fetchCommits() {
-      this.selectedCommit = {};
+      this.selectedCommit = null;
 
       this.communicateReset();
 
@@ -279,7 +319,7 @@ export default Vue.extend<Data, any, any, any>({
     },
 
     final(commitId: string) {
-      this.selectedCommit = this.preparedCommits.find((c: { commitId?: string }) => c.commitId === commitId);
+      this.selectedCommit = this.preparedCommits.find((c: { commitId?: string }) => c.commitId === commitId) || null;
 
       if (this.selectedAccOrOrg && this.selectedRepo && this.selectedCommit?.commitId) {
         this.$emit('change', {
@@ -337,7 +377,7 @@ export default Vue.extend<Data, any, any, any>({
     },
 
     status(value: boolean) {
-      return value ? 'error' : null;
+      return value ? 'error' : undefined;
     },
 
     reposRules() {
@@ -355,11 +395,17 @@ export default Vue.extend<Data, any, any, any>({
       const commitId = this.$route.query?.commit;
 
       if (commitId) {
-        const table = this.$refs.commitsTable;
-        const page = table.getPageByRow(commitId, ({ commitId }: commit) => commitId);
+        const table = this.$refs.commitsTable as unknown as {
+          getPageByRow: (id: string | (string | null)[], callback: (commit: any) => any) => any;
+          setPage: (page: any) => void;
+        };
+        const page = table?.getPageByRow(commitId, ({ commitId }: commit) => commitId);
 
-        table.setPage(page);
+        table?.setPage(page);
       }
+    },
+    selectReduction(e: unknown) {
+      return e;
     }
   },
 });
@@ -370,7 +416,7 @@ export default Vue.extend<Data, any, any, any>({
     <div class="row">
       <div class="spacer">
         <LabeledInput
-          v-model="selectedAccOrOrg"
+          v-model:value="selectedAccOrOrg"
           data-testid="git_picker-username-or-org"
           :tooltip="t(`gitPicker.${ type }.username.tooltip`)"
           :label="t(`gitPicker.${ type }.username.inputLabel`)"
@@ -378,7 +424,7 @@ export default Vue.extend<Data, any, any, any>({
           :rules="[reposRules]"
           :delay="debounceTime"
           :status="status(hasError.repo)"
-          @input="fetchRepos"
+          @update:value="fetchRepos"
         />
       </div>
 
@@ -387,18 +433,18 @@ export default Vue.extend<Data, any, any, any>({
         class="spacer"
       >
         <LabeledSelect
-          v-model="selectedRepo"
+          v-model:value="selectedRepo"
           :required="true"
           :label="t(`gitPicker.${ type }.repo.inputLabel`)"
           :options="preparedRepos"
           :clearable="true"
           :searchable="true"
-          :reduce="(e) => e"
+          :reduce="selectReduction"
           :rules="[reposRules]"
           :status="status(hasError.repo)"
           :option-label="'name'"
           @search="onSearchRepo"
-          @input="fetchBranches"
+          @update:value="fetchBranches"
         />
       </div>
       <!-- Deals with Branches  -->
@@ -407,18 +453,18 @@ export default Vue.extend<Data, any, any, any>({
         class="spacer"
       >
         <LabeledSelect
-          v-model="selectedBranch"
+          v-model:value="selectedBranch"
           :required="true"
           :label="t(`gitPicker.${ type }.branch.inputLabel`)"
           :options="preparedBranches"
           :clearable="false"
-          :reduce="(e) => e"
+          :reduce="selectReduction"
           :searchable="true"
           :rules="[branchesRules]"
           :status="status(hasError.branch)"
           :option-label="'name'"
           @search="onSearchBranch"
-          @input="fetchCommits"
+          @update:value="fetchCommits"
         />
       </div>
       <!-- Deals with Commits, display & allow to pick from it  -->
@@ -441,9 +487,9 @@ export default Vue.extend<Data, any, any, any>({
         >
           <template #cell:index="{row}">
             <RadioButton
-              :value="selectedCommit.commitId"
+              :value="selectedCommitId"
               :val="row.commitId"
-              @input="final($event)"
+              @update:value="final($event)"
             />
           </template>
 

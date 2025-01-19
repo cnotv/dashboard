@@ -1,5 +1,6 @@
 <script>
 import Tab from '@shell/components/Tabbed/Tab';
+import Tabbed from '@shell/components/Tabbed';
 import S3 from '@shell/chart/rancher-backup/S3';
 import { RadioGroup } from '@components/Form/Radio';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
@@ -7,23 +8,22 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import { Banner } from '@components/Banner';
 import { get } from '@shell/utils/object';
 import { allHash } from '@shell/utils/promise';
-import { STORAGE_CLASS, SECRET, PV } from '@shell/config/types';
+import { STORAGE_CLASS, PV } from '@shell/config/types';
 import { mapGetters } from 'vuex';
 import { STORAGE } from '@shell/config/labels-annotations';
-import ChartPsp from '@shell/components/ChartPsp';
 
 export default {
+  emits: ['valid'],
+
   components: {
     Tab,
+    Tabbed,
     RadioGroup,
     S3,
     LabeledInput,
     LabeledSelect,
-    Banner,
-    ChartPsp
+    Banner
   },
-
-  hasTabs: true,
 
   props: {
     value: {
@@ -43,10 +43,8 @@ export default {
     const hash = await allHash({
       storageClasses:    this.$store.dispatch('cluster/findAll', { type: STORAGE_CLASS }),
       persistentVolumes: this.$store.dispatch('cluster/findAll', { type: PV }),
-      secrets:           this.$store.dispatch('cluster/findAll', { type: SECRET }),
     });
 
-    this.secrets = hash.secrets;
     this.storageClasses = hash.storageClasses;
     this.persistentVolumes = hash.persistentVolumes;
 
@@ -67,7 +65,7 @@ export default {
 
   computed: {
     defaultStorageClass() {
-      return this.storageClasses.filter((sc) => sc.metadata.annotations[STORAGE.DEFAULT_STORAGE_CLASS] && sc.metadata.annotations[STORAGE.DEFAULT_STORAGE_CLASS] !== 'false' )[0] || '';
+      return this.storageClasses.filter((sc) => sc.metadata.annotations?.[STORAGE.DEFAULT_STORAGE_CLASS] && sc.metadata.annotations[STORAGE.DEFAULT_STORAGE_CLASS] !== 'false' )[0] || '';
     },
 
     availablePVs() {
@@ -91,10 +89,23 @@ export default {
 
   watch: {
     storageSource(neu) {
+      if (!this.value.persistence) {
+        this.value.persistence = {};
+      }
+      if (!this.value.s3) {
+        this.value.s3 = {};
+      }
       switch (neu) {
       case 'pickSC':
         this.value.persistence.enabled = true;
         this.value.s3.enabled = false;
+        if (this.value.persistence.storageClass) {
+          const matchedStorageClass = this.storageClasses.find((sc) => sc.id === this.value.persistence.storageClass);
+
+          if (matchedStorageClass) {
+            this.storageClass = matchedStorageClass;
+          }
+        }
         if (this.defaultStorageClass && (!this.value.persistence.storageClass || this.value.persistence.storageClass === '-' )) {
           this.value.persistence.storageClass = this.defaultStorageClass.id;
           this.storageClass = this.defaultStorageClass;
@@ -157,6 +168,9 @@ export default {
     },
     updatePageValid(update) {
       this.$emit('valid', update);
+    },
+    onTabChanged() {
+      window.scrollTop = 0;
     }
   },
   get
@@ -165,83 +179,82 @@ export default {
 
 <template>
   <div>
-    <Tab
-      label="Chart Options"
-      name="chartOptions"
+    <Tabbed
+      :side-tabs="true"
+      :hide-single-tab="true"
+      class="step__values__content with-name"
+      @changed="onTabChanged"
     >
-      <!-- Conditionally display PSP checkbox -->
-      <ChartPsp
-        :value="value"
-        :cluster="currentCluster"
-      />
-
-      <Banner
-        color="info"
-        :label="t('backupRestoreOperator.deployment.storage.tip')"
-      />
-      <RadioGroup
-        v-model="storageSource"
-        name="storageSource"
-        :label="t('backupRestoreOperator.deployment.storage.label')"
-        class="mb-10"
-        :options="radioOptions.options"
-        :labels="radioOptions.labels"
-      />
-      <S3
-        v-if="storageSource==='s3'"
-        :value="value.s3"
-        :secrets="secrets"
-        :mode="mode"
-        @valid="updatePageValid($event)"
-      />
-      <template v-else>
-        <div class="row">
-          <template v-if="storageSource === 'pickSC'">
-            <div class="col span-6">
+      <Tab
+        label="Chart Options"
+        name="chartOptions"
+      >
+        <Banner
+          color="info"
+          :label="t('backupRestoreOperator.deployment.storage.tip')"
+        />
+        <RadioGroup
+          v-model:value="storageSource"
+          name="storageSource"
+          :label="t('backupRestoreOperator.deployment.storage.label')"
+          class="mb-10"
+          :options="radioOptions.options"
+          :labels="radioOptions.labels"
+        />
+        <S3
+          v-if="storageSource==='s3'"
+          :value="value.s3"
+          :mode="mode"
+          @valid="updatePageValid($event)"
+        />
+        <template v-else>
+          <div class="row">
+            <template v-if="storageSource === 'pickSC'">
+              <div class="col span-6">
+                <LabeledSelect
+                  v-model:value="storageClass"
+                  :get-option-label="opt => opt.id || opt"
+                  :label="t('backupRestoreOperator.deployment.storage.storageClass.label')"
+                  :tooltip="reclaimWarning ? t('backupRestoreOperator.deployment.storage.warning', {type: 'Storage Class'}) : null"
+                  :mode="mode"
+                  :status="reclaimWarning ? 'warning' : null"
+                  :options="storageClasses"
+                  :hover-tooltip="true"
+                  data-testid="backup-chart-select-existing-storage-class"
+                />
+              </div>
+              <div class="col span-6">
+                <LabeledInput
+                  v-model:value="value.persistence.size"
+                  :mode="mode"
+                  :label="t('backupRestoreOperator.deployment.size')"
+                />
+              </div>
+            </template>
+            <div
+              v-else-if="storageSource === 'pickPV'"
+              class="col span-6"
+            >
               <LabeledSelect
-                :key="storageSource"
-                v-model="storageClass"
+                v-model:value="persistentVolume"
                 :get-option-label="opt => opt.id || opt"
-                :label="t('backupRestoreOperator.deployment.storage.storageClass.label')"
-                :tooltip="reclaimWarning ? t('backupRestoreOperator.deployment.storage.warning', {type: 'Storage Class'}) : null"
+                :label="t('backupRestoreOperator.deployment.storage.persistentVolume.label')"
+                :tooltip="reclaimWarning ? t('backupRestoreOperator.deployment.storage.warning', {type: 'Persistent Volume'}) : null"
                 :mode="mode"
                 :status="reclaimWarning ? 'warning' : null"
-                :options="storageClasses"
+                :options="availablePVs"
                 :hover-tooltip="true"
               />
             </div>
-            <div class="col span-6">
-              <LabeledInput
-                v-model="value.persistence.size"
-                :mode="mode"
-                :label="t('backupRestoreOperator.deployment.size')"
-              />
-            </div>
-          </template>
-          <div
-            v-else-if="storageSource === 'pickPV'"
-            class="col span-6"
-          >
-            <LabeledSelect
-              :key="storageSource"
-              v-model="persistentVolume"
-              :get-option-label="opt => opt.id || opt"
-              :label="t('backupRestoreOperator.deployment.storage.persistentVolume.label')"
-              :tooltip="reclaimWarning ? t('backupRestoreOperator.deployment.storage.warning', {type: 'Persistent Volume'}) : null"
-              :mode="mode"
-              :status="reclaimWarning ? 'warning' : null"
-              :options="availablePVs"
-              :hover-tooltip="true"
-            />
           </div>
-        </div>
-      </template>
-    </Tab>
+        </template>
+      </Tab>
+    </Tabbed>
   </div>
 </template>
 
 <style lang='scss' scoped>
-::v-deep .radio-group.label>SPAN {
+:deep() .radio-group.label>SPAN {
   font-size: 1em;
 }
 </style>

@@ -1,12 +1,15 @@
 <script>
 import CreateEditView from '@shell/mixins/create-edit-view';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { Banner } from '@components/Banner';
 
 import { get, set } from '@shell/utils/object';
 import { MANAGEMENT, VIRTUAL_HARVESTER_PROVIDER } from '@shell/config/types';
 
 export default {
-  components: { LabeledSelect },
+  emits: ['validationChanged'],
+
+  components: { LabeledSelect, Banner },
   mixins:     [CreateEditView],
 
   async fetch() {
@@ -47,11 +50,11 @@ export default {
 
       const currentCluster = this.$store.getters['management/all'](MANAGEMENT.CLUSTER).find((x) => x.id === neu);
 
-      this.$nuxt.$loading.start();
+      window.$globalApp.$loading.start();
 
       const kubeconfigContent = await currentCluster.generateKubeConfig();
 
-      this.$nuxt.$loading.finish();
+      window.$globalApp.$loading.finish();
 
       this.value.setData('kubeconfigContent', kubeconfigContent);
     },
@@ -98,11 +101,18 @@ export default {
 <template>
   <div>
     <div class="row mb-10">
+      <Banner
+        color="warning"
+        label-key="cluster.credential.harvester.tokenExpirationWarning"
+        data-testid="harvester-token-expiration-warning-banner"
+      />
+    </div>
+    <div class="row mb-10">
       <div
         class="col span-6"
       >
         <LabeledSelect
-          v-model="cluster"
+          v-model:value="cluster"
           :mode="mode"
           :disabled="isEdit"
           :options="clusterOptions"

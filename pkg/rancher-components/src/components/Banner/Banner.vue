@@ -1,9 +1,9 @@
 <script lang="ts">
-import Vue from 'vue';
+import { defineComponent } from 'vue';
 import { nlToBr } from '@shell/utils/string';
 import { stringify } from '@shell/utils/error';
 
-export default Vue.extend({
+export default defineComponent({
   props: {
     /**
      * A color class that represents the color of the banner.
@@ -49,6 +49,7 @@ export default Vue.extend({
       default: false
     }
   },
+  emits:    ['close'],
   computed: {
     /**
      * Return message text as label.
@@ -66,6 +67,7 @@ export default Vue.extend({
     :class="{
       [color]: true,
     }"
+    role="banner"
   >
     <div
       v-if="icon"
@@ -101,7 +103,12 @@ export default Vue.extend({
       <div
         v-if="closable"
         class="banner__content__closer"
+        tabindex="0"
+        role="button"
+        :aria-label="t('generic.close')"
         @click="$emit('close')"
+        @keyup.enter="$emit('close')"
+        @keyup.space="$emit('close')"
       >
         <i
           data-testid="banner-close"
@@ -225,6 +232,7 @@ $icon-size: 24px;
       width: $icon-size;
       line-height: $icon-size;
       text-align: center;
+      outline: none;
 
       .closer-icon {
         opacity: 0.7;
@@ -233,6 +241,11 @@ $icon-size: 24px;
           opacity: 1;
           color: var(--link);
         }
+      }
+
+      &:focus-visible i {
+        @include focus-outline;
+        outline-offset: 2px;
       }
     }
 

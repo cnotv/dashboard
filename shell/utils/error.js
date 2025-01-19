@@ -1,9 +1,24 @@
 import { isArray } from '@shell/utils/array';
 
 export class ClusterNotFoundError extends Error {
+  static NAME = 'ClusterNotFoundError'
+
   constructor(message) {
     super(message);
-    this.name = 'ClusterNotFoundError';
+    this.name = ClusterNotFoundError.NAME;
+  }
+}
+
+/**
+ * An error occurred and the user should be redirected to a certain location (where this is handled)
+ */
+export class RedirectToError extends Error {
+  static NAME = 'RedirectToError'
+
+  constructor(message, url) {
+    super(message);
+    this.url = url;
+    this.name = RedirectToError.NAME;
   }
 }
 
@@ -89,3 +104,28 @@ export function exceptionToErrorsArray(err) {
     return [err];
   }
 }
+
+/**
+ * Imported from path-to-regexp
+ * @param {*} err
+ * @returns
+ */
+export const normalizeError = (err) => {
+  let message;
+
+  if (!(err.message || typeof err === 'string')) {
+    try {
+      message = JSON.stringify(err, null, 2);
+    } catch (e) {
+      message = `[${ err.constructor.name }]`;
+    }
+  } else {
+    message = err.message || err;
+  }
+
+  return {
+    ...err,
+    message,
+    statusCode: (err.statusCode || err.status || (err.response && err.response.status) || 500)
+  };
+};

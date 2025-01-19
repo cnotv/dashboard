@@ -9,17 +9,15 @@ import {
   AS,
   MODE
 } from '@shell/config/query-params';
-import { VIEW_IN_API } from '@shell/store/prefs';
+import { VIEW_IN_API, DEV } from '@shell/store/prefs';
 import { addObject, addObjects, findBy, removeAt } from '@shell/utils/array';
 import CustomValidators from '@shell/utils/custom-validators';
 import { downloadFile, generateZip } from '@shell/utils/download';
 import { clone, get } from '@shell/utils/object';
 import { eachLimit } from '@shell/utils/promise';
 import { sortableNumericSuffix } from '@shell/utils/sort';
-import { coerceStringTypeToScalarType, escapeHtml, ucFirst } from '@shell/utils/string';
+import { escapeHtml, ucFirst } from '@shell/utils/string';
 import {
-  displayKeyFor,
-  validateBoolean,
   validateChars,
   validateDnsLikeTypes,
   validateLength,
@@ -32,26 +30,12 @@ import forIn from 'lodash/forIn';
 import isEmpty from 'lodash/isEmpty';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
-import uniq from 'lodash/uniq';
-import Vue from 'vue';
-
-import { normalizeType } from './normalize';
+import { markRaw } from 'vue';
 
 import { ExtensionPoint, ActionLocation } from '@shell/core/types';
 import { getApplicableExtensionEnhancements } from '@shell/core/plugin-helpers';
 
-const STRING_LIKE_TYPES = [
-  'string',
-  'date',
-  'blob',
-  'enum',
-  'multiline',
-  'masked',
-  'password',
-  'dnsLabel',
-  'hostname',
-];
-const DNS_LIKE_TYPES = ['dnsLabel', 'dnsLabelRestricted', 'hostname'];
+export const DNS_LIKE_TYPES = ['dnsLabel', 'dnsLabelRestricted', 'hostname'];
 
 const REMAP_STATE = {
   disabled:                 'inactive',
@@ -100,11 +84,13 @@ export const STATES_ENUM = {
   DISCONNECTED:     'disconnected',
   DRAINED:          'drained',
   DRAINING:         'draining',
+  ENABLED:          'enabled',
   ERR_APPLIED:      'errapplied',
   ERROR:            'error',
   ERRORING:         'erroring',
   ERRORS:           'errors',
   EXPIRED:          'expired',
+  EXPIRING:         'expiring',
   FAIL:             'fail',
   FAILED:           'failed',
   HEALTHY:          'healthy',
@@ -166,6 +152,13 @@ export const STATES_ENUM = {
   WAITING:          'waiting',
   WARNING:          'warning',
 };
+
+export function mapStateToEnum(statusString) {
+  // e.g. in fleet Status is Capitalized. This function will map it to the enum
+  return Object.values(STATES_ENUM).find((val) => {
+    return val.toLowerCase() === statusString.toLocaleLowerCase();
+  });
+}
 
 export const STATES = {
   [STATES_ENUM.IN_USE]: {
@@ -240,6 +233,9 @@ export const STATES = {
   [STATES_ENUM.DRAINING]: {
     color: 'warning', icon: 'tag', label: 'Draining', compoundIcon: 'warning'
   },
+  [STATES_ENUM.ENABLED]: {
+    color: 'success', icon: 'dot-open', label: 'Enabled', compoundIcon: 'checkmark'
+  },
   [STATES_ENUM.ERR_APPLIED]: {
     color: 'error', icon: 'error', label: 'Error Applied', compoundIcon: 'error'
   },
@@ -253,7 +249,10 @@ export const STATES = {
     color: 'error', icon: 'error', label: 'Errors', compoundIcon: 'error'
   },
   [STATES_ENUM.EXPIRED]: {
-    color: 'warning', icon: 'error', label: 'Expired', compoundIcon: 'warning'
+    color: 'error', icon: 'error', label: 'Expired', compoundIcon: 'warning'
+  },
+  [STATES_ENUM.EXPIRING]: {
+    color: 'warning', icon: 'error', label: 'Expiring', compoundIcon: 'error'
   },
   [STATES_ENUM.FAIL]: {
     color: 'error', icon: 'error', label: 'Fail', compoundIcon: 'error'
@@ -512,6 +511,28 @@ export function stateDisplay(state) {
   return key.split(/-/).map(ucFirst).join('-');
 }
 
+export function primaryDisplayStatusFromCount(status) {
+  const statusOrder = [
+    STATES_ENUM.ERROR,
+    STATES_ENUM.FAILED,
+    STATES_ENUM.WARNING,
+    STATES_ENUM.MODIFIED,
+    STATES_ENUM.WAIT_APPLIED,
+    STATES_ENUM.ORPHANED,
+    STATES_ENUM.MISSING,
+    STATES_ENUM.UNKNOWN,
+    STATES_ENUM.NOT_READY,
+    STATES_ENUM.READY,
+  ];
+
+  // sort status by order of statusOrder
+  const existingStatuses = Object.keys(status).filter((key) => {
+    return status[key] > 0 && statusOrder.includes(key.toLowerCase());
+  }).sort((a, b) => statusOrder.indexOf(a.toLowerCase()) - statusOrder.indexOf(b.toLowerCase()));
+
+  return existingStatuses[0] ? existingStatuses[0] : STATES_ENUM.UNKNOWN;
+}
+
 export function stateSort(color, display) {
   color = color.replace(/^(text|bg)-/, '');
 
@@ -535,13 +556,13 @@ function maybeFn(val) {
 }
 
 export default class Resource {
-  constructor(data, ctx, rehydrateNamespace = null, setClone = false) {
+  constructor(data, ctx = {}, rehydrateNamespace = null, setClone = false) {
     for ( const k in data ) {
       this[k] = data[k];
     }
 
     Object.defineProperty(this, '$ctx', {
-      value:      ctx,
+      value:      markRaw(ctx),
       enumerable: false,
     });
 
@@ -863,7 +884,7 @@ export default class Resource {
   // You can add custom actions by overriding your own availableActions (and probably reading super._availableActions)
   get _availableActions() {
     // get menu actions available by plugins configuration
-    const currentRoute = this.currentRouter().app._route;
+    const currentRoute = this.currentRouter().currentRoute.value;
     const extensionMenuActions = getApplicableExtensionEnhancements(this.$rootState, ExtensionPoint.ACTION, ActionLocation.TABLE, currentRoute, this);
 
     const all = [
@@ -980,7 +1001,11 @@ export default class Resource {
   }
 
   get canViewInApi() {
-    return this.hasLink('self') && this.$rootGetters['prefs/get'](VIEW_IN_API);
+    try {
+      return this.hasLink('self') && this.$rootGetters['prefs/get'](VIEW_IN_API);
+    } catch {
+      return this.hasLink('self') && this.$rootGetters['prefs/get'](DEV);
+    }
   }
 
   get canYaml() {
@@ -1038,7 +1063,7 @@ export default class Resource {
 
   async doActionGrowl(actionName, body, opt = {}) {
     try {
-      await this.$dispatch('resourceAction', {
+      return await this.$dispatch('resourceAction', {
         resource: this,
         actionName,
         body,
@@ -1090,18 +1115,25 @@ export default class Resource {
   }
 
   /**
+   * Remove any unwanted properties from the object that will be saved
+   */
+  cleanForSave(data, forNew) {
+    delete data.__rehydrate;
+    delete data.__clone;
+
+    return data;
+  }
+
+  /**
    * Allow to handle the response of the save request
    * @param {*} res Full request response
    */
   processSaveResponse(res) { }
 
-  async _save(opt = {}) {
-    delete this.__rehydrate;
-    delete this.__clone;
-
+  async _save(opt = { }) {
     const forNew = !this.id;
 
-    const errors = await this.validationErrors(this, opt.ignoreFields);
+    const errors = this.validationErrors(this, opt);
 
     if (!isEmpty(errors)) {
       return Promise.reject(errors);
@@ -1145,21 +1177,23 @@ export default class Resource {
     // @TODO remove this once the API maps steve _type <-> k8s type in both directions
     opt.data = this.toSave() || { ...this };
 
-    if (opt?.data._type) {
+    if (opt.data._type) {
       opt.data.type = opt.data._type;
     }
 
-    if (opt?.data._name) {
+    if (opt.data._name) {
       opt.data.name = opt.data._name;
     }
 
-    if (opt?.data._labels) {
+    if (opt.data._labels) {
       opt.data.labels = opt.data._labels;
     }
 
-    if (opt?.data._annotations) {
+    if (opt.data._annotations) {
       opt.data.annotations = opt.data._annotations;
     }
+
+    opt.data = this.cleanForSave(opt.data, forNew);
 
     // handle "replace" opt as a query param _replace=true for norman PUT requests
     if (opt?.replace && opt.method === 'put') {
@@ -1218,19 +1252,11 @@ export default class Resource {
   // ------------------------------------------------------------------
 
   currentRoute() {
-    if ( process.server ) {
-      return this.$rootState.$route;
-    } else {
-      return window.$nuxt.$route;
-    }
+    return window.$globalApp.$route;
   }
 
   currentRouter() {
-    if ( process.server ) {
-      return this.$rootState.$router;
-    } else {
-      return window.$nuxt.$router;
-    }
+    return window.$globalApp.$router;
   }
 
   get listLocation() {
@@ -1269,6 +1295,12 @@ export default class Resource {
     this.currentRouter().push(this.detailLocation);
   }
 
+  /**
+   * Resource action redirects to the detail page with a query parameter 'clone'
+   * When the query parameter is present, the view will fetch the resource to clone define in the parameter
+   * E.g.: /my-id?mode=clone
+   * @param {*} moreQuery
+   */
   goToClone(moreQuery = {}) {
     const location = this.detailLocation;
 
@@ -1347,7 +1379,7 @@ export default class Resource {
 
   async download() {
     const value = await this.followLink('view', { headers: { accept: 'application/yaml' } });
-    const data = await this.$dispatch('cleanForDownload', value.data);
+    const data = await this.cleanForDownload(value.data);
 
     downloadFile(`${ this.nameDisplay }.yaml`, data, 'application/yaml');
   }
@@ -1370,7 +1402,7 @@ export default class Resource {
     await eachLimit(items, 10, (item, idx) => {
       return item.followLink('view', { headers: { accept: 'application/yaml' } } ).then(async(data) => {
         const yaml = data.data || data;
-        const cleanedYaml = await this.$dispatch('cleanForDownload', yaml);
+        const cleanedYaml = await this.cleanForDownload(yaml);
 
         files[`resources/${ names[idx] }`] = cleanedYaml;
       });
@@ -1445,6 +1477,10 @@ export default class Resource {
 
   cleanForDiff() {
     this.$dispatch(`cleanForDiff`, this.toJSON());
+  }
+
+  async cleanForDownload(yaml) {
+    return this.$dispatch(`cleanForDownload`, yaml);
   }
 
   yamlForSave(yaml) {
@@ -1604,7 +1640,7 @@ export default class Resource {
           if ( tolower !== pathValue ) {
             pathValue = tolower;
 
-            Vue.set(data, path, pathValue);
+            data[path] = pathValue;
           }
 
           errors.push(...validateDnsLikeTypes(pathValue, fieldType, displayKey, this.$rootGetters, errors));
@@ -1636,93 +1672,14 @@ export default class Resource {
     return errors;
   }
 
-  validationErrors(data = this, ignoreFields) {
-    const errors = [];
-    const {
-      type: originalType,
-      schema
-    } = data;
-    const type = normalizeType(originalType);
-
-    if ( !originalType ) {
-      // eslint-disable-next-line
-      console.warn(this.t('validation.noType'), data);
-
-      return errors;
-    }
-
-    if ( !schema ) {
-      // eslint-disable-next-line
-      // console.warn(this.t('validation.noSchema'), originalType, data);
-
-      return errors;
-    }
-
-    const fields = schema.resourceFields || {};
-    const keys = Object.keys(fields);
-    let field, key, val, displayKey;
-
-    for ( let i = 0 ; i < keys.length ; i++ ) {
-      const fieldErrors = [];
-
-      key = keys[i];
-      field = fields[key];
-      val = get(data, key);
-      displayKey = displayKeyFor(type, key, this.$rootGetters);
-
-      const fieldType = field?.type ? normalizeType(field.type) : null;
-      const valIsString = isString(val);
-
-      if ( ignoreFields && ignoreFields.includes(key) ) {
-        continue;
-      }
-
-      if ( val === undefined ) {
-        val = null;
-      }
-
-      if (valIsString) {
-        if (fieldType) {
-          Vue.set(data, key, coerceStringTypeToScalarType(val, fieldType));
-        }
-
-        // Empty strings on nullable string fields -> null
-        if ( field.nullable && val.length === 0 && STRING_LIKE_TYPES.includes(fieldType)) {
-          val = null;
-
-          Vue.set(data, key, val);
-        }
-      }
-      if (fieldType === 'boolean') {
-        validateBoolean(val, field, displayKey, this.$rootGetters, fieldErrors);
-      } else {
-        validateLength(val, field, displayKey, this.$rootGetters, fieldErrors);
-        validateChars(val, field, displayKey, this.$rootGetters, fieldErrors);
-      }
-
-      if (fieldErrors.length > 0) {
-        fieldErrors.push(this.t('validation.required', { key: displayKey }));
-        errors.push(...fieldErrors);
-        continue;
-      }
-
-      // IDs claim to be these but are lies...
-      if ( key !== 'id' && !isEmpty(val) && DNS_LIKE_TYPES.includes(fieldType) ) {
-        // DNS types should be lowercase
-        const tolower = (val || '').toLowerCase();
-
-        if ( tolower !== val ) {
-          val = tolower;
-
-          Vue.set(data, key, val);
-        }
-
-        fieldErrors.push(...validateDnsLikeTypes(val, fieldType, displayKey, this.$rootGetters, fieldErrors));
-      }
-      errors.push(...fieldErrors);
-    }
-
-    return uniq([...errors, ...this.customValidationErrors(data)]);
+  /**
+   * Check this instance is valid against
+   * - any custom dashboard validation
+   *
+   * Models can override this and call super.validationErrors
+   */
+  validationErrors(data = this, opts = { }) {
+    return this.customValidationErrors(data);
   }
 
   get ownersByType() {
@@ -1930,5 +1887,12 @@ export default class Resource {
 
   get creationTimestamp() {
     return this.metadata?.creationTimestamp;
+  }
+
+  /**
+   * Allows model to specify JSON Paths that should be folded in the YAML editor by default
+   */
+  get yamlFolding() {
+    return [];
   }
 }

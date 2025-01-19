@@ -1,9 +1,10 @@
 import { SETTING } from './settings';
+import { CURRENT_RANCHER_VERSION } from './version';
 
 export const ANY = 0;
 export const STANDARD = 1;
 export const CUSTOM = 2;
-export const DOCS_BASE = 'https://ranchermanager.docs.rancher.com/v2.8';
+export const DOCS_BASE = `https://ranchermanager.docs.rancher.com/v${ CURRENT_RANCHER_VERSION }`;
 
 const STANDARD_VENDOR = 'Rancher';
 const STANDARD_PRODUCT = 'Explorer';
@@ -23,6 +24,7 @@ export function setMode(m) {
 
 export function setVendor(v) {
   vendor = v;
+  setTitle();
 }
 
 export function setProduct(p) {
@@ -70,4 +72,23 @@ export function getVendor() {
 
 export function getProduct() {
   return product;
+}
+
+export function setTitle() {
+  const v = getVendor();
+
+  if (v === 'Harvester') {
+    const ico = require(`~shell/assets/images/pl/harvester.png`);
+
+    document.title = 'Harvester';
+    const link = document.createElement('link');
+
+    link.hid = 'icon';
+    link.rel = 'icon';
+    link.type = 'image/x-icon';
+    link.hrefv = ico;
+    const head = document.getElementsByTagName('head')[0];
+
+    head.appendChild(link);
+  }
 }

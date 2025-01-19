@@ -3,12 +3,12 @@ import Loading from '@shell/components/Loading';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import CruResource from '@shell/components/CruResource';
 import { LabeledInput } from '@components/Form/LabeledInput';
-import { Banner } from '@components/Banner';
 import AllowedPrincipals from '@shell/components/auth/AllowedPrincipals';
 import config from '@shell/edit/auth/ldap/config';
 import AuthConfig from '@shell/mixins/auth-config';
 import AuthBanner from '@shell/components/auth/AuthBanner';
 import Password from '@shell/components/form/Password';
+import AuthProviderWarningBanners from '@shell/edit/auth/AuthProviderWarningBanners';
 
 const AUTH_TYPE = 'ldap';
 
@@ -17,11 +17,11 @@ export default {
     Loading,
     CruResource,
     LabeledInput,
-    Banner,
     AllowedPrincipals,
     config,
     AuthBanner,
-    Password
+    Password,
+    AuthProviderWarningBanners
   },
 
   mixins: [CreateEditView, AuthConfig],
@@ -93,7 +93,7 @@ export default {
           :disable="disable"
           :edit="goToEdit"
         >
-          <template slot="rows">
+          <template #rows>
             <tr><td>{{ t(`authConfig.ldap.table.server`) }}: </td><td>{{ serverUrl }}</td></tr>
             <tr><td>{{ t(`authConfig.ldap.table.clientId`) }}: </td><td>{{ model.serviceAccountDistinguishedName || model.serviceAccountUsername }}</td></tr>
           </template>
@@ -109,15 +109,14 @@ export default {
       </template>
 
       <template v-else>
-        <Banner
+        <AuthProviderWarningBanners
           v-if="!model.enabled"
-          :label="t('authConfig.stateBanner.disabled', tArgs)"
-          color="warning"
+          :t-args="tArgs"
         />
 
         <h3>{{ t(`authConfig.ldap.${NAME}`) }}</h3>
         <config
-          v-model="model"
+          v-model:value="model"
           :type="NAME"
           :mode="mode"
         />
@@ -126,7 +125,7 @@ export default {
         <div class="row mb-20">
           <div class="col span-6">
             <LabeledInput
-              v-model="username"
+              v-model:value="username"
               :label="t(`authConfig.${AUTH_TYPE}.username`)"
               :mode="mode"
               required
@@ -134,7 +133,7 @@ export default {
           </div>
           <div class="col span-6">
             <Password
-              v-model="password"
+              v-model:value="password"
               :label="t(`authConfig.${AUTH_TYPE}.password`)"
               :mode="mode"
               required
@@ -142,17 +141,6 @@ export default {
           </div>
         </div>
       </template>
-      <div
-        v-if="!model.enabled"
-        class="row"
-      >
-        <div class="col span-12">
-          <Banner
-            v-clean-html="t('authConfig.associatedWarning', tArgs, true)"
-            color="info"
-          />
-        </div>
-      </div>
     </CruResource>
   </div>
 </template>
@@ -160,7 +148,7 @@ export default {
   .banner {
     display: block;
 
-    &::v-deep code {
+    &:deep() code {
       padding: 0 3px;
       margin: 0 3px;
     }

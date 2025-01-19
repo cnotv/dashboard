@@ -2,8 +2,12 @@
 import { mapGetters } from 'vuex';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { CHARSET, randomStr } from '@shell/utils/string';
+import { copyTextToClipboard } from '@shell/utils/clipboard';
+import { _CREATE } from '@shell/config/query-params';
 
 export default {
+  emits: ['update:value', 'blur'],
+
   components: { LabeledInput },
   props:      {
     value: {
@@ -33,6 +37,10 @@ export default {
     ignorePasswordManagers: {
       default: false,
       type:    Boolean,
+    },
+    mode: {
+      type:    String,
+      default: _CREATE,
     }
   },
   data() {
@@ -45,7 +53,7 @@ export default {
         return this.value;
       },
       set(val) {
-        this.$emit('input', val);
+        this.$emit('update:value', val);
       }
     },
     attributes() {
@@ -60,6 +68,9 @@ export default {
       }
 
       return attributes;
+    },
+    hideShowLabel() {
+      return this.reveal ? this.t('action.hide') : this.t('action.show');
     }
   },
   watch: {
@@ -75,6 +86,7 @@ export default {
     }
   },
   methods: {
+    copyTextToClipboard,
     generatePassword() {
       this.password = randomStr(16, CHARSET.ALPHA_NUM);
     },
@@ -83,6 +95,9 @@ export default {
     },
     focus() {
       this.$refs.input.$refs.value.focus();
+    },
+    hideShowFn() {
+      this.reveal ? this.reveal = false : this.reveal = true;
     }
   }
 };
@@ -92,7 +107,7 @@ export default {
   <div class="password">
     <LabeledInput
       ref="input"
-      v-model="password"
+      v-model:value="password"
       v-bind="attributes"
       :type="isRandom || reveal ? 'text' : 'password'"
       :readonly="isRandom"
@@ -100,6 +115,7 @@ export default {
       :required="required"
       :disabled="isRandom"
       :ignore-password-managers="ignorePasswordManagers"
+      :mode="mode"
       @blur="$emit('blur', $event)"
     >
       <template #suffix>
@@ -109,7 +125,7 @@ export default {
         >
           <a
             href="#"
-            @click.prevent.stop="$copyText(password)"
+            @click.prevent.stop="copyTextToClipboard(password)"
           >{{ t('action.copy') }}</a>
         </div>
         <div
@@ -117,17 +133,15 @@ export default {
           class="addon"
         >
           <a
-            v-if="reveal"
-            tabindex="-1"
             href="#"
-            @click.prevent.stop="reveal = false"
-          >{{ t('action.hide') }}</a>
-          <a
-            v-else
-            tabindex="-1"
-            href="#"
-            @click.prevent.stop="reveal=true"
-          >{{ t('action.show') }}</a>
+            tabindex="0"
+            class="hide-show"
+            role="button"
+            @click.prevent.stop="hideShowFn"
+            @keyup.space.prevent.stop="hideShowFn"
+          >
+            {{ hideShowLabel }}
+          </a>
         </div>
       </template>
     </LabeledInput>
@@ -147,10 +161,16 @@ export default {
   .password {
     display: flex;
     flex-direction: column;
+
     .labeled-input {
       .addon {
-          padding-left: 12px;
-          min-width: 65px;
+        padding-left: 12px;
+        min-width: 65px;
+
+        .hide-show:focus-visible {
+          @include focus-outline;
+          outline-offset: 4px;
+        }
       }
     }
     .genPassword {

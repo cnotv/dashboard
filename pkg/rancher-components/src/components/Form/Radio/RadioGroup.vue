@@ -1,14 +1,15 @@
 <script lang="ts">
-import Vue, { PropType } from 'vue';
+import { PropType, defineComponent } from 'vue';
 import { _VIEW } from '@shell/config/query-params';
 import RadioButton from '@components/Form/Radio/RadioButton.vue';
 
 interface Option {
   value: unknown,
-  label: string
+  label: string,
+  description?: string,
 }
 
-export default Vue.extend({
+export default defineComponent({
   components: { RadioButton },
   props:      {
     /**
@@ -102,6 +103,8 @@ export default Vue.extend({
     }
   },
 
+  emits: ['update:value'],
+
   computed: {
     /**
      * Creates a collection of Options from the provided props.
@@ -161,7 +164,7 @@ export default Vue.extend({
         newIndex = 0;
       }
 
-      this.$emit('input', opts[newIndex].value);
+      this.$emit('update:value', opts[newIndex].value);
     }
   }
 });
@@ -207,17 +210,16 @@ export default Vue.extend({
     >
       <div
         v-for="(option, i) in normalizedOptions"
-        :key="name+'-'+i"
+        :key="i"
       >
         <slot
-          :listeners="$listeners"
+          :v-bind="$attrs"
           :option="option"
           :is-disabled="isDisabled"
           :name="i"
         >
           <!-- Default input -->
           <RadioButton
-            :key="name+'-'+i"
             :name="name"
             :value="value"
             :label="option.label"
@@ -225,7 +227,7 @@ export default Vue.extend({
             :val="option.value"
             :disabled="isDisabled"
             :mode="mode"
-            v-on="$listeners"
+            @update:value="$emit('update:value', $event)"
           />
         </slot>
       </div>

@@ -13,6 +13,8 @@ export const EDITOR_MODES = {
 };
 
 export default {
+  emits: ['update:value', 'newObject', 'onInput', 'onReady', 'onChanges', 'validationChanged'],
+
   components: {
     CodeMirror,
     FileDiff
@@ -103,7 +105,7 @@ export default {
         mode:            'yaml',
         lint:            !readOnly,
         lineNumbers:     !readOnly,
-        styleActiveLine: true,
+        styleActiveLine: false,
         tabSize:         2,
         indentWithTabs:  false,
         cursorBlinkRate: ( readOnly ? -1 : 530 ),
@@ -169,14 +171,14 @@ export default {
 
     onInput(value) {
       if ( !this.asObject ) {
-        this.$emit('input', ...arguments);
+        this.$emit('update:value', ...arguments);
       }
 
       try {
         const parsed = jsyaml.load(value);
 
         if ( this.asObject ) {
-          this.$emit('input', parsed);
+          this.$emit('update:value', parsed);
         } else {
           this.$emit('newObject', parsed);
         }
@@ -229,10 +231,12 @@ export default {
       :class="{fill: true, scrolling: scrolling}"
       :value="curValue"
       :options="codeMirrorOptions"
+      :showKeyMapBox="true"
       :data-testid="componentTestid + '-code-mirror'"
       @onInput="onInput"
       @onReady="onReady"
       @onChanges="onChanges"
+      @validationChanged="$emit('validationChanged', $event)"
     />
     <FileDiff
       v-else
@@ -246,7 +250,7 @@ export default {
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .yaml-editor {
   display: flex;
   flex-direction: column;
@@ -255,7 +259,7 @@ export default {
     flex: 1;
   }
 
-  ::v-deep .code-mirror  {
+  .codemirror-container  {
     position: relative;
 
     .CodeMirror {

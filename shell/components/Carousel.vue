@@ -6,6 +6,8 @@ import { mapGetters } from 'vuex';
 const carouselSeenStorageKey = `carousel-seen`;
 
 export default {
+  emits: ['clicked'],
+
   components: { BadgeState },
   name:       'Carousel',
   props:      {
@@ -111,7 +113,7 @@ export default {
     },
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     if (this.autoScrollSlideInterval) {
       clearInterval(this.autoScrollSlideInterval);
     }
@@ -121,17 +123,23 @@ export default {
     const slideTrack = document.getElementById('slide-track');
 
     if (this.slider.length === 1) {
-      // singleSlide.style = 'width: 100%; max-width: 100%';
       slideTrack.style = 'transform:translateX(0%); width:100%; left:0';
     } else {
       const node = document.getElementById('slide0');
-      const clone = node.cloneNode(true);
+
+      if (node) {
+        const clone = node.cloneNode(true);
+
+        slideTrack.appendChild(clone);
+      }
 
       const nodeLast = document.getElementById(`slide${ this.slider.length - 1 }`);
-      const cloneLast = nodeLast.cloneNode(true);
 
-      slideTrack.appendChild(clone);
-      slideTrack.insertBefore(cloneLast, slideTrack.children[0]);
+      if (nodeLast) {
+        const cloneLast = nodeLast.cloneNode(true);
+
+        slideTrack.insertBefore(cloneLast, slideTrack.children[0]);
+      }
     }
 
     const lastSeenCluster = sessionStorage.getItem(carouselSeenStorageKey);
@@ -142,7 +150,7 @@ export default {
     }
 
     this.autoScrollSlideInterval = setInterval(this.autoScrollSlide, 5000);
-  },
+  }
 
 };
 
@@ -159,7 +167,7 @@ export default {
       :style="trackStyle"
       class="slide-track"
     >
-      <div
+      <component
         :is="asLink ? 'a' : 'div'"
         v-for="(slide, i) in sliders"
         :id="`slide` + i"
@@ -181,11 +189,11 @@ export default {
               :label="slide.repoName"
               color="slider-badge mb-20"
             />
-            <h1>{{ slide.chartNameDisplay }} {{ i + 1 }}</h1>
+            <h1>{{ slide.chartNameDisplay }}</h1>
             <p>{{ slide.chartDescription }}</p>
           </div>
         </div>
-      </div>
+      </component>
     </div>
     <div
       class="controls"
@@ -282,8 +290,10 @@ export default {
   .slide-content {
     display: flex;
     padding: 30px;
+    height: 100%;
 
     .slide-img {
+      align-self: flex-start;
       width: 150px;
       background: var(--card-badge-text);
       border-radius: calc(2 * var(--border-radius));

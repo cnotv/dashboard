@@ -321,3 +321,18 @@ export function sanitizeValue(v) {
 export function sanitizeIP(v) {
   return (v || '').replace(/[^a-z0-9.:_-]/ig, '');
 }
+
+/**
+ * Return the string `<x> / <y>`
+ *
+ * Each param should be a number, otherwise `?` is used
+ */
+export function xOfy(x, y) {
+  return `${ typeof x === 'number' ? x : '?' }/${ typeof y === 'number' ? y : '?' }`;
+}
+
+export function isBase64(value) {
+  const base64regex = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
+
+  return base64regex.test(value);
+}

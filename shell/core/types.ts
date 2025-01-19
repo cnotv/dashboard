@@ -1,5 +1,5 @@
 import { ProductFunction } from './plugin';
-import { RouteConfig, Location } from 'vue-router';
+import { RouteRecordRaw } from 'vue-router';
 
 // Cluster Provisioning types
 export * from './types-provisioning';
@@ -26,7 +26,7 @@ export type CoreStoreInit = (store: any, ctx: any) => void;
 export type RegisterStore = () => (store: any) => void
 export type UnregisterStore = (store: any) => void
 
-export type PluginRouteConfig = {parent?: string, route: RouteConfig}
+export type PluginRouteRecordRaw = { [key: string]: any }
 
 export type OnEnterLeavePackageConfig = {
   clusterId: string,
@@ -235,7 +235,17 @@ export interface ProductOptions {
   /**
    * The route that the product will lead to if click on in navigation.
    */
-  to?: Location;
+  to?: PluginRouteRecordRaw;
+
+  /**
+   * Alternative to the icon property. Uses require
+   */
+  svg?: Function;
+
+  /**
+   * Product name
+   */
+  name?: string;
 
   /**
    * Leaving these here for completeness but I don't think these should be advertised as useable to plugin creators.
@@ -374,9 +384,24 @@ export interface ConfigureTypeOptions {
 
 export interface ConfigureVirtualTypeOptions extends ConfigureTypeOptions {
   /**
+   * Only load the product if the type is present
+   */
+  ifHave?: string;
+
+  /**
+   * Only load the product if the type is present
+   */
+  ifHaveType?: string | RegExp | Object;
+
+  /**
+   * The label that this type should display
+   */
+  label?: string;
+
+  /**
    * The translation key displayed anywhere this type is referenced
    */
-  labelKey: string;
+  labelKey?: string;
 
   /**
    * An identifier that should be unique across all types
@@ -384,9 +409,9 @@ export interface ConfigureVirtualTypeOptions extends ConfigureTypeOptions {
   name: string;
 
   /**
-   * The route that this type should correspond to {@link PluginRouteConfig} {@link RouteConfig}
+   * The route that this type should correspond to {@link PluginRouteRecordRaw} {@link RouteRecordRaw}
    */
-  route: PluginRouteConfig | RouteConfig | Object;
+  route: PluginRouteRecordRaw | RouteRecordRaw | Object;
 }
 
 export interface DSLReturnType {
@@ -488,8 +513,8 @@ export interface IPlugin {
   /**
    * Add a route to the Vue Router
    */
-  addRoute(route: RouteConfig): void;
-  addRoute(parent: string, route: RouteConfig): void;
+  addRoute(route: RouteRecordRaw): void;
+  addRoute(parent: string, route: RouteRecordRaw): void;
 
   /**
    * Adds an action/button to the UI
@@ -525,7 +550,7 @@ export interface IPlugin {
   /**
    * Add routes to the Vue Router
    */
-  addRoutes(routes: PluginRouteConfig[] | RouteConfig[]): void;
+  addRoutes(routes: PluginRouteRecordRaw[] | RouteRecordRaw[]): void;
 
    /**
     * Add a hook to be called when the plugin is uninstalled

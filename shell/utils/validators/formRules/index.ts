@@ -2,9 +2,11 @@ import { RBAC } from '@shell/config/types';
 import { HCI } from '@shell/config/labels-annotations';
 import isEmpty from 'lodash/isEmpty';
 import has from 'lodash/has';
+import isUrl from 'is-url';
 // import uniq from 'lodash/uniq';
 import cronstrue from 'cronstrue';
 import { Translation } from '@shell/types/t';
+import { isHttps, isLocalhost, hasTrailingForwardSlash } from '@shell/utils/validators/setting';
 
 // import uniq from 'lodash/uniq';
 export type Validator<T = undefined | string> = (val: any, arg?: any) => T;
@@ -33,10 +35,6 @@ export class Port {
     this.isInt = this.isNumber && !this.string.includes('.');
   }
 }
-
-const httpsKeys = [
-  'server-url'
-];
 
 const runValidators = (val: any, validators: Validator[]) => {
   for (const validator of validators) {
@@ -133,17 +131,21 @@ export default function(t: Translation, { key = 'Value' }: ValidationOptions): {
 
   const cronSchedule: Validator = (val: string) => {
     try {
-      cronstrue.toString(val);
+      cronstrue.toString(val, { verbose: true });
     } catch (e) {
       return t('validation.invalidCron');
     }
   };
 
-  const isHttps: ValidatorFactory = (key: string) => {
-    const isHttps: Validator = (val: string) => httpsKeys.includes(key) && !val.toLowerCase().startsWith('https://') ? t('validation.setting.serverUrl.https') : undefined;
+  const https: Validator = (val: string) => val && !isHttps(val) ? t('validation.setting.serverUrl.https') : undefined;
 
-    return isHttps;
-  };
+  const localhost: Validator = (val: string) => isLocalhost(val) ? t('validation.setting.serverUrl.localhost') : undefined;
+
+  const trailingForwardSlash: Validator = (val: string) => hasTrailingForwardSlash(val) ? t('validation.setting.serverUrl.trailingForwardSlash') : undefined;
+
+  const url: Validator = (val: string) => val && !isUrl(val) ? t('validation.setting.serverUrl.url') : undefined;
+
+  const alphanumeric: Validator = (val: string) => val && !/^[a-zA-Z0-9]+$/.test(val) ? t('validation.alphanumeric', { key }) : undefined;
 
   const interval: Validator = (val: string) => !/^\d+[hms]$/.test(val) ? t('validation.monitoring.route.interval', { key }) : undefined;
 
@@ -458,6 +460,7 @@ export default function(t: Translation, { key = 'Value' }: ValidationOptions): {
 
   return {
     absolutePath,
+    alphanumeric,
     backupTarget,
     betweenLengths,
     betweenValues,
@@ -475,7 +478,10 @@ export default function(t: Translation, { key = 'Value' }: ValidationOptions): {
     hostname,
     imageUrl,
     interval,
-    isHttps,
+    https,
+    localhost,
+    trailingForwardSlash,
+    url,
     matching,
     maxLength,
     maxValue,
@@ -493,6 +499,6 @@ export default function(t: Translation, { key = 'Value' }: ValidationOptions): {
     servicePort,
     subDomain,
     testRule,
-    wildcardHostname,
+    wildcardHostname
   };
 }

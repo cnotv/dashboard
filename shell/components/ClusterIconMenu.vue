@@ -7,20 +7,28 @@ export default {
       type:     Object,
       required: true,
     },
+    routeCombo: {
+      type:    Boolean,
+      default: false
+    },
   },
   computed: {
     isEnabled() {
       return !!this.cluster?.ready;
     },
     showLocalIcon() {
+      if (this.cluster.isLocal && this.cluster.removePreviewColor) {
+        return true;
+      }
+
       return this.cluster.isLocal && !this.cluster.isHarvester && !this.cluster.badge?.iconText;
     },
-    badgeLogoBorderBottom() {
-      const color = this.cluster.badge?.color;
 
-      return color ? `4px solid ${ color }` : '';
-    }
+    customColor() {
+      return this.cluster.iconColor || '';
+    },
   },
+
   methods: {
     smallIdentifier(input) {
       if (this.cluster.badge?.iconText) {
@@ -45,13 +53,17 @@ export default {
     <div
       class="cluster-badge-logo"
       :class="{ 'disabled': !isEnabled }"
-      :style="{ borderBottom: badgeLogoBorderBottom }"
     >
       <span
+        v-if="!showLocalIcon"
         class="cluster-badge-logo-text"
       >
         {{ smallIdentifier(cluster.label) }}
       </span>
+      <span
+        class="custom-color-decoration"
+        :style="{'background': customColor}"
+      />
       <svg
         v-if="showLocalIcon"
         class="cluster-local-logo"
@@ -92,29 +104,46 @@ export default {
       </svg>
     </div>
     <i
-      v-if="cluster.pinned"
+      v-if="!routeCombo && cluster.pinned"
       class="icon icon-pin cluster-pin-icon"
+    />
+    <i
+      v-else-if="routeCombo"
+      class="icon icon-keyboard_tab key-combo-icon"
     />
   </div>
 </template>
 
 <style lang="scss" scoped>
+  .rancher-icon-fill {
+    fill: var(--primary);
+  }
 
   .cluster-icon-menu {
     position: relative;
     align-items: center;
     display: flex;
-    height: 28px;
+    height: 32px;
     justify-content: center;
     width: 42px;
   }
   .cluster-pin-icon {
     position: absolute;
     top: -6px;
-    right: -4px;
-    font-size: 12px;
+    right: -7px;
+    font-size: 14px;
     transform: scaleX(-1);
     color: var(--body-text);
+  }
+  .key-combo-icon {
+    position: absolute;
+    top: -7px;
+    right: -8px;
+    font-size: 14px;
+    color: var(--body-text);
+    background-color: #dddee6;
+    padding: 2px;
+    border-radius: 2px;
   }
 
   .cluster-local-logo {
@@ -123,21 +152,35 @@ export default {
 
   .cluster-badge-logo {
     width: 42px;
-    height: 28px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--default-active-text);
     font-weight: bold;
     background: var(--nav-icon-badge-bg);
-    border: 1px solid var(--default-border);
+    border: 1px solid var(--border);
     border-radius: 5px;
     font-size: 12px;
     text-transform: uppercase;
 
+    .custom-color-decoration {
+      height: 4px;
+      width: 100%;
+      margin: 0 auto;
+      position: absolute;
+      bottom: 0px;
+      border-radius: 0px 0px 5px 5px;
+    }
+
     &.disabled {
-      filter: grayscale(1);
       color: var(--muted);
     }
+  }
+</style>
+
+<style lang="scss">
+  .theme-dark .key-combo-icon  {
+    color: var(--body-bg);
   }
 </style>

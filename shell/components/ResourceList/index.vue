@@ -45,17 +45,20 @@ export default {
     const schema = this.schema;
 
     if ( this.hasListComponent ) {
-      // If you provide your own list then call its asyncData
+      // If you provide your own list then call its fetch
       const importer = this.listComponent;
-      const component = (await importer())?.default;
+
+      const component = await importer.__asyncLoader();
 
       if ( component?.typeDisplay ) {
         this.customTypeDisplay = component.typeDisplay.apply(this);
       }
 
-      // If your list page has a fetch then it's responsible for populating rows itself
-      if ( component?.fetch ) {
-        this.hasFetch = true;
+      // Is the custom component responsible fetching the resources?
+      // - Component has a fetch method - legacy method. fetch will handle the requests
+      // - Component contains the PaginatedResourceTable component - go forward method. PaginatedResourceTable owns fetching the resources
+      if ( component?.fetch || component?.components?.['PaginatedResourceTable']) {
+        this.componentWillFetch = true;
       }
 
       // If the custom component supports it, ask it what resources it loads, so we can
@@ -68,15 +71,15 @@ export default {
       }
     }
 
-    if ( !this.hasFetch ) {
+    if ( !this.componentWillFetch ) {
       if ( !schema ) {
         store.dispatch('loadingError', new Error(this.t('nav.failWhale.resourceListNotFound', { resource }, true)));
 
         return;
       }
 
-      // See comment for `namespaceFilterRequired` watcher, skip fetch if we don't have a valid NS
-      if (!this.namespaceFilterRequired) {
+      // See comment for `namespaceFilter` and `pagination` watchers, skip fetch if we're not ready yet... and something is going to call fetch later on
+      if (!this.namespaceFilterRequired && (!this.canPaginate || this.refreshFlag)) {
         await this.$fetchType(resource);
       }
     }
@@ -95,7 +98,6 @@ export default {
     const showMasthead = getters[`type-map/optionsFor`](resource).showListMasthead;
 
     return {
-      inStore,
       schema,
       hasListComponent,
       showMasthead:                     showMasthead === undefined ? true : showMasthead,
@@ -103,7 +105,11 @@ export default {
       extensionType:                    ExtensionPoint.PANEL,
       extensionLocation:                PanelLocation.RESOURCE_LIST,
       loadResources:                    [resource], // List of resources that will be loaded, this could be many (`Workloads`)
-      hasFetch:                         false,
+      /**
+       * Will the custom component handle the fetch of resources....
+       * or will this instance fetch resources
+       */
+      componentWillFetch:               false,
       // manual refresh
       manualRefreshInit:                false,
       watch:                            false,
@@ -113,7 +119,7 @@ export default {
       // incremental loading
       loadIndeterminate:                false,
       // query param for simple filtering
-      useQueryParamsForSimpleFiltering: true
+      useQueryParamsForSimpleFiltering: true,
     };
   },
 
@@ -124,7 +130,7 @@ export default {
         return [];
       }
 
-      return this.$store.getters['type-map/headersFor'](this.schema);
+      return this.$store.getters['type-map/headersFor'](this.schema, this.canPaginate);
     },
 
     groupBy() {
@@ -138,6 +144,7 @@ export default {
   },
 
   watch: {
+
     /**
      * When a NS filter is required and the user selects a different one, kick off a new set of API requests
      *
@@ -148,14 +155,46 @@ export default {
      * This covers case 1
      */
     namespaceFilter(neu, old) {
-      if (sameContents(neu, old)) {
+      if (neu && !this.componentWillFetch) {
+        if (sameContents(neu, old)) {
+          return;
+        }
+
+        this.$fetchType(this.resource);
+      }
+    },
+
+    /**
+     * When a pagination is required and the user changes page / sort / filter, kick off a new set of API requests
+     *
+     * ResourceList has two modes
+     * 1) ResourceList component handles API request to fetch resources
+     * 2) Custom list component handles API request to fetch resources
+     *
+     * This covers case 1
+     */
+    pagination(neu, old) {
+      if (neu && !this.componentWillFetch && !this.paginationEqual(neu, old)) {
+        this.$fetchType(this.resource);
+      }
+    },
+
+    /**
+     * Monitor the rows to ensure deleting the last entry in a server-side paginated page doesn't
+     * result in an empty page
+     */
+    rows(neu) {
+      if (!this.pagination) {
         return;
       }
 
-      if (neu && !this.hasFetch) {
-        this.$fetchType(this.resource);
+      if (this.pagination.page > 1 && neu.length === 0) {
+        this.setPagination({
+          ...this.pagination,
+          page: this.pagination.page - 1
+        });
       }
-    }
+    },
   },
 
   created() {
@@ -184,7 +223,20 @@ export default {
       {{ t('resourceList.nsFiltering') }}
     </template>
   </IconMessage>
-  <div v-else>
+  <IconMessage
+    v-else-if="paginationNsFilterRequired"
+    :vertical="true"
+    :subtle="false"
+    icon="icon-filter_alt"
+  >
+    <template #message>
+      {{ t('resourceList.nsFilteringGeneric') }}
+    </template>
+  </IconMessage>
+  <div
+    v-else
+    class="outlet"
+  >
     <Masthead
       v-if="showMasthead"
       :type-display="customTypeDisplay"
@@ -194,7 +246,7 @@ export default {
       :load-resources="loadResources"
       :load-indeterminate="loadIndeterminate"
     >
-      <template slot="extraActions">
+      <template #extraActions>
         <slot name="extraActions" />
       </template>
     </Masthead>
@@ -205,7 +257,9 @@ export default {
       :location="extensionLocation"
     />
 
-    <div v-if="hasListComponent">
+    <div
+      v-if="hasListComponent"
+    >
       <component
         :is="listComponent"
         :incremental-loading-indicator="showIncrementalLoadingIndicator"
@@ -217,6 +271,7 @@ export default {
       v-else
       :schema="schema"
       :rows="rows"
+      :alt-loading="canPaginate && !isFirstLoad"
       :loading="loading"
       :headers="headers"
       :group-by="groupBy"
@@ -225,11 +280,14 @@ export default {
       :adv-filter-prevent-filtering-labels="advFilterPreventFilteringLabels"
       :use-query-params-for-simple-filtering="useQueryParamsForSimpleFiltering"
       :force-update-live-and-delayed="forceUpdateLiveAndDelayed"
+      :external-pagination-enabled="canPaginate"
+      :external-pagination-result="paginationResult"
+      @pagination-changed="paginationChanged"
     />
   </div>
 </template>
 
-  <style lang="scss" scoped>
+<style lang="scss" scoped>
     .header {
       position: relative;
     }
@@ -245,4 +303,4 @@ export default {
       top: 10px;
       right: 10px;
     }
-  </style>
+</style>

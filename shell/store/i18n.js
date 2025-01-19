@@ -58,6 +58,10 @@ export const getters = {
     return out;
   },
 
+  hasMultipleLocales(state) {
+    return state.available.length > 1;
+  },
+
   t: (state) => (key, args, language) => {
     if (state.selected === NONE && !language) {
       return `%${ key }%`;
@@ -308,6 +312,17 @@ export const actions = {
           p.push(dispatch('mergeLoad', { locale, module: fn }));
         });
 
+        // load all of the default locales from the plugins for fallback
+        if (locale !== DEFAULT_LOCALE) {
+          const defaultI18nExt = rootState.$plugin?.getDynamic('l10n', DEFAULT_LOCALE);
+
+          if (defaultI18nExt && defaultI18nExt.length) {
+            defaultI18nExt.forEach((fn) => {
+              p.push(dispatch('mergeLoad', { locale: DEFAULT_LOCALE, module: fn }));
+            });
+          }
+        }
+
         try {
           await Promise.all(p);
         } catch (e) {
@@ -322,7 +337,7 @@ export const actions = {
 
     commit('setSelected', locale);
 
-    // Ony update the preference if the locale changed
+    // Only update the preference if the locale changed
     if (currentLocale !== locale) {
       dispatch('prefs/set', {
         key:   'locale',

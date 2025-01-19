@@ -10,6 +10,8 @@ import { escapeHtml, randomStr } from '@shell/utils/string';
 import { CIS } from '@shell/config/types';
 import { STATE } from '@shell/config/table-headers';
 import { get } from '@shell/utils/object';
+import { allHash } from '@shell/utils/promise';
+import { fetchSpecsScheduledScanConfig } from '@shell/models/cis.cattle.io.clusterscan';
 
 export default {
   components: {
@@ -30,7 +32,16 @@ export default {
   },
 
   async fetch() {
-    this.clusterReports = await this.value.getReports();
+    const inStore = this.$store.getters['currentProduct'].inStore;
+    const schema = this.$store.getters[`${ inStore }/schemaFor`](this.value);
+
+    const hash = await allHash({
+      clusterReports:         this.value.getReports(),
+      // Ensure the clusterscan model has everything it needs
+      hasScheduledScanConfig: fetchSpecsScheduledScanConfig(schema),
+    });
+
+    this.clusterReports = hash.clusterReports;
   },
 
   data() {
@@ -252,8 +263,8 @@ export default {
   <div v-else>
     <div class="detail mb-20">
       <div
-        v-for="item in details"
-        :key="item.label"
+        v-for="(item, i) in details"
+        :key="i"
       >
         <span class="text-label">{{ item.label }}</span>:
         <component
@@ -261,12 +272,12 @@ export default {
           v-if="item.component"
           :value="item.value"
         />
-        <nuxt-link
+        <router-link
           v-else-if="item.to"
           :to="item.to"
         >
           {{ item.value }}
-        </nuxt-link>
+        </router-link>
         <span v-else>{{ item.value }}</span>
       </div>
     </div>
@@ -281,7 +292,7 @@ export default {
       </div>
       <div class="col span-4">
         <LabeledSelect
-          v-model="clusterReport"
+          v-model:value="clusterReport"
           :label="t('cis.reports')"
           :options="clusterReports"
           :get-option-label="reportLabel"

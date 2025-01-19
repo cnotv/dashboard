@@ -19,6 +19,8 @@ import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 
 export default {
+  emits: ['error'],
+
   components: {
     Footer,
     FileSelector,
@@ -190,64 +192,17 @@ export default {
 
       cm.foldLinesMatching(/managedFields/);
 
+      // Allow the model to supply an array of json paths to fold other sections in the YAML for the given resource type
+      if (this.value?.yamlFolding) {
+        this.value.yamlFolding.forEach((path) => cm.foldYaml(path));
+      }
+
       // regardless of edit or create we should probably fold all the comments so they dont get out of hand.
       const saved = cm.getMode().fold;
 
       cm.getMode().fold = 'yamlcomments';
       cm.execCommand('foldAll');
       cm.getMode().fold = saved;
-    },
-
-    onChanges(cm, changes) {
-      if ( changes.length !== 1 ) {
-        return;
-      }
-
-      const change = changes[0];
-
-      if ( change.from.line !== change.to.line ) {
-        return;
-      }
-
-      let line = change.from.line;
-      let str = cm.getLine(line);
-      let maxIndent = indentChars(str);
-
-      if ( maxIndent === null ) {
-        return;
-      }
-
-      cm.replaceRange('', { line, ch: 0 }, { line, ch: 1 }, '+input');
-
-      while ( line > 0 ) {
-        line--;
-        str = cm.getLine(line);
-        const indent = indentChars(str);
-
-        if ( indent === null ) {
-          break;
-        }
-
-        if ( indent < maxIndent ) {
-          cm.replaceRange('', { line, ch: 0 }, { line, ch: 1 }, '+input');
-
-          if ( indent === 0 ) {
-            break;
-          }
-
-          maxIndent = indent;
-        }
-      }
-
-      function indentChars(str) {
-        const match = str.match(/^#(\s+)/);
-
-        if ( match ) {
-          return match[1].length;
-        }
-
-        return null;
-      }
     },
 
     updateValue(value) {
@@ -339,16 +294,14 @@ export default {
 </script>
 
 <template>
-  <div class="root resource-yaml">
+  <div class="root resource-yaml flex-content">
     <YamlEditor
       ref="yamleditor"
-      v-model="currentYaml"
+      v-model:value="currentYaml"
       :initial-yaml-values="initialYaml"
       class="yaml-editor flex-content"
       :editor-mode="editorMode"
-      @onInput="onInput"
       @onReady="onReady"
-      @onChanges="onChanges"
     />
     <slot
       name="yamlFooter"
@@ -357,9 +310,12 @@ export default {
       :yamlPreview="preview"
       :yamlSave="save"
       :yamlUnpreview="unpreview"
+      :canDiff="canDiff"
     >
       <Footer
         v-if="showFooter"
+        class="footer"
+        :class="{ 'edit': !isView }"
         :mode="mode"
         :errors="errors"
         @save="save"
@@ -403,11 +359,29 @@ export default {
 </template>
 
 <style lang='scss' scoped>
-.flex-content {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-}
+  .flex-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .footer {
+    margin-top: 20px;
+    right: 0;
+    position: sticky;
+    bottom: 0;
+    background-color: var(--header-bg);
+
+    // Overrides outlet padding
+    margin-left: -$space-m;
+    margin-right: -$space-m;
+    margin-bottom: -$space-m;
+    padding: $space-s $space-m;
+
+    &.edit {
+      border-top: var(--header-border-size) solid var(--header-border);
+    }
+  }
 </style>
 
 <style lang="scss">
@@ -418,6 +392,10 @@ export default {
 
   footer .actions {
     text-align: right;
+  }
+
+  .spacer-small {
+    padding: 0;
   }
 }
 

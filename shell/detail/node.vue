@@ -11,7 +11,6 @@ import {
   VALUE
 } from '@shell/config/table-headers';
 import ResourceTabs from '@shell/components/form/ResourceTabs';
-import EmberPage from '@shell/components/EmberPage';
 import { METRIC, POD } from '@shell/config/types';
 import createEditView from '@shell/mixins/create-edit-view';
 import { formatSi, exponentNeeded, UNITS } from '@shell/utils/units';
@@ -20,13 +19,15 @@ import { mapGetters } from 'vuex';
 import { allDashboardsExist } from '@shell/utils/grafana';
 import Loading from '@shell/components/Loading';
 import metricPoller from '@shell/mixins/metric-poller';
-import { haveV1Monitoring } from '@shell/utils/monitoring';
+import { FilterArgs, PaginationParamFilter } from '@shell/types/store/pagination.types';
 
 const NODE_METRICS_DETAIL_URL = '/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/d/rancher-node-detail-1/rancher-node-detail?orgId=1';
 const NODE_METRICS_SUMMARY_URL = '/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/d/rancher-node-1/rancher-node?orgId=1';
 
 export default {
   name: 'DetailNode',
+
+  emits: ['input'],
 
   components: {
     Alert,
@@ -36,7 +37,6 @@ export default {
     ResourceTabs,
     Tab,
     ResourceTable,
-    EmberPage,
   },
 
   mixins: [createEditView, metricPoller],
@@ -49,25 +49,32 @@ export default {
   },
 
   async fetch() {
-    this.showMetrics = await allDashboardsExist(this.$store, this.currentCluster.id, [NODE_METRICS_DETAIL_URL, NODE_METRICS_SUMMARY_URL]);
+    this.filterByApi = this.$store.getters[`cluster/paginationEnabled`](POD);
 
-    if (haveV1Monitoring(this.$store.getters)) {
-      const v3Nodes = await this.$store.dispatch('rancher/request', {
-        url:    '/v3/nodes',
-        method: 'get'
-      });
+    if (this.filterByApi) {
+      // Only get pods associated with this node. The actual values used are from a get all in node model `pods` getter (this works as it just gets all...)
+      const opt = { // Of type ActionFindPageArgs
+        pagination: new FilterArgs({
+          sort:    [{ field: 'metadata.name', asc: true }],
+          filters: PaginationParamFilter.createSingleField({
+            field: 'spec.nodeName',
+            value: this.value.id,
+          })
+        })
+      };
 
-      this.v3Nodes = v3Nodes;
+      this.$store.dispatch(`cluster/findPage`, { type: POD, opt });
+    } else {
+      this.$store.dispatch('cluster/findAll', { type: POD });
     }
 
-    return this.$store.dispatch('cluster/findAll', { type: POD });
+    this.showMetrics = await allDashboardsExist(this.$store, this.currentCluster.id, [NODE_METRICS_DETAIL_URL, NODE_METRICS_SUMMARY_URL]);
   },
 
   data() {
     const podSchema = this.$store.getters['cluster/schemaFor'](POD);
 
     return {
-      v3Nodes:          null,
       metrics:          { cpu: 0, memory: 0 },
       infoTableHeaders: [
         {
@@ -93,28 +100,13 @@ export default {
       podTableHeaders: this.$store.getters['type-map/headersFor'](podSchema),
       NODE_METRICS_DETAIL_URL,
       NODE_METRICS_SUMMARY_URL,
-      showMetrics:     false
+      showMetrics:     false,
+      filterByApi:     undefined,
     };
   },
 
   computed: {
     ...mapGetters(['currentCluster']),
-    v1MonitoringUrl() {
-      if (this.v3Nodes && this.v3Nodes.data) {
-        const node = this.v3Nodes.data.find((n) => {
-          return n.nodeName === this.value.metadata?.name;
-        });
-
-        if (node) {
-          // Custom page just with node metrics graphs
-          const id = this.currentCluster.id;
-
-          return `/k/${ id }/monitoring/${ node.id }/metrics`;
-        }
-      }
-
-      return null;
-    },
     memoryUnits() {
       const exponent = exponentNeeded(this.value.ramReserved, 1024);
 
@@ -244,8 +236,9 @@ export default {
     </div>
     <div class="spacer" />
     <ResourceTabs
-      v-model="value"
+      :value="value"
       :mode="mode"
+      @update:value="$emit('input', $event)"
     >
       <Tab
         name="pods"
@@ -319,19 +312,6 @@ export default {
           :table-actions="false"
           :search="false"
         />
-      </Tab>
-      <Tab
-        v-if="v1MonitoringUrl"
-        name="v1Metrics"
-        :label="t('node.detail.tab.metrics')"
-        :weight="0"
-      >
-        <div id="ember-anchor">
-          <EmberPage
-            inline="ember-anchor"
-            :src="v1MonitoringUrl"
-          />
-        </div>
       </Tab>
     </ResourceTabs>
   </div>

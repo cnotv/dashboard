@@ -3,10 +3,15 @@ import CreateEditView from '@shell/mixins/create-edit-view';
 import KeyValue from '@shell/components/form/KeyValue';
 import { Banner } from '@components/Banner';
 import { simplify, iffyFields, likelyFields } from '@shell/store/plugins';
+import Loading from '@shell/components/Loading';
 
 export default {
-  components: { KeyValue, Banner },
-  mixins:     [CreateEditView],
+  emits: ['validationChanged'],
+
+  components: {
+    KeyValue, Banner, Loading
+  },
+  mixins: [CreateEditView],
 
   props: {
     driverName: {
@@ -15,19 +20,19 @@ export default {
     }
   },
 
-  data() {
+  async fetch() {
     let keyOptions = [];
 
-    const normanType = this.$store.getters['plugins/credentialFieldForDriver'](this.driverName);
-    const normanSchema = this.$store.getters['rancher/schemaFor'](`${ normanType }credentialconfig`);
+    const { normanSchema } = this;
 
     if ( normanSchema?.resourceFields ) {
       keyOptions = Object.keys(normanSchema.resourceFields);
     } else {
-      keyOptions = this.$store.getters['plugins/fieldNamesForDriver'](this.driverName);
+      keyOptions = await this.$store.getters['plugins/fieldNamesForDriver'](this.driverName);
     }
 
-    // Prepopulate empty values for keys that sound like they're cloud-credential-ey
+    this.keyOptions = keyOptions;
+
     const keys = [];
 
     for ( const k of keyOptions ) {
@@ -43,11 +48,16 @@ export default {
         this.value.setData(k, '');
       }
     }
+  },
+
+  data() {
+    const normanType = this.$store.getters['plugins/credentialFieldForDriver'](this.driverName);
+    const normanSchema = this.$store.getters['rancher/schemaFor'](`${ normanType }credentialconfig`);
 
     return {
       hasSupport: !!normanSchema,
-      keyOptions,
       errors:     null,
+      normanSchema,
     };
   },
 
@@ -67,7 +77,8 @@ export default {
 </script>
 
 <template>
-  <div>
+  <Loading v-if="$fetchState.pending" />
+  <div v-else>
     <Banner
       v-if="!hasSupport"
       color="info"
@@ -83,7 +94,7 @@ export default {
       :add-allowed="!hasSupport"
       :remove-allowed="!hasSupport"
       :initial-empty-row="true"
-      @input="update"
+      @update:value="update"
     />
   </div>
 </template>

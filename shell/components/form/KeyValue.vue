@@ -11,9 +11,12 @@ import FileSelector from '@shell/components/form/FileSelector';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { asciiLike } from '@shell/utils/string';
 import CodeMirror from '@shell/components/CodeMirror';
+import isEqual from 'lodash/isEqual';
 
 export default {
   name: 'KeyValue',
+
+  emits: ['focusKey', 'update:value'],
 
   components: {
     CodeMirror,
@@ -58,10 +61,8 @@ export default {
     },
 
     protip: {
-      type: [String, Boolean],
-      default() {
-        return this.$store.getters['i18n/t']('keyValue.protip', null, true);
-      },
+      type:    [String, Boolean],
+      default: '',
     },
     // For asMap=false, the name of the field that goes into the row objects
     keyName: {
@@ -69,10 +70,8 @@ export default {
       default: 'key',
     },
     keyLabel: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('generic.key');
-      },
+      type:    String,
+      default: '',
     },
     keyEditable: {
       type:    Boolean,
@@ -93,10 +92,8 @@ export default {
       default: false,
     },
     keyPlaceholder: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('keyValue.keyPlaceholder');
-      },
+      type:    String,
+      default: '',
     },
     /**
      * List of keys which needs to be disabled and hidden based on toggler
@@ -122,16 +119,12 @@ export default {
       default: 'value',
     },
     valueLabel: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('generic.value');
-      },
+      type:    String,
+      default: '',
     },
     valuePlaceholder: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('keyValue.valuePlaceholder');
-      },
+      type:    String,
+      default: '',
     },
     valueCanBeEmpty: {
       type:    Boolean,
@@ -184,10 +177,8 @@ export default {
       default: () => {},
     },
     addLabel: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('generic.add');
-      },
+      type:    String,
+      default: '',
     },
     addIcon: {
       type:    String,
@@ -196,12 +187,6 @@ export default {
     addAllowed: {
       type:    Boolean,
       default: true,
-    },
-    readLabel: {
-      type: String,
-      default() {
-        return this.$store.getters['i18n/t']('generic.readFromFile');
-      },
     },
     readIcon: {
       type:    String,
@@ -237,7 +222,7 @@ export default {
     },
     parserSeparators: {
       type:    Array,
-      default: () => [': ', '='],
+      default: () => [':', '='],
     },
     loading: {
       default: false,
@@ -262,10 +247,29 @@ export default {
     return {
       rows,
       codeMirrorFocus: {},
+      lastUpdated:     null
     };
   },
-
   computed: {
+    _protip() {
+      return this.protip || this.t('keyValue.protip', null, true);
+    },
+    _keyLabel() {
+      return this.keyLabel || this.t('generic.key');
+    },
+    _keyPlaceholder() {
+      return this.keyPlaceholder || this.t('keyValue.keyPlaceholder');
+    },
+    _valueLabel() {
+      return this.valueLabel || this.t('generic.value');
+    },
+    _valuePlaceholder() {
+      return this.valuePlaceholder || this.t('keyValue.valuePlaceholder');
+    },
+    _addLabel() {
+      return this.addLabel || this.t('generic.add');
+    },
+
     isView() {
       return this.mode === _VIEW;
     },
@@ -303,14 +307,28 @@ export default {
     this.queueUpdate = debounce(this.update, 500);
   },
   watch: {
-    defaultValue(neu) {
-      if (Array.isArray(neu)) {
-        this.rows = this.getRows(neu);
-        this.$emit('input', neu);
+    /**
+     * KV works with v-model:value=value
+     * value is transformed into this.rows (base64 decode, mark supported etc)
+     * on input, this.update constructs a new value from this.rows and emits
+     * if the parent component changes value, KV needs to re-compute this.rows
+     * If the value changes because the user has edited it using KV, then KV should NOT re-compute rows
+     * the value watcher will compare the last value KV emitted with the new value KV detects and re-compute rows if they don't match
+     */
+    value: {
+      deep: true,
+      handler(neu, old) {
+        this.valuePropChanged(neu, old);
       }
     }
   },
   methods: {
+    valuePropChanged(neu) {
+      if (!isEqual(neu, this.lastUpdated)) {
+        this.rows = this.getRows(neu);
+      }
+    },
+
     isProtected(key) {
       return this.protectedKeys && this.protectedKeys.includes(key);
     },
@@ -343,6 +361,7 @@ export default {
 
         for ( const row of input ) {
           let value = row[this.valueName] || '';
+
           const decodedValue = base64Decode(row[this.valueName]);
           const asciiValue = asciiLike(decodedValue);
 
@@ -411,7 +430,7 @@ export default {
         return (row.value.length || row.key.length);
       });
 
-      this.$set(this, 'rows', cleaned);
+      this['rows'] = cleaned;
     },
     onFileSelected(file) {
       const { name, value } = this.fileModifier(file.name, file.value);
@@ -494,16 +513,18 @@ export default {
           return entry;
         });
       }
-      this.$emit('input', out);
+      this.lastUpdated = out;
+
+      this.$emit('update:value', out);
     },
-    onPaste(index, event, pastedValue) {
+    onPaste(index, event) {
       const text = event.clipboardData.getData('text/plain');
       const lines = text.split('\n');
       const splits = lines.map((line) => {
-        const splitter = !line.includes(':') || ((line.indexOf('=') < line.indexOf(':')) && line.includes(':')) ? '=' : ':';
+        const splitter = this.parserSeparators.find((sep) => line.includes(sep));
 
-        return line.split(splitter);
-      });
+        return splitter ? line.split(splitter) : '';
+      }).filter((split) => split && split.length > 0);
 
       if (splits.length === 0 || (splits.length === 1 && splits[0].length < 2)) {
         return;
@@ -547,7 +568,7 @@ export default {
      * Set focus on CodeMirror fields
      */
     onFocusMarkdownMultiline(idx, value) {
-      this.$set(this.codeMirrorFocus, idx, value);
+      this.codeMirrorFocus[idx] = value;
     },
     onValueFileSelected(idx, file) {
       const { name, value } = file;
@@ -586,19 +607,19 @@ export default {
     >
       <template v-if="rows.length || isView">
         <label class="text-label">
-          {{ keyLabel }}
+          {{ _keyLabel }}
           <i
-            v-if="protip && !isView && addAllowed"
-            v-clean-tooltip="protip"
+            v-if="_protip && !isView && addAllowed"
+            v-clean-tooltip="_protip"
             class="icon icon-info"
           />
         </label>
         <label class="text-label">
-          {{ valueLabel }}
+          {{ _valueLabel }}
         </label>
         <label
-          v-for="c in extraColumns"
-          :key="c"
+          v-for="(c, i) in extraColumns"
+          :key="i"
         >
           <slot :name="'label:'+c">{{ c }}</slot>
         </label>
@@ -620,10 +641,10 @@ export default {
       <template
         v-for="(row,i) in filteredRows"
         v-else
+        :key="i"
       >
         <!-- Key -->
         <div
-          :key="i+'key'"
           class="kv-item key"
         >
           <slot
@@ -638,20 +659,22 @@ export default {
             <Select
               v-if="keyOptions"
               ref="key"
-              v-model="row[keyName]"
+              v-model:value="row[keyName]"
               :searchable="true"
               :disabled="disabled || isProtected(row.key)"
               :clearable="false"
               :taggable="keyTaggable"
               :options="calculateOptions(row[keyName])"
-              @input="queueUpdate"
+              :data-testid="`select-kv-item-key-${i}`"
+              @update:value="queueUpdate"
             />
             <input
               v-else
               ref="key"
               v-model="row[keyName]"
               :disabled="isView || disabled || !keyEditable || isProtected(row.key)"
-              :placeholder="keyPlaceholder"
+              :placeholder="_keyPlaceholder"
+              :data-testid="`input-kv-item-key-${i}`"
               @input="queueUpdate"
               @paste="onPaste(i, $event)"
             >
@@ -660,7 +683,7 @@ export default {
 
         <!-- Value -->
         <div
-          :key="i+'value'"
+          :data-testid="`kv-item-value-${i}`"
           class="kv-item value"
         >
           <slot
@@ -694,26 +717,27 @@ export default {
                 @onFocus="onFocusMarkdownMultiline(i, $event)"
               />
               <TextAreaAutoGrow
-                v-else-if="valueMultiline"
-                v-model="row[valueName]"
+                v-else-if="valueMultiline && row[valueName] !== undefined"
+                v-model:value="row[valueName]"
                 data-testid="value-multiline"
                 :class="{'conceal': valueConcealed}"
                 :disabled="disabled || isProtected(row.key)"
                 :mode="mode"
-                :placeholder="valuePlaceholder"
+                :placeholder="_valuePlaceholder"
                 :min-height="40"
                 :spellcheck="false"
-                @input="queueUpdate"
+                @update:value="queueUpdate"
               />
               <input
                 v-else
                 v-model="row[valueName]"
                 :disabled="isView || disabled || isProtected(row.key)"
                 :type="valueConcealed ? 'password' : 'text'"
-                :placeholder="valuePlaceholder"
+                :placeholder="_valuePlaceholder"
                 autocorrect="off"
                 autocapitalize="off"
                 spellcheck="false"
+                :data-testid="`input-kv-item-value-${i}`"
                 @input="queueUpdate"
               >
               <FileSelector
@@ -727,14 +751,15 @@ export default {
           </slot>
         </div>
         <div
-          v-for="c in extraColumns"
-          :key="i + c"
+          v-for="(c, j) in extraColumns"
+          :key="`${i}-${j}`"
           class="kv-item extra"
         >
           <slot
             :name="'col:' + c"
             :row="row"
             :queue-update="queueUpdate"
+            :i="i"
           />
         </div>
         <div
@@ -773,13 +798,14 @@ export default {
           v-if="addAllowed"
           type="button"
           class="btn role-tertiary add"
+          data-testid="add_link_button"
           :disabled="loading || disabled || (keyOptions && filteredKeyOptions.length === 0)"
           @click="add()"
         >
           <i
             v-if="loading"
             class="mr-5 icon icon-spinner icon-spin icon-lg"
-          /> {{ addLabel }}
+          /> {{ _addLabel }}
         </button>
         <FileSelector
           v-if="readAllowed"

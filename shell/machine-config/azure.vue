@@ -12,6 +12,8 @@ import { Checkbox } from '@components/Form/Checkbox';
 import ArrayList from '@shell/components/form/ArrayList';
 import { randomStr } from '@shell/utils/string';
 import { addParam, addParams } from '@shell/utils/url';
+import { NORMAN } from '@shell/config/types';
+import { findBy } from '@shell/utils/array';
 import KeyValue from '@shell/components/form/KeyValue';
 import { RadioGroup } from '@components/Form/Radio';
 import { _CREATE, _EDIT } from '@shell/config/query-params';
@@ -92,9 +94,10 @@ const storageTypes = [
     value: 'StandardSSD_LRS'
   }
 ];
-const DEFAULT_REGION = 'westus';
 
 export default {
+  emits: ['expandAdvanced', 'error'],
+
   components: {
     ArrayList,
     Banner,
@@ -148,6 +151,12 @@ export default {
       }
       if (!isEmpty(environment)) {
         this.value.environment = environment;
+      } else if (this.loadedCredentialIdFor !== this.credentialId) {
+        this.allCredentials = await this.$store.dispatch('rancher/findAll', { type: NORMAN.CLOUD_CREDENTIAL });
+
+        const currentCredential = this.allCredentials.find((obj) => obj.id === this.credentialId);
+
+        this.value.environment = currentCredential.azurecredentialConfig.environment;
       }
       if (!isEmpty(subscriptionId)) {
         this.value.subscriptionId = subscriptionId;
@@ -156,24 +165,29 @@ export default {
         this.value.tenantId = tenantId;
       }
 
-      this.locationOptions = await this.$store.dispatch('management/request', {
-        url:    addParam('/meta/aksLocations', 'cloudCredentialId', this.credentialId),
-        method: 'GET',
-      });
+      if (this.loadedCredentialIdFor !== this.credentialId) {
+        this.locationOptions = await this.$store.dispatch('management/request', {
+          url:    addParam('/meta/aksLocations', 'cloudCredentialId', this.credentialId),
+          method: 'GET',
+        });
 
-      if (this.mode === _CREATE) {
-        this.value.location = DEFAULT_REGION;
+        this.loadedCredentialIdFor = this.credentialId;
+      }
 
       // when you edit an Azure cluster and add a new machine pool (edit)
       // the location field doesn't come populated which causes the vmSizes request
       // to return 200 but with a null response (also a bunch of other fields are undefined...)
       // so let's prefill them with the defaults
-      } else if (this.mode === _EDIT && !this.value?.location) {
+      if (this.mode === _EDIT && !this.value?.location) {
         for (const key in this.defaultConfig) {
           if (this.value[key] === undefined) {
-            this.$set(this.value, key, this.defaultConfig[key]);
+            this.value[key] = this.defaultConfig[key];
           }
         }
+      }
+
+      if (!this.value.location || !findBy(this.locationOptions, 'name', this.value.location)) {
+        this.locationOptions?.length && this.setLocation(this.locationOptions[this.locationOptions.length - 1]);
       }
 
       this.vmSizes = await this.$store.dispatch('management/request', {
@@ -206,11 +220,17 @@ export default {
       useAvailabilitySet: false,
       vmSizes:            [],
       valueCopy:          this.value,
+
+      loadedCredentialIdFor: null
     };
   },
 
   watch: {
     credentialId() {
+      this.$fetch();
+    },
+
+    'value.location'() {
       this.$fetch();
     },
 
@@ -392,7 +412,7 @@ export default {
     if (this.mode === 'create') {
       for (const key in this.defaultConfig) {
         if (this.value[key] === undefined) {
-          this.$set(this.value, key, this.defaultConfig[key]);
+          this.value[key] = this.defaultConfig[key];
         }
       }
       merge(this.value, this.defaultConfig);
@@ -467,7 +487,7 @@ export default {
         ary.push(k, tags[k]);
       }
 
-      this.$set(this.value, 'tags', ary.join(','));
+      this.value['tags'] = ary.join(',');
     },
     handleAzChange() {
       if (this.value.availabilitySet) {
@@ -501,19 +521,6 @@ export default {
     <div class="row mt-20">
       <div class="col span-6">
         <LabeledSelect
-          v-model="value.environment"
-          :mode="mode"
-          :options="azureEnvironments"
-          option-key="value"
-          option-label="value"
-          :searchable="false"
-          :required="true"
-          :label="t('cluster.machineConfig.azure.environment.label')"
-          :disabled="disabled"
-        />
-      </div>
-      <div class="col span-6">
-        <LabeledSelect
           :value="value.location"
           :mode="mode"
           :options="locationOptionsInDropdown"
@@ -523,14 +530,26 @@ export default {
           :required="true"
           :label="t('cluster.machineConfig.azure.location.label')"
           :disabled="disabled"
-          @input="setLocation"
+          data-testid="machineConfig-azure-location"
+          @update:value="setLocation"
         />
+      </div>
+      <div data-testid="machineConfig-azure-environment-value">
+        <label
+          v-clean-tooltip="t('cluster.machineConfig.azure.environment.tooltip')"
+          :style="{'display':'block'}"
+          class="text-label"
+        >
+          {{ t('cluster.machineConfig.azure.environment.label') }}
+          <i class="icon icon-sm icon-info" />
+        </label>
+        <span>{{ value.environment }}</span>
       </div>
     </div>
     <div class="row mt-20">
       <div class="col span-4">
         <LabeledInput
-          v-model="value.resourceGroup"
+          v-model:value="value.resourceGroup"
           :mode="mode"
           :label="t('cluster.machineConfig.azure.resourceGroup.label')"
           :disabled="disabled"
@@ -542,7 +561,7 @@ export default {
         class="col span-4"
       >
         <LabeledInput
-          v-model="value.availabilitySet"
+          v-model:value="value.availabilitySet"
           :mode="mode"
           :label="t('cluster.machineConfig.azure.availabilitySet.label')"
           :tooltip="t('cluster.machineConfig.azure.availabilitySet.description')"
@@ -559,13 +578,13 @@ export default {
         />
         <LabeledSelect
           v-else
-          v-model="value.availabilityZone"
+          v-model:value="value.availabilityZone"
           :mode="mode"
           :options="availableZones"
           :label="t('cluster.machineConfig.azure.availabilityZone.label')"
           :tooltip="t('cluster.machineConfig.azure.availabilityZone.description')"
           :disabled="disabled || !!vmAvailabilityZoneWarning"
-          @input="handleAzChange"
+          @update:value="handleAzChange"
         />
         <Banner
           v-if="vmAvailabilityZoneWarning"
@@ -575,7 +594,7 @@ export default {
       </div>
       <div class="col span-4">
         <RadioGroup
-          v-model="useAvailabilitySet"
+          v-model:value="useAvailabilitySet"
           name="etcd-s3"
           :options="[true, false]"
           :labels="[t('cluster.machineConfig.azure.availabilitySet.label'),t('cluster.machineConfig.azure.availabilityZone.label')]"
@@ -587,7 +606,7 @@ export default {
     <div class="row mt-20">
       <div class="col span-6">
         <LabeledInput
-          v-model="value.image"
+          v-model:value="value.image"
           :mode="mode"
           :label="t('cluster.machineConfig.azure.image.label')"
           :tooltip="t('cluster.machineConfig.azure.image.help')"
@@ -601,7 +620,7 @@ export default {
         />
         <LabeledSelect
           v-else
-          v-model="value.size"
+          v-model:value="value.size"
           :mode="mode"
           :options="vmSizeOptionsForDropdown"
           :get-option-label="getVmSizeOptionLabel"
@@ -631,7 +650,7 @@ export default {
         <div class="row mt-20">
           <div class="col span-6">
             <LabeledInput
-              v-model="value.faultDomainCount"
+              v-model:value="value.faultDomainCount"
               :mode="mode"
               :label="t('cluster.machineConfig.azure.faultDomainCount.label')"
               :tooltip="t('cluster.machineConfig.azure.faultDomainCount.help')"
@@ -640,7 +659,7 @@ export default {
           </div>
           <div class="col span-6">
             <LabeledInput
-              v-model="value.updateDomainCount"
+              v-model:value="value.updateDomainCount"
               :mode="mode"
               :label="t('cluster.machineConfig.azure.updateDomainCount.label')"
               :tooltip="t('cluster.machineConfig.azure.updateDomainCount.help')"
@@ -654,7 +673,7 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <LabeledInput
-            v-model="value.plan"
+            v-model:value="value.plan"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.plan.label')"
             :placeholder="t('cluster.machineConfig.azure.plan.placeholder')"
@@ -667,7 +686,7 @@ export default {
       <div class="row mt-20 mb-20">
         <div class="col span-6">
           <LabeledInput
-            v-model="value.subnet"
+            v-model:value="value.subnet"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.subnet.label')"
             :disabled="disabled"
@@ -675,7 +694,7 @@ export default {
         </div>
         <div class="col span-6">
           <LabeledInput
-            v-model="value.subnetPrefix"
+            v-model:value="value.subnetPrefix"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.subnetPrefix.label')"
             :disabled="disabled"
@@ -685,7 +704,7 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <Checkbox
-            v-model="value.acceleratedNetworking"
+            v-model:value="value.acceleratedNetworking"
             :disabled="(!value.acceleratedNetworking && !selectedVmSizeSupportsAN)"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.acceleratedNetworking.label')"
@@ -700,7 +719,7 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <LabeledInput
-            v-model="value.vnet"
+            v-model:value="value.vnet"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.vnet.label')"
             :placeholder="t('cluster.machineConfig.azure.vnet.placeholder')"
@@ -710,17 +729,17 @@ export default {
         <div class="col span-6 inline-banner-container">
           <h3><t k="cluster.machineConfig.azure.publicIpOptions.header" /></h3>
           <Checkbox
-            v-model="value.noPublicIp"
+            v-model:value="value.noPublicIp"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.publicIpOptions.noPublic.label')"
           />
           <Checkbox
-            v-model="value.staticPublicIp"
+            v-model:value="value.staticPublicIp"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.publicIpOptions.staticPublicIp.label')"
           />
           <Checkbox
-            v-model="value.enablePublicIpStandardSku"
+            v-model:value="value.enablePublicIpStandardSku"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.publicIpOptions.standardSKU.label')"
           />
@@ -749,12 +768,12 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <Checkbox
-            v-model="value.usePrivateIp"
+            v-model:value="value.usePrivateIp"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.usePrivateIp.label')"
           />
           <LabeledInput
-            v-model="value.privateIpAddress"
+            v-model:value="value.privateIpAddress"
             :mode="mode"
             class="mt-10"
             :label="t('cluster.machineConfig.azure.privateIp.label')"
@@ -765,7 +784,7 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <LabeledInput
-            v-model="value.nsg"
+            v-model:value="value.nsg"
             :mode="mode"
             class="mt-10"
             :label="t('cluster.machineConfig.azure.nsg.label')"
@@ -775,7 +794,7 @@ export default {
         </div>
         <div class="col span-6">
           <LabeledInput
-            v-model="value.dns"
+            v-model:value="value.dns"
             :mode="mode"
             class="mt-10"
             :label="t('cluster.machineConfig.azure.dns.label')"
@@ -789,7 +808,7 @@ export default {
       <div class="row mt-20 mb-20">
         <div class="col span-6">
           <LabeledSelect
-            v-model="value.storageType"
+            v-model:value="value.storageType"
             :mode="mode"
             :options="storageTypes"
             :searchable="false"
@@ -807,7 +826,7 @@ export default {
         </div>
         <div class="col span-6 inline-banner-container">
           <Checkbox
-            v-model="value.managedDisks"
+            v-model:value="value.managedDisks"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.managedDisks.label')"
             :disabled="disabled"
@@ -822,7 +841,7 @@ export default {
       <div class="row">
         <div class="col span-6">
           <LabeledInput
-            v-model="value.diskSize"
+            v-model:value="value.diskSize"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.managedDisksSize.label')"
             :disabled="disabled"
@@ -830,7 +849,7 @@ export default {
         </div>
         <div class="col span-6">
           <LabeledInput
-            v-model="value.sshUser"
+            v-model:value="value.sshUser"
             :mode="mode"
             :label="t('cluster.machineConfig.azure.sshUser.label')"
             :disabled="disabled"
@@ -840,7 +859,7 @@ export default {
       <div class="row mt-20">
         <div class="col span-6">
           <ArrayList
-            v-model="value.openPort"
+            v-model:value="value.openPort"
             table-class="fixed"
             :mode="mode"
             :title="t('cluster.machineConfig.azure.openPort.label')"
@@ -863,7 +882,7 @@ export default {
             :add-label="t('labels.addTag')"
             :initial-empty-row="true"
             :disabled="disabled"
-            @input="updateTags"
+            @update:value="updateTags"
           />
         </div>
       </div>

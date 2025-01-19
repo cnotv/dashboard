@@ -47,9 +47,10 @@ Cypress.Commands.add('interceptAllRequests', (method = '/GET/POST/PUT/PATCH/', u
  * Logout of Rancher
  */
 Cypress.Commands.add('logout', () => {
-  cy.intercept('POST', '/v3/tokens?action=logout').as('loggedOut');
+  // Commented the incercept here as per issue: https://github.com/rancher/rancher/issues/46795
+  //   cy.intercept('POST', '/v3/tokens?action=logout').as('loggedOut');
   cy.visit('/auth/logout?logged-out=true');
-  cy.wait('@loggedOut').its('response.statusCode').should('eq', 200);
+  //   cy.wait('@loggedOut').its('response.statusCode').should('eq', 200);
 });
 
 Cypress.Commands.add('iFrame', () => {
@@ -58,4 +59,42 @@ Cypress.Commands.add('iFrame', () => {
     .its('0.contentDocument.body', { log: false })
     .should('not.be.empty')
     .then((body) => cy.wrap(body));
+});
+
+const runTimestamp = +new Date();
+
+/**
+ * Get root resource name
+ */
+Cypress.Commands.add('getRootE2EResourceName', () => {
+  return cy.wrap(`e2e-test-${ runTimestamp }`);
+});
+
+/**
+ * Create resource name
+ */
+Cypress.Commands.add('createE2EResourceName', (context, options = { prefixContext: false, onlyContext: false }) => {
+  if (options?.onlyContext) {
+    return cy.wrap(context);
+  }
+
+  return cy.getRootE2EResourceName().then((root) => options?.prefixContext ? `${ context }-${ root }` : `${ root }-${ context }`);
+});
+
+// See: https://stackoverflow.com/questions/74785083/how-can-i-get-a-custom-css-variable-from-any-element-cypress
+Cypress.Commands.add('shouldHaveCssVar', { prevSubject: true }, (subject, styleName, cssVarName) => {
+  cy.document().then((doc) => {
+    const dummy = doc.createElement('span');
+
+    dummy.style.setProperty(styleName, `var(${ cssVarName })`);
+    doc.body.appendChild(dummy);
+
+    const evaluatedStyle = window.getComputedStyle(dummy).getPropertyValue(styleName).trim();
+
+    dummy.remove();
+
+    cy.wrap(subject)
+      .then(($el) => window.getComputedStyle($el[0]).getPropertyValue(styleName).trim())
+      .should('eq', evaluatedStyle);
+  });
 });

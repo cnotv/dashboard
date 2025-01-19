@@ -13,10 +13,7 @@ export default {
   },
 
   async fetch() {
-    this.clusters = await this.$store.dispatch('management/findAll', {
-      type: MANAGEMENT.CLUSTER,
-      opt:  { url: MANAGEMENT.CLUSTER }
-    });
+    this.clusters = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.CLUSTER });
   },
 
   data() {
@@ -136,23 +133,23 @@ export default {
         {{ t('generic.links') }}
       </div>
       <div class="glance-item">
-        <nuxt-link
+        <router-link
           :to="exploreLink"
           class="cluster-link"
         >
           {{ t('nav.categories.explore') }}
-        </nuxt-link>
+        </router-link>
       </div>
       <div
         v-if="showClusterTools"
         class="glance-item"
       >
-        <nuxt-link
+        <router-link
           :to="clusterToolsLink"
           class="cluster-link"
         >
           {{ t('nav.clusterTools') }}
-        </nuxt-link>
+        </router-link>
       </div>
     </div>
   </div>

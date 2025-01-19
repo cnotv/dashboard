@@ -1,6 +1,6 @@
 import { CATTLE_PUBLIC_ENDPOINTS } from '@shell/config/labels-annotations';
 import { NODE as NODE_TYPE } from '@shell/config/types';
-import { COLUMN_BREAKPOINTS } from '@shell/components/SortableTable/index.vue';
+import { COLUMN_BREAKPOINTS } from '@shell/types/store/type-map';
 
 // Note: 'id' is always the last sort, so you don't have to specify it here.
 
@@ -11,6 +11,17 @@ export const STATE = {
   value:     'stateDisplay',
   getValue:  (row) => row.stateDisplay,
   width:     100,
+  default:   'unknown',
+  formatter: 'BadgeStateFormatter',
+};
+
+export const USER_STATE = {
+  name:      'user-state',
+  labelKey:  'tableHeaders.userState',
+  sort:      ['stateSort', 'nameSort'],
+  value:     'stateDisplay',
+  getValue:  (row) => row.stateDisplay,
+  width:     72,
   default:   'unknown',
   formatter: 'BadgeStateFormatter',
 };
@@ -71,7 +82,7 @@ export const EFFECT = {
 export const STORAGE_CLASS_PROVISIONER = {
   name:     'storage_class_provisioner',
   labelKey: 'tableHeaders.storage_class_provisioner',
-  value:    'provisionerDisplay',
+  value:    'provisionerListDisplay',
   sort:     ['provisioner'],
 };
 
@@ -83,6 +94,9 @@ export const STORAGE_CLASS_DEFAULT = {
   formatter: 'Checked',
 };
 
+/**
+ * spec.csi.driver OR spec[known driver type]
+ */
 export const PERSISTENT_VOLUME_SOURCE = {
   name:     'persistent_volume_source',
   labelKey: 'tableHeaders.persistentVolumeSource',
@@ -90,13 +104,16 @@ export const PERSISTENT_VOLUME_SOURCE = {
   sort:     ['provisioner'],
 };
 
+/**
+ * Link to the PVC associated with PV
+ */
 export const PERSISTENT_VOLUME_CLAIM = {
   name:          'persistent-volume-claim',
   labelKey:      'tableHeaders.persistentVolumeClaim',
-  sort:          ['nameSort'],
+  sort:          ['claimName'],
   value:         'claimName',
   formatter:     'LinkDetail',
-  formatterOpts: { reference: 'claim.detailLocation' },
+  formatterOpts: { reference: 'claim.detailLocation' }
 };
 
 export const OUTPUT = {
@@ -256,6 +273,21 @@ export const DESCRIPTION = {
   width:    300,
 };
 
+export const NS_SNAPSHOT_QUOTA = {
+  name:          'NamespaceSnapshotQuota',
+  labelKey:      'harvester.tableHeaders.totalSnapshotQuota',
+  value:         'snapshotSizeQuota',
+  sort:          'snapshotSizeQuota',
+  align:         'center',
+  formatter:     'Si',
+  formatterOpts: {
+    opts: {
+      increment: 1024, addSuffix: true, suffix: 'i',
+    },
+    needParseSi: false
+  },
+};
+
 export const DURATION = {
   name:      'duration',
   labelKey:  'tableHeaders.duration',
@@ -294,15 +326,6 @@ export const POD_RESTARTS = {
   liveUpdates:  true
 };
 
-export const ENDPOINTS = {
-  name:      'endpoint',
-  labelKey:  'tableHeaders.endpoints',
-  value:     'status.endpoints',
-  formatter: 'Endpoints',
-  width:     60,
-  align:     'center',
-};
-
 export const SCALE = {
   name:      'scale',
   labelKey:  'tableHeaders.scale',
@@ -318,16 +341,6 @@ export const SIMPLE_SCALE = {
   labelKey: 'tableHeaders.simpleScale',
   value:    'scale',
   sort:     ['scale']
-};
-
-export const WEIGHT = {
-  name:      'weight',
-  labelKey:  'tableHeaders.weight',
-  value:     'status.computedWeight',
-  sort:      'status.computedWeight',
-  formatter: 'Weight',
-  width:     60,
-  align:     'center',
 };
 
 export const SUCCESS = {
@@ -359,6 +372,13 @@ export const KEYS = {
   labelKey: 'tableHeaders.keys',
   sort:     false,
   value:    'keysDisplay',
+};
+
+export const SECRET_DATA = {
+  name:      'data',
+  labelKey:  'tableHeaders.data',
+  value:     'dataPreview',
+  formatter: 'SecretData'
 };
 
 export const TARGET_KIND = {
@@ -396,6 +416,33 @@ export const USER_PROVIDER = {
   value:       'providerDisplay',
   dashIfEmpty: true,
   sort:        'providerDisplay',
+};
+
+export const USER_LAST_LOGIN = {
+  name:          'user-last-login',
+  labelKey:      'tableHeaders.userLastLogin',
+  value:         'userLastLogin',
+  formatter:     'LiveDate',
+  formatterOpts: { addSuffix: true },
+  sort:          'userLastLogin',
+};
+
+export const USER_DISABLED_IN = {
+  name:          'user-disabled-in',
+  labelKey:      'tableHeaders.userDisabledIn',
+  value:         'userDisabledInDisplay',
+  formatter:     'LiveDate',
+  formatterOpts: { isCountdown: true },
+  sort:          'userDisabledIn',
+};
+
+export const USER_DELETED_IN = {
+  name:          'user-deleted-in',
+  labelKey:      'tableHeaders.userDeletedIn',
+  value:         'userDeletedIn',
+  formatter:     'LiveDate',
+  formatterOpts: { isCountdown: true },
+  sort:          'userDeletedIn',
 };
 
 export const USER_ID = {
@@ -607,8 +654,8 @@ export const TARGET_PORT = {
   formatter: 'ServiceTargets',
   labelKey:  'tableHeaders.targetPort',
   name:      'targetPort',
-  sort:      `$['spec']['targetPort']`,
-  value:     `$['spec']['targetPort']`,
+  sort:      false,
+  value:     false,
 };
 
 export const SELECTOR = {
@@ -704,6 +751,29 @@ export const FLEET_SUMMARY = {
   formatter: 'FleetSummaryGraph',
   align:     'center',
   width:     100,
+};
+
+export const FLEET_REPO_CLUSTER_SUMMARY = {
+  name:      'clusterSummary',
+  labelKey:  'tableHeaders.clusterResources',
+  value:     'status.resourceCounts',
+  sort:      false,
+  search:    false,
+  formatter: 'FleetClusterSummaryGraph',
+  align:     'center',
+  width:     100,
+};
+
+export const FLEET_REPO_PER_CLUSTER_STATE = {
+  name:          'perClusterState',
+  labelKey:      'tableHeaders.repoPerClusterState',
+  tooltip:       'tableHeaders.repoPerClusterStateTooltip',
+  sort:          ['stateSort', 'nameSort'],
+  width:         100,
+  default:       'unknown',
+  formatter:     'BadgeStateFormatter',
+  formatterOpts: { arbitrary: true }
+
 };
 
 export const APP_SUMMARY = {
@@ -896,7 +966,7 @@ export const RESTART = {
   value:     'restartRequired',
   sort:      ['restartRequired', 'nameSort'],
   formatter: 'Checked',
-  width:     75,
+  width:     125,
   align:     'center'
 };
 
@@ -969,6 +1039,30 @@ export const FLEET_BUNDLE_TYPE = {
   value:    'bundleType',
   sort:     ['bundleType'],
   width:    100,
+};
+
+export const FLEET_REPO_CLUSTERS_READY = {
+  name:     'clustersReady',
+  labelKey: 'tableHeaders.clustersReady',
+  value:    'status.readyClusters',
+  sort:     'status.readyClusters',
+  search:   false,
+};
+
+export const FLEET_REPO_TARGET = {
+  name:     'target',
+  labelKey: 'tableHeaders.target',
+  value:    'targetInfo.modeDisplay',
+  sort:     ['targetInfo.modeDisplay', 'targetInfo.cluster', 'targetInfo.clusterGroup'],
+
+};
+
+export const FLEET_REPO = {
+  name:     'repo',
+  labelKey: 'tableHeaders.repo',
+  value:    'repoDisplay',
+  sort:     'repoDisplay',
+  search:   ['spec.repo', 'status.commit'],
 };
 
 export const UI_PLUGIN_CATALOG = [

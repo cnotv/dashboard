@@ -2,6 +2,7 @@ import { sortableNumericSuffix } from '@shell/utils/sort';
 import semver from 'semver';
 import { MANAGEMENT } from '@shell/config/types';
 import { READ_WHATS_NEW, SEEN_WHATS_NEW } from '@shell/store/prefs';
+import { SETTING } from '@shell/config/settings';
 
 export function parse(str) {
   str = `${ str }`;
@@ -21,10 +22,6 @@ export function sortable(str) {
 }
 
 export function compare(in1, in2) {
-  if (in1 === undefined && in2 === undefined) {
-    return null;
-  }
-
   if ( !in1 ) {
     return 1;
   }
@@ -69,7 +66,7 @@ function comparePart(in1, in2) {
   return in1.localeCompare(in2);
 }
 
-export function isPrerelease(version) {
+export function isPrerelease(version = '') {
   if (!semver.valid(version)) {
     version = semver.clean(version, { loose: true });
   }
@@ -86,7 +83,7 @@ export function isDevBuild(version) {
 }
 
 export function getVersionInfo(store) {
-  const setting = store.getters['management/byId'](MANAGEMENT.SETTING, 'server-version');
+  const setting = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.VERSION_RANCHER);
   const fullVersion = setting?.value || 'unknown';
   let displayVersion = fullVersion;
 

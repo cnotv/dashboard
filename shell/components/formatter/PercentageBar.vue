@@ -30,12 +30,12 @@ export default {
 </script>
 
 <template>
-  <p v-if="!value || value === '0'">
+  <p v-if="!value || value === '0' || isNaN(value)">
     {{ t('generic.na') }}
   </p>
   <PercentageBarComponent
     v-else
-    :value="percentage"
+    :modelValue="percentage"
     :show-percentage="true"
   />
 </template>

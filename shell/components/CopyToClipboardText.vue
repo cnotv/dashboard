@@ -1,5 +1,9 @@
 <script>
+import { copyTextToClipboard } from '@shell/utils/clipboard';
+import { exceptionToErrorsArray } from '@shell/utils/error';
 export default {
+  emits: ['error'],
+
   props: {
     text: {
       type:     String,
@@ -20,17 +24,20 @@ export default {
     clicked(event) {
       if (!this.copied) {
         event.preventDefault();
-        this.$copyText(this.text);
-        this.copied = true;
+        copyTextToClipboard(this.text).then(() => {
+          this.copied = true;
 
-        let t = event.target;
+          let t = event.target;
 
-        if (t.tagName === 'I') {
-          t = t.parentElement || t;
-        }
-        setTimeout(() => {
-          this.copied = false;
-        }, 500);
+          if (t.tagName === 'I') {
+            t = t.parentElement || t;
+          }
+          setTimeout(() => {
+            this.copied = false;
+          }, 500);
+        }).catch((e) => {
+          this.$emit('error', exceptionToErrorsArray(e));
+        });
       }
     },
   }
@@ -39,6 +46,7 @@ export default {
 
 <template>
   <a
+    v-if="text"
     class="copy-to-clipboard-text"
     :class="{ 'copied': copied, 'plain': plain}"
     href="#"
@@ -52,6 +60,7 @@ export default {
 </template>
 <style lang="scss" scoped>
   .copy-to-clipboard-text {
+    white-space: nowrap;
     &.plain {
       color: var(--body-text);
 

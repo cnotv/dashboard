@@ -12,6 +12,9 @@ import {
 } from '@shell/config/query-params';
 import { ExtensionPoint, PanelLocation } from '@shell/core/types';
 import ExtensionPanel from '@shell/components/ExtensionPanel';
+import TabTitle from '@shell/components/TabTitle';
+
+// i18n-uses resourceDetail.header.*
 
 /**
  * Resource Detail Masthead component.
@@ -23,7 +26,7 @@ export default {
   name: 'MastheadResourceDetail',
 
   components: {
-    BadgeState, Banner, ButtonGroup, ExtensionPanel
+    BadgeState, Banner, ButtonGroup, ExtensionPanel, TabTitle
   },
   props: {
     value: {
@@ -82,6 +85,11 @@ export default {
       type:    String,
       default: null,
     },
+
+    canViewYaml: {
+      type:    Boolean,
+      default: false,
+    }
   },
 
   data() {
@@ -93,6 +101,10 @@ export default {
   },
 
   computed: {
+    dev() {
+      return this.$store.getters['prefs/dev'];
+    },
+
     schema() {
       const inStore = this.storeOverride || this.$store.getters['currentStore'](this.resource);
 
@@ -177,13 +189,16 @@ export default {
 
     project() {
       if (this.isNamespace) {
-        const id = (this.value?.metadata?.labels || {})[PROJECT];
-        const clusterId = this.$store.getters['currentCluster'].id;
+        const cluster = this.$store.getters['currentCluster'];
 
-        return this.$store.getters['management/byId'](MANAGEMENT.PROJECT, `${ clusterId }/${ id }`);
-      } else {
-        return null;
+        if (cluster) {
+          const id = (this.value?.metadata?.labels || {})[PROJECT];
+
+          return this.$store.getters['management/byId'](MANAGEMENT.PROJECT, `${ cluster.id }/${ id }`);
+        }
       }
+
+      return null;
     },
 
     banner() {
@@ -370,7 +385,11 @@ export default {
     },
 
     hideNamespaceLocation() {
-      return this.$store.getters['currentProduct'].hideNamespaceLocation;
+      return this.$store.getters['currentProduct'].hideNamespaceLocation || this.value.namespaceLocation === null;
+    },
+
+    resourceExternalLink() {
+      return this.value.resourceExternalLink;
     },
   },
 
@@ -409,16 +428,29 @@ export default {
       <div class="title">
         <div class="primaryheader">
           <h1>
-            <nuxt-link
+            <TabTitle
+              v-if="isCreate"
+              :showChild="false"
+            >
+              {{ parent.displayName }}
+            </TabTitle>
+            <TabTitle
+              v-else
+              :showChild="false"
+            >
+              {{ displayName }}
+            </TabTitle>
+            <router-link
               v-if="location"
               :to="location"
             >
               {{ parent.displayName }}:
-            </nuxt-link>
+            </router-link>
             <span v-else>{{ parent.displayName }}:</span>
-            <span v-if="value.detailPageHeaderActionOverride && value.detailPageHeaderActionOverride(realMode)">{{ value.detailPageHeaderActionOverride(realMode) }}</span>
+            <span v-if="value?.detailPageHeaderActionOverride && value?.detailPageHeaderActionOverride(realMode)">{{ value?.detailPageHeaderActionOverride(realMode) }}</span>
             <t
               v-else
+              class="masthead-resource-title"
               :k="'resourceDetail.header.' + realMode"
               :subtype="resourceSubtype"
               :name="displayName"
@@ -438,22 +470,33 @@ export default {
                 class="icon icon-sm icon-istio"
               />
             </span>
+            <a
+              v-if="dev && !!resourceExternalLink"
+              v-clean-tooltip="t(resourceExternalLink.tipsKey || 'generic.resourceExternalLinkTips')"
+              class="resource-external"
+              rel="nofollow noopener noreferrer"
+              target="_blank"
+              :href="resourceExternalLink.url"
+            >
+              <i class="icon icon-external-link" />
+            </a>
           </h1>
         </div>
         <div
           v-if="!isCreate"
           class="subheader"
         >
-          <span v-if="isNamespace && project">{{ t("resourceDetail.masthead.project") }}: <nuxt-link :to="project.detailLocation">{{ project.nameDisplay }}</nuxt-link></span>
-          <span v-else-if="isWorkspace">{{ t("resourceDetail.masthead.workspace") }}: <nuxt-link :to="workspaceLocation">{{ namespace }}</nuxt-link></span>
+          <span v-if="isNamespace && project">{{ t("resourceDetail.masthead.project") }}: <router-link :to="project.detailLocation">{{ project.nameDisplay }}</router-link></span>
+          <span v-else-if="isWorkspace">{{ t("resourceDetail.masthead.workspace") }}: <router-link :to="workspaceLocation">{{ namespace }}</router-link></span>
           <span v-else-if="namespace && !hasMultipleNamespaces">
             {{ t("resourceDetail.masthead.namespace") }}:
-            <nuxt-link
+            <router-link
               v-if="!hideNamespaceLocation"
               :to="namespaceLocation"
+              data-testid="masthead-subheader-namespace"
             >
               {{ namespace }}
-            </nuxt-link>
+            </router-link>
             <span v-else>
               {{ namespace }}
             </span>
@@ -483,12 +526,12 @@ export default {
               icon-size="lg"
               :options="sensitiveOptions"
               class="mr-10"
-              @input="toggleSensitiveData"
+              @update:value="toggleSensitiveData"
             />
 
             <ButtonGroup
               v-if="viewOptions && isView"
-              v-model="currentView"
+              v-model:value="currentView"
               :options="viewOptions"
               class="mr-10"
             />
@@ -496,6 +539,7 @@ export default {
             <button
               v-if="isView"
               ref="actions"
+              data-testid="masthead-action-menu"
               aria-haspopup="true"
               type="button"
               class="btn role-multi-action actions"
@@ -541,6 +585,10 @@ export default {
 
   HEADER {
     margin: 0;
+
+    .title {
+      overflow: hidden;
+    }
   }
 
   .primaryheader {
@@ -550,6 +598,17 @@ export default {
 
     h1 {
       margin: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+
+      .masthead-resource-title {
+        padding: 0 8px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+      }
     }
   }
 
@@ -562,7 +621,8 @@ export default {
     }
 
     .live-data {
-      color: var(--body-text)
+      color: var(--body-text);
+      margin-left: 3px;
     }
   }
 
@@ -572,9 +632,6 @@ export default {
 
   .masthead-state {
     font-size: initial;
-    display: inline-block;
-    position: relative;
-    top: -2px;
   }
 
   .masthead-istio {
@@ -603,4 +660,7 @@ export default {
     justify-content: flex-end;
   }
 
+  .resource-external {
+    font-size: 18px;
+  }
 </style>

@@ -6,21 +6,21 @@ import SelectIconGrid from '@shell/components/SelectIconGrid';
 import EmberPage from '@shell/components/EmberPage';
 import { ToggleSwitch } from '@components/Form/ToggleSwitch';
 import {
-  CHART, FROM_CLUSTER, SUB_TYPE, _EDIT, _IMPORT, _CONFIG, _VIEW
+  CHART, FROM_CLUSTER, SUB_TYPE, RKE_TYPE, _EDIT, _IMPORT, _CONFIG, _VIEW
 } from '@shell/config/query-params';
 import { mapGetters } from 'vuex';
 import { sortBy } from '@shell/utils/sort';
-import { set } from '@shell/utils/object';
-import { mapPref, PROVISIONER, _RKE1, _RKE2 } from '@shell/store/prefs';
-import { filterAndArrangeCharts } from '@shell/utils/chart';
+import { PROVISIONER, _RKE1, _RKE2 } from '@shell/store/prefs';
+import { filterAndArrangeCharts } from '@shell/store/catalog';
 import { CATALOG } from '@shell/config/labels-annotations';
 import { CAPI, MANAGEMENT, DEFAULT_WORKSPACE } from '@shell/config/types';
-import { mapFeature, RKE2 as RKE2_FEATURE } from '@shell/store/features';
+import { mapFeature, RKE2 as RKE2_FEATURE, RKE1_UI } from '@shell/store/features';
 import { allHash } from '@shell/utils/promise';
 import { BLANK_CLUSTER } from '@shell/store/store-types.js';
 import { ELEMENTAL_PRODUCT_NAME, ELEMENTAL_CLUSTER_PROVIDER } from '../../config/elemental-types';
 import Rke2Config from './rke2';
 import Import from './import';
+import { DRIVER_TO_IMPORT } from '@shell/models/management.cattle.io.kontainerdriver';
 
 const SORT_GROUPS = {
   template:  1,
@@ -39,6 +39,8 @@ const PROXY_ENDPOINT = '/meta/proxy';
 export default {
   name: 'CruCluster',
 
+  emits: ['update:value', 'set-subtype', 'input'],
+
   components: {
     CruResource,
     EmberPage,
@@ -50,6 +52,8 @@ export default {
   },
 
   mixins: [CreateEditView],
+
+  inheritAttrs: false,
 
   props: {
     realMode: {
@@ -82,9 +86,14 @@ export default {
       // These aren't explicitly used, but need to be listening for change events
       mgmtClusters: this.$store.dispatch('management/findAll', { type: MANAGEMENT.CLUSTER }),
       provClusters: this.$store.dispatch('management/findAll', { type: CAPI.RANCHER_CLUSTER }),
-
-      catalog: this.$store.dispatch('catalog/load'),
     };
+
+    // No need to fetch charts when editing an RKE1 cluster
+    // The computed property `isRke1` in this file is based on the RKE1/RKE2 toggle, which is not applicable in this case
+    // Instead, we should rely on the value from the model: `this.value.isRke1`
+    if (!this.value.isRke1 || (this.value.isRke1 && this.mode !== 'edit')) {
+      hash['catalog'] = this.$store.dispatch('catalog/load');
+    }
 
     if (this.$store.getters[`management/canList`](MANAGEMENT.NODE_DRIVER)) {
       hash.nodeDrivers = this.$store.dispatch('management/findAll', { type: MANAGEMENT.NODE_DRIVER });
@@ -112,15 +121,15 @@ export default {
     this.kontainerDrivers = res.kontainerDrivers || [];
 
     if ( !this.value.spec ) {
-      set(this.value, 'spec', {});
+      this.value.spec = {};
     }
 
     if ( !this.value.id ) {
       if ( !this.value.metadata ) {
-        set(this.value, 'metadata', {});
+        this.value.metadata = {};
       }
 
-      set(this.value.metadata, 'namespace', DEFAULT_WORKSPACE);
+      this.value.metadata.namespace = DEFAULT_WORKSPACE;
     }
 
     // For the node drivers, look for custom UI that we can use to show an icon (if not built-in)
@@ -163,6 +172,7 @@ export default {
 
   data() {
     const subType = this.$route.query[SUB_TYPE] || null;
+    const rkeType = this.$route.query[RKE_TYPE] || null;
     const chart = this.$route.query[CHART] || null;
     const isImport = this.realMode === _IMPORT;
 
@@ -171,6 +181,7 @@ export default {
       kontainerDrivers: [],
       extensions:       [],
       subType,
+      rkeType,
       chart,
       isImport,
       providerCluster:  null,
@@ -181,12 +192,33 @@ export default {
   computed: {
     ...mapGetters({ allCharts: 'catalog/charts' }),
     ...mapGetters('type-map', ['activeProducts']),
-    preferredProvisioner: mapPref(PROVISIONER),
-    _RKE1:                () => _RKE1,
-    _RKE2:                () => _RKE2,
+    // needed to recreate logic on mapPref in order to incorporate the logic around the rkeType query param
+    // https://github.com/rancher/dashboard/issues/6299
+    preferredProvisioner: {
+      get() {
+        if (this.rkeType) {
+          return this.rkeType;
+        }
+
+        return this.$store.getters['prefs/get'](PROVISIONER);
+      },
+      set(value) {
+        this.$store.dispatch('prefs/set', { key: PROVISIONER, value });
+      }
+    },
+    _RKE1: () => _RKE1,
+    _RKE2: () => _RKE2,
 
     emberLink() {
       if (this.value) {
+        // set subtype if editing EKS/GKE/AKS cluster -- this ensures that the component provided by extension is loaded instead of iframing old ember ui
+        if (this.value.provisioner) {
+          const matchingSubtype = this.subTypes.find((st) => DRIVER_TO_IMPORT[st.id.toLowerCase()] === this.value.provisioner.toLowerCase());
+
+          if (matchingSubtype) {
+            this.selectType(matchingSubtype.id, false);
+          }
+        }
         // For custom RKE2 clusters, don't load an Ember page.
         // It should be the dashboard.
         if ( this.value.isRke2 && ((this.value.isCustom && this.mode === _EDIT) || (this.value.isCustom && this.as === _CONFIG && this.mode === _VIEW) || (this.subType || '').toLowerCase() === 'custom')) {
@@ -205,12 +237,14 @@ export default {
           return '';
         }
         if ( this.subType ) {
+          // if driver type has a custom form component, don't load an ember page
+          if (this.selectedSubType.component) {
+            return '';
+          }
           // For RKE1 and hosted Kubernetes Clusters, set the ember link
           // so that we load the page rather than using RKE2 create
-          const selected = this.subTypes.find((s) => s.id === this.subType);
-
-          if (selected?.link) {
-            return selected.link;
+          if (this.selectedSubType?.emberLink) {
+            return this.selectedSubType.emberLink;
           }
 
           this.selectType(this.subType, false);
@@ -227,7 +261,13 @@ export default {
       return '';
     },
 
-    rke2Enabled: mapFeature(RKE2_FEATURE),
+    rke2Enabled:   mapFeature(RKE2_FEATURE),
+    rke1UiEnabled: mapFeature(RKE1_UI),
+
+    // todo nb is this info stored anywhere else..?
+    selectedSubType() {
+      return this.subType ? this.subTypes.find((s) => s.id === this.subType) : null;
+    },
 
     provisioner: {
       get() {
@@ -235,6 +275,10 @@ export default {
         // of rke2 for cluster owners.
         if ( !this.rke2Enabled ) {
           return _RKE1;
+        }
+
+        if ( !this.rke1UiEnabled ) {
+          return _RKE2;
         }
 
         return this.preferredProvisioner;
@@ -250,7 +294,7 @@ export default {
     },
 
     isRke2() {
-      return this.value.isRke2;
+      return this.value.isRke2 || !this.isRke1;
     },
 
     templateOptions() {
@@ -267,23 +311,22 @@ export default {
       const getters = this.$store.getters;
       const isImport = this.isImport;
       const isElementalActive = !!this.activeProducts.find((item) => item.name === ELEMENTAL_PRODUCT_NAME);
-
-      const out = [];
+      let out = [];
 
       const templates = this.templateOptions;
       const vueKontainerTypes = getters['plugins/clusterDrivers'];
-      const machineTypes = this.nodeDrivers.filter((x) => x.spec.active && x.state === 'active').map((x) => x.spec.displayName || x.id);
+      const machineTypes = this.nodeDrivers.filter((x) => x.spec.active && x.state === 'active');
 
       this.kontainerDrivers.filter((x) => (isImport ? x.showImport : x.showCreate)).forEach((obj) => {
         if ( vueKontainerTypes.includes(obj.driverName) ) {
-          addType(obj.driverName, 'kontainer', false);
+          addType(this.$plugin, obj.driverName, 'kontainer', false);
         } else {
-          addType(obj.driverName, 'kontainer', false, (isImport ? obj.emberImportPath : obj.emberCreatePath));
+          addType(this.$plugin, obj.driverName, 'kontainer', false, (isImport ? obj.emberImportPath : obj.emberCreatePath));
         }
       });
 
       if ( isImport ) {
-        addType('import', 'custom', false);
+        addType(this.$plugin, 'import', 'custom', false);
       } else {
         templates.forEach((chart) => {
           out.push({
@@ -296,28 +339,47 @@ export default {
           });
         });
 
-        if (this.isRke1 ) {
-          machineTypes.forEach((id) => {
-            addType(id, 'rke1', false, `/g/clusters/add/launch/${ id }`, this.iconClasses[id]);
-          });
-
-          addType('custom', 'custom1', false, '/g/clusters/add/launch/custom');
-        } else {
-          machineTypes.forEach((id) => {
-            addType(id, 'rke2', false);
-          });
-
-          // Add from extensions
-          this.extensions.forEach((ext) => {
-            addExtensionType(ext, getters);
-          });
-
-          addType('custom', 'custom2', false);
-
-          if (isElementalActive) {
-            addType(ELEMENTAL_CLUSTER_PROVIDER, 'custom2', false);
+        if (isElementalActive) {
+          // !this.subType means we are on the /create screen - we only want to show for rke2
+          // if a subType is selected, always add the ELEMENTAL_CLUSTER_PROVIDER type to cover edit scenarios
+          if ((!this.subType && !this.isRke1) || this.subType) {
+            addType(this.$plugin, ELEMENTAL_CLUSTER_PROVIDER, 'custom2', false);
           }
         }
+
+        if (this.isRke1 ) {
+          machineTypes.forEach((type) => {
+            const id = type.spec.displayName || type.id;
+
+            addType(this.$plugin, id, _RKE1, false, `/g/clusters/add/launch/${ id }`, this.iconClasses[id], type);
+          });
+
+          addType(this.$plugin, 'custom', 'custom1', false, '/g/clusters/add/launch/custom');
+        } else {
+          machineTypes.forEach((type) => {
+            const id = type.spec.displayName || type.id;
+
+            addType(this.$plugin, id, _RKE2, false, null, undefined, type);
+          });
+
+          addType(this.$plugin, 'custom', 'custom2', false);
+        }
+
+        // Add from extensions
+        this.extensions.forEach((ext) => {
+          // if the rke toggle is set to rke1, don't add extensions that specify rke2 group
+          // default group is rke2
+          if (!this.isRke2 && (ext.group === _RKE2 || !ext.group)) {
+            return;
+          }
+          // Do not show the extension provisioner on the import cluster page unless its explicitly set to do so
+          if (isImport && !ext.showImport) {
+            return;
+          }
+          // Allow extensions to overwrite provisioners with the same id
+          out = out.filter((type) => type.id !== ext.id);
+          addExtensionType(ext, getters);
+        });
       }
 
       return out;
@@ -338,25 +400,32 @@ export default {
           description: ext.description,
           icon,
           iconClass,
-          group:       ext.group || 'rke2',
+          group:       ext.group || _RKE2,
           disabled:    ext.disabled || false,
           link:        ext.link,
-          tag:         ext.tag
+          tag:         ext.tag,
+          component:   ext.component,
+          hidden:      ext.hidden,
         };
 
         out.push(subtype);
       }
 
-      function addType(id, group, disabled = false, link = null, iconClass = undefined) {
+      function addType(plugin, id, group, disabled = false, emberLink = null, iconClass = undefined, providerConfig = undefined) {
         const label = getters['i18n/withFallback'](`cluster.provider."${ id }"`, null, id);
         const description = getters['i18n/withFallback'](`cluster.providerDescription."${ id }"`, null, '');
         const tag = '';
 
-        let icon;
+        // Look at extensions first
+        // An extension can override the icon for a provider with
+        // plugin.register('image', 'providers/openstack.svg', require('~shell/assets/images/providers/exoscale.svg'));
+        let icon = plugin.getDynamic('image', `providers/${ id }.svg`);
 
-        try {
-          icon = require(`~shell/assets/images/providers/${ id }.svg`);
-        } catch (e) {}
+        if (!icon) {
+          try {
+            icon = require(`~shell/assets/images/providers/${ id }.svg`);
+          } catch (e) {}
+        }
 
         if (icon) {
           iconClass = undefined;
@@ -372,18 +441,23 @@ export default {
           iconClass,
           group,
           disabled,
-          link,
-          tag
+          emberLink,
+          tag,
+          providerConfig
         };
 
         out.push(subtype);
       }
     },
 
+    filteredSubTypes() {
+      return this.subTypes.filter((subtype) => !subtype.hidden);
+    },
+
     groupedSubTypes() {
       const out = {};
 
-      for ( const row of this.subTypes ) {
+      for ( const row of this.filteredSubTypes ) {
         const name = row.group;
         let entry = out[name];
 
@@ -414,6 +488,15 @@ export default {
 
     firstCustomClusterItem() {
       return this.groupedSubTypes.findIndex((obj) => ['custom', 'custom1', 'custom2'].includes(obj.name));
+    },
+
+    localValue: {
+      get() {
+        return this.value;
+      },
+      set(newValue) {
+        this.$emit('update:value', newValue);
+      }
     },
   },
 
@@ -485,8 +568,13 @@ export default {
 
         return;
       }
+      if (obj.link) {
+        this.$router.push(obj.link);
 
-      this.$router.applyQuery({ [SUB_TYPE]: id });
+        return;
+      }
+
+      this.$router.applyQuery({ [SUB_TYPE]: id, [RKE_TYPE]: this.preferredProvisioner });
       this.selectType(id);
     },
 
@@ -539,22 +627,22 @@ export default {
     <template #subtypes>
       <div
         v-for="(obj, i) in groupedSubTypes"
-        :key="obj.id"
-        class="mb-20"
+        :key="i"
+        :class="{'mt-5': i === 0, 'mt-20': i !== 0 }"
         style="width: 100%;"
       >
         <h4>
           <div
-            v-if="showRkeToggle(i)"
+            v-if="showRkeToggle(i) && rke1UiEnabled"
             class="grouped-type"
           >
             <ToggleSwitch
-              v-model="provisioner"
+              v-model:value="provisioner"
               data-testid="cluster-manager-create-rke-switch"
               class="rke-switch"
-              off-value="rke1"
+              :off-value="_RKE1"
               :off-label="t('cluster.toggle.v1')"
-              on-value="rke2"
+              :on-value="_RKE2"
               :on-label="t('cluster.toggle.v2')"
             />
           </div>
@@ -566,7 +654,7 @@ export default {
           name-field="label"
           side-label-field="tag"
           :color-for="colorFor"
-          :component-testid="'cluster-manager-create-grid-' + i"
+          component-testid="cluster-manager-create-grid"
           @clicked="clickedType"
         />
       </div>
@@ -574,18 +662,35 @@ export default {
 
     <Import
       v-if="isImport"
-      v-model="value"
+      v-model:value="localValue"
       :mode="mode"
       :provider="subType"
+      @update:value="$emit('input', $event)"
     />
-    <Rke2Config
-      v-else-if="subType"
-      v-model="value"
-      :initial-value="initialValue"
-      :live-value="liveValue"
-      :mode="mode"
-      :provider="subType"
-    />
+    <template v-else-if="subType">
+      <!-- allow extensions to provide their own cluster provisioning form -->
+      <component
+        :is="selectedSubType.component"
+        v-if="selectedSubType && selectedSubType.component"
+        v-model:value="localValue"
+        :initial-value="initialValue"
+        :live-value="liveValue"
+        :mode="mode"
+        :provider="subType"
+        :provider-config="selectedSubType.providerConfig"
+        @update:value="$emit('input', $event)"
+      />
+      <Rke2Config
+        v-else
+        v-model:value="localValue"
+        :initial-value="initialValue"
+        :live-value="liveValue"
+        :mode="mode"
+        :provider="subType"
+        :provider-config="selectedSubType.providerConfig"
+        @update:value="$emit('input', $event)"
+      />
+    </template>
 
     <template
       v-if="subType"

@@ -8,10 +8,15 @@ import Loading from '@shell/components/Loading';
 import { addObjects, isArray } from '@shell/utils/array';
 import { Card } from '@components/Card';
 
+// i18n-uses rbac.globalRoles.types.*.label
+// i18n-uses rbac.globalRoles.types.*.description
+
 /**
  * Display checkboxes for each global role, checked for given user or principal (group). Can save changes.
  */
 export default {
+  emits: ['hasChanges', 'canLogIn', 'changed'],
+
   components: {
     Checkbox,
     Loading,
@@ -66,6 +71,7 @@ export default {
 
         const sort = (a, b) => a.nameDisplay.localeCompare(b.nameDisplay);
 
+        // global roles are not sorted
         this.sortedRoles.builtin = this.sortedRoles.builtin.sort(sort);
         this.sortedRoles.custom = this.sortedRoles.custom.sort(sort);
 
@@ -73,15 +79,35 @@ export default {
           this.globalRoleBindings = await this.$store.dispatch('management/findAll', { type: MANAGEMENT.GLOBAL_ROLE_BINDING, opt: { force: true } });
         }
 
+        // Sort the global roles - use the order defined in 'globalPermissions' and then add the remaining roles after
+        const globalRoles = [];
+        const globalRolesAdded = {};
+
+        this.globalPermissions.forEach((id) => {
+          const role = this.sortedRoles.global.find((r) => r.id === id);
+
+          if (role) {
+            globalRoles.push(role);
+            globalRolesAdded[id] = true;
+          }
+        });
+
+        // Remaining global roles
+        const remainingGlobalRoles = this.sortedRoles.global.filter((r) => !globalRolesAdded[r.id]);
+
+        this.sortedRoles.global = globalRoles;
+        this.sortedRoles.global.push(...remainingGlobalRoles);
+        // End sort of global roles
+
         this.update();
       }
     } catch (e) { }
   },
   data() {
     return {
+      // This not only identifies global roles but the order here is the order we want to display them in the UI
       globalPermissions: [
         'admin',
-        'restricted-admin',
         'user',
         'user-base',
       ],
@@ -300,7 +326,7 @@ export default {
     <form v-if="selectedRoles">
       <div
         v-for="(sortedRole, roleType) in sortedRoles"
-        :key="getUnique(roleType)"
+        :key="roleType"
         class="role-group mb-10"
       >
         <Card
@@ -322,19 +348,19 @@ export default {
               :class="'checkbox-section--' + roleType"
             >
               <div
-                v-for="role in sortedRoles[roleType]"
-                :key="getUnique(roleType, role.id)"
+                v-for="(role, i) in sortedRoles[roleType]"
+                :key="i"
                 class="checkbox mb-10 mr-10"
               >
                 <Checkbox
-                  :key="getUnique(roleType, role.id, 'checkbox')"
-                  v-model="selectedRoles"
+                  v-model:value="selectedRoles"
                   :value-when-true="role.id"
                   :disabled="!!assignOnlyRoles[role.id]"
                   :label="role.nameDisplay"
                   :description="role.descriptionDisplay"
                   :mode="mode"
-                  @input="checkboxChanged"
+                  :data-testId="'grb-checkbox-' + role.id"
+                  @update:value="checkboxChanged"
                 >
                   <template #label>
                     <div class="checkbox-label-slot">
@@ -364,6 +390,10 @@ export default {
 </style>
 <style lang='scss' scoped>
   $detailSize: 11px;
+
+  .deprecation-notice {
+    margin: 8px 0 8px 20px;
+  }
   .role-group {
     .type-title {
       display: flex;

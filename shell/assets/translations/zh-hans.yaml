@@ -48,7 +48,7 @@ generic:
       info: 信息
       warning: 警告
       error: 错误
-  ok: OK
+  ok: 确定
   overview: 概述
   plusMore: "+ {n} 更多"
   readFromFile: 从文件读取
@@ -222,7 +222,6 @@ product:
   settings: 全局设置
   clusterManagement: 集群管理
   monitoring: 监控
-  mcapps: 全局配置
   neuvector: NeuVector
   harvesterManager: 虚拟化管理
   rancher: Rancher
@@ -366,7 +365,6 @@ authConfig:
     unrestricted: 允许所有用户访问
   allowedPrincipalIds:
     title: 授权的用户和用户组
-  associatedWarning: '注意：你认证的 {provider} 用户将作为你当前登录的 {vendor} 用户（<code>{username}</code>）的替代登录方式。此 {vendor} 用户的所有全局权限、项目和集群角色绑定也将应用到 {provider} 用户。'
   github:
     clientId:
       label: 客户端 ID
@@ -430,7 +428,7 @@ authConfig:
           5: '在 OAuth 凭证框中，上传下载的 JSON 文件。'
       3:
         title: '创建 Service Account 凭证'
-        introduction: '参照本<a href="{docsBase}/admin-settings/authentication/google/#3-creating-service-account-credentials" target="_blank" rel="noopener noreferrer nofollow">指南</a>：'
+        introduction: '参照本<a href="{docsBase}/how-to-guides/new-user-guides/authentication-permissions-and-global-configuration/authentication-config/configure-google-oauth#3-creating-service-account-credentials" target="_blank" rel="noopener noreferrer nofollow">指南</a>：'
         body:
           1: 创建一个 Service Account。
           2: 为这个 Service Account 生成密钥。
@@ -845,9 +843,6 @@ catalog:
       keywords: 关键词
     errors:
       clusterToolExists: 此 Chart 含有固定的命名空间和名称。找到一个匹配的 <a href="{url}">应用</a>，任何修改都将应用于此应用。
-    banner:
-      legacy: 'PSP 删除：在将集群升级到 Kubernetes 1.25+ 之前，请确保你针对 PSP 检查了 Helm 应用程序并相应进行更新'
-    enablePSP: 启用 Pod 安全策略
     global: 全局
   charts:
     all: 全部
@@ -887,7 +882,7 @@ catalog:
       requiresFound: '在安装这个 Chart 前，你需要安装<a href="{url}">{name}</a>。'
       requiresMissing: '这个 Chart 另一个提供 {name} 的 Chart，但我们找不到这个Chart。'
       insufficientCpu: '这个 Chart 需要 {need, number} 个 CPU 核，但集群只有 {have, number} 个可用。'
-      insufficientMemory: '这个 Cchart 需要 {need} 内存，但集群只有 {have} 可用。'
+      insufficientMemory: '这个 Chart 需要 {need} 内存，但集群只有 {have} 可用。'
       legacy:
         label: 这是个 {legacyType} 应用，无法在这里修改。
         enableLegacy:
@@ -1053,7 +1048,7 @@ cis:
   alertNeeded: |-
     必须在 CIS Chart values.yaml 中开启告警。
     这要求<a tabindex="0" href="{link}"> {vendor} 的 Monitoring 与 Alerting 应用</a>已经安装
-    ，而且接收器和路由<a target="_blank" rel='noopener noreferrer nofollow' href='{docsBase}/monitoring-alerting/configuration/#alertmanager-configuration/'>已配置告警发送</a>。
+    ，而且接收器和路由<a target="_blank" rel='noopener noreferrer nofollow' href='{docsBase}/how-to-guides/advanced-user-guides/monitoring-v2-configuration-guides/advanced-configuration/alertmanager'>已配置告警发送</a>。
   alertOnComplete: 扫描完成告警
   alertOnFailure: 扫描失败告警
   benchmarkVersion: Benchmark 版本
@@ -1671,12 +1666,9 @@ cluster:
   banner:
     warning: '此集群包含此表单不完全支持的 machineSelectorConfig。使用 YAML 编辑器管理完整配置。'
     os: '你正在将 {newOS} worker 节点添加到具有一个或多个 {existingOS} worker 节点的集群。你可能需要升级或删除某些已安装的应用。'
-    rke2-k3-reprovisioning: '更改集群配置可能导致节点重新配置。详情请参见 <a target="blank" href="{docsBase}/cluster-provisioning/rke-clusters/behavior-differences-between-rke1-and-rke2/" target="_blank" rel="noopener nofollow">文档</a>。'
+    rke2-k3-reprovisioning: '更改集群配置可能导致节点重新配置。详情请参见 <a target="blank" href="{docsBase}/how-to-guides/new-user-guides/launch-kubernetes-with-rancher/rke1-vs-rke2-differences#cluster-api" target="_blank" rel="noopener nofollow">文档</a>。'
     desiredNodeGroupWarning: 没有可用于运行 Cluster Agent 的节点。要让集群变为 Active 状态，至少需要有 1 个可用的节点。
-    invalidPsps: 你在此集群中有一个或多个 PSP 资源。Pod 安全策略在 Kubernetes v1.25 中不可用并将自动删除。
     haveArgInfo: 所选 Kubernetes 版本的配置信息不可用。此屏幕中可用的选项将受到限制，你可能需要使用 YAML 编辑器。
-    deprecatedPsp: Pod 安全策略自 Kubernetes v1.21 起已弃用，并已在 Kubernetes v1.25 中删除。
-    removedPsp: Pod 安全策略已在 Kubernetes v1.25 中删除，请改用 Pod Security Admission。
   rkeTemplateUpgrade: 模板修订版 {name} 可用于升级
 
   availabilityWarnings:
@@ -1759,7 +1751,7 @@ cluster:
   privateRegistry:
     label: 为 Rancher 系统容器镜像启用集群级别的容器镜像仓库
     description: "如果启用，Rancher 将在集群配置期间从该镜像仓库中拉取容器镜像。默认情况下，Rancher 在安装 Rancher 的官方 Helm Chart 应用程序时也会使用此镜像仓库。如果集群级别的镜像仓库被禁用，将从全局设置中的系统默认镜像仓库中拉取系统镜像。"
-    docsLinkRke2: "如需配置私有镜像仓库 mirror 的帮助，请参阅 RKE2 <a href=\"https://docs.rke2.io/install/containerd_registry_configuration/\" target=\"_blank\">文档</a>。"
+    docsLinkRke2: "如需配置私有镜像仓库 mirror 的帮助，请参阅 RKE2 <a href=\"https://docs.rke2.io/install/private_registry\" target=\"_blank\">文档</a>。"
     docsLinkK3s: "如需配置私有镜像仓库 mirror 的帮助，请参阅 K3s <a href=\"https://docs.k3s.io/installation/private-registry\" target=\"_blank\">文档</a>。"
   provider:
     aliyunecs: Aliyun ECS
@@ -1803,6 +1795,7 @@ cluster:
     oracleoke: Oracle OKE
     otc: Open Telekom Cloud
     other: 其他
+    ovhcloudmks: OVHcloud MKS
     packet: Equinix Metal
     pinganyunecs: 平安云 ECS
     pnap: phoenixNAP
@@ -1835,10 +1828,6 @@ cluster:
       psaChange: PSACT 现在自动设置为 Rancher 默认值
       cisOverride: 更改此设置可能会影响集群安全，因为它会覆盖默认的 CIS 设置
       cisUnsupported: 所选 Kubernetes 版本不再支持 CIS 配置文件 “{cisProfile}”，请选择支持的配置文件。建议你查看<a href="https://docs.rke2.io/security/hardening_guide" target="_blank" rel="noopener noreferrer nofollow">文档</a>评估更改 CIS 配置文件的影响。
-    modal:
-      pspChange:
-        title: 弃用 Pod 安全策略
-        body: <p>从 v1.25 版开始，Kubernetes 已经取消了对 Pod 安全策略 (PSP) 的支持。如果你的集群通过集群 YAML 中的 “kube-apiserver-arg.enable-admission-plugins” 启用了 PodSecurityPolicy 准入控制器，你必须在继续升级之前<i>手动</i>删除它。此外，集群中存在的任何 PSP 将不再可用或强制执行。是否继续操作？</p>
     snapshots:
       suffix: 每个节点的快照
     systemService:
@@ -2090,7 +2079,7 @@ drainNode:
 etcdInfoBanner:
   hasLeader: "ETCD 有一个 Leader："
   leaderChanges: "Leader 变化的次数："
-  failedProposals: "失败的 proposal 数量"
+  failedProposals: "失败的 proposal 数量："
 
 fleet:
   dashboard:
@@ -2323,7 +2312,6 @@ glance:
   version: Kubernetes 版本
   monitoringDashboard: 监控仪表板
   installMonitoring: 安装 Monitoring
-  v1MonitoringInstalled: 已安装 Monitoring V1
   clusterInfo: 集群信息
   eventsTable: 完整事件列表
 
@@ -2738,8 +2726,6 @@ landing:
   whatsNewLink: "2.8 的新功能"
   learnMore: 了解更多
   support: 支持
-  psps: PSP
-  deprecatedPsp: Pod 安全策略自 Kubernetes v1.21 起已弃用，并已在 Kubernetes v1.25 中删除。你在此集群中有一个或多个 PSP 资源。
   community:
     title: 社区支持
     docs: Rancher 官方文档
@@ -2805,7 +2791,7 @@ logging:
     dockerRootDirectory: Docker 根目录
     systemdLogPath: systemd 日志路径
     tooltip: '某些 Kubernetes 发行版在 <code>journald</code>中记录日志。你需要定义<code>systemdLogPath</code> 以收集日志。默认路径是<code>/run/log/journal</code>，但某些 Linux 发行版不默认使用该路径。'
-    url: '<a href="https://ranchermanager.docs.rancher.com/v2.8/integrations-in-rancher/logging/logging-helm-chart-options" target="_blank" rel="noopener nofollow noreferrer">了解更多</a>'
+    url: '<a href="{docsBase}/integrations-in-rancher/logging/logging-helm-chart-options" target="_blank" rel="noopener nofollow noreferrer">了解更多</a>'
     default: /run/log/journal
   elasticsearch:
     host: 主机
@@ -3074,7 +3060,7 @@ members:
   clusterMembers: 集群成员
   clusterAndProject: 集群和项目成员
   createActionLabel: 添加
-  clusterMemebership: 集群成员
+  clusterMembership: 集群成员
   projectMembership: 项目成员
   clusterPermissions:
     noDescription: 已创建用户 - 没有描述
@@ -3249,7 +3235,7 @@ monitoring:
       keyFilePath:
         label: 密钥文件路径
         placeholder: 例如：./key-file.pfx
-      secretsBanner: 部署 Monitoring Chart 时，必须在<<pre class="inline-block m-0 p-0 vertical-middle">alertmanager.alertmanagerSpec.secrets</pre>中引用以下文件路径。详情请查看<a href="{docsBase}/monitoring-alerting/" target="_blank" rel="noopener noreferrer nofollow">官方文档</a>。
+      secretsBanner: 部署 Monitoring Chart 时，必须在<<pre class="inline-block m-0 p-0 vertical-middle">alertmanager.alertmanagerSpec.secrets</pre>中引用以下文件路径。详情请查看<a href="{docsBase}/how-to-guides/advanced-user-guides/monitoring-alerting-guides" target="_blank" rel="noopener noreferrer nofollow">官方文档</a>。
   projectMonitoring:
     detail:
       error: "无法获取具有状态的仪表板值： "
@@ -3302,15 +3288,6 @@ monitoring:
       bearerTokenSecret: 持有者令牌密文
       basicAuthUsername: 具有基本认证用户名的密文
       basicAuthPassword: 具有基本认证密码的密文
-  installSteps:
-    uninstallV1:
-      stepTitle: 卸载 V1
-      stepSubtext: 卸载旧版 Monitoring
-      warning1: 已部署 Monitoring V1。你需要先卸载 Monitoring V1 才能安装 Monitoring V2。
-      warning2: <a target="blank" href="{docsBase}/monitoring-alerting/guides/migrating/" target='_blank' rel='noopener nofollow'>了解迁移到 Monitoring V2 的步骤</a>。
-      promptDescription: <div class="mt-20 mb-20">你正在尝试卸载 Monitoring V1。请确保你已阅读迁移步骤。</div>
-      success1:  Monitoring V1 已成功卸载。
-      success2: 点击下一步继续
   tabs:
     alerting: 告警
     general: 通用
@@ -4314,10 +4291,6 @@ project:
   vmDefaultResourceLimit: 虚拟机默认资源限制
   resourceQuotas: 资源配额
   haveOneOwner: 至少有一名成员需要具有所有者角色。
-  psp:
-    default: 集群默认
-    label: Pod 安全策略
-    current: "{value} (Current)"
 
 
 projectMembers:
@@ -4583,9 +4556,6 @@ rbac:
       admin:
         label: 管理员
         description: 管理员可以完全控制整个安装以及所有集群中的所有资源。
-      restricted-admin:
-        label: 受限管理员
-        description: 受限管理员可以完全控制所有下游集群的所有资源，但不能访问本地集群。
       user:
         label: 普通用户
         description: 普通用户可以创建集群，并管理其授权访问的集群和项目。
@@ -4622,9 +4592,6 @@ rbac:
       nodetemplates-manage:
         label: 管理节点模板
         description: 允许用户定义、编辑和移除节点模板。
-      podsecuritypolicytemplates-manage:
-        label: 管理 Pod 安全策略（PSP）
-        description: 允许用户定义、编辑和移除 Pod 安全策略。
       roles-manage:
         label: 管理角色
         description: 允许用户定义、编辑和移除角色定义。
@@ -4989,7 +4956,7 @@ setup:
     dockerSuffix: ""
     helmPrefix: 'Helm 安装，运行：'
     helmSuffix: ""
-  eula: 选中此框，即表示你接受<a href="https://rancher.com/eula" target="_blank" rel="noopener noreferrer nofollow">最终用户许可协议及条款和条件</a>
+  eula: 选中此框，即表示你接受<a href="https://www.suse.com/licensing/eula/download/suse_end_user_license_agreement_june_2024.pdf" target="_blank" rel="noopener noreferrer nofollow">最终用户许可协议及条款和条件</a>
   newPassword: 新密码
   newUserSetPassword: 请设置强密码。建议使用生成的随机密码。你也可以自行设置。
   serverUrl:
@@ -4997,7 +4964,6 @@ setup:
     skip: 跳过
     tip: 此 {vendor} 安装应使用什么 URL？集群中的所有节点都需要能访问该 URL。
   setPassword: 请为默认用户 <code>{username}</code>设置强密码。建议使用生成的随机密码。你也可以自行设置。
-  telemetry: 允许收集<a href="{docsBase}/faq/telemetry/" target="_blank" rel="noopener noreferrer nofollow">匿名统计数据</a>，以帮我们改进 {name}。
   useManual: 设置密码
   useRandom: 使用随机生成的密码
   welcome: 欢迎使用 {vendor}！
@@ -6983,7 +6949,7 @@ podAffinity:
 keyValue:
   keyPlaceholder: 例如：foo
   valuePlaceholder: 例如：bar
-  protip: '把多行 <em>key=value</em> 或 <em>key: value</em> 键值对复制到各字段中，以便批量输入'
+  protip: '把多行 <em>key=value</em> 或 <em>key:value</em> 键值对复制到各字段中，以便批量输入'
 
 registryMirror:
   header: Mirror
@@ -7044,7 +7010,6 @@ advancedSettings:
     'ui-dashboard-index': '{appName} UI 的 HTML 索引位置。'
     'ui-offline-preferred': '控制 UI 资产是由服务器容器在本地提供，还是从 ui-index 和 ui-dashboard-index 设置中定义的远程 URL 提供。`动态` 选项将在 {appName} 的生产版本中使用本地资产。'
     'ui-pl': '自有品牌公司名称。'
-    'telemetry-opt': '遥测报告加入。'
     'auth-user-info-max-age-seconds': '在同步验证提供程序组成员之前，用户验证 Token 的最长存活时间。'
     'auth-user-info-resync-cron': '重新同步验证提供程序组成员的默认 cron 调度。'
     'cluster-template-enforcement': '非管理员只能通过预先批准的 RKE 模板启动集群。'
@@ -7065,10 +7030,6 @@ advancedSettings:
     'ui-default-landing':
       ember: Cluster Manager
       vue: 集群浏览器
-    'telemetry-opt':
-      prompt: 提示
-      in: 加入遥测
-      out: 退出遥测
     'ui-offline-preferred':
       dynamic: 动态
       true: 本地
@@ -7134,7 +7095,7 @@ performance:
     checkboxLabel: 禁用 WebSocket 通知
   gc:
     label: 资源垃圾回收
-    description: UI 将在本地缓存 kuberentes 资源，避免这些资源被重新抓取。在某些情况下，这可能会导致浏览器中存储了大量数据。你可以启用此设置进行定期删除。
+    description: UI 将在本地缓存 Kubernetes 资源，避免这些资源被重新抓取。在某些情况下，这可能会导致浏览器中存储了大量数据。你可以启用此设置进行定期删除。
     checkboxLabel: 启用垃圾回收
     whenRun:
       description: 垃圾回收运行的时候更新
@@ -7349,7 +7310,7 @@ support:
       text: 我们的开发人员会快速解决问题，因此你可以放心使用 SUSE Rancher 的产品。
     three:
       title: 故障排除
-      text: 无论你使用的 Rancher Labs 产品、Kubernetes、Docker 还是底层基础架构出现问题，我们都会努力找到问题的根本原因。
+      text: 无论你使用的 SUSE 产品、Kubernetes、Docker 还是底层基础架构出现问题，我们都会努力找到问题的根本原因。
     four:
       title: 自由创新
       text: 基于我们与众多 Kubernetes 供应商、操作系统和开源软件认证的兼容性，实现自主创新。
@@ -7358,28 +7319,14 @@ embedding:
   retry: 重试
   unavailable: Cluster Manager UI 不可用
 
-v1ClusterTools:
-  monitoring:
-    label: Monitoring（旧版）
-    description: '旧版 Monitoring V1。自 Rancher 2.5.0 起，我们已弃用 Monitoring V1。了解<a target="blank" href="{docsBase}/monitoring-alerting/guides/migrating/">迁移到 Monitoring V2 的步骤</a>。'
-  logging:
-    label: Logging（旧版）
-    description: '旧版 Logging V1。自 Rancher 2.5.0 起，我们已弃用 Logging V1。了解<a target="blank" href="{docsBase}/logging/migrating/">迁移到 Logging V2 的步骤</a>。'
-  istio:
-    label: Istio（旧版）
-    description: '旧版 Istio V1。自 Rancher 2.5.0 起，我们已弃用 Istio V1.5。了解<a target="blank" href="{docsBase}/istio/#migrate-from-previous-istio-version">迁移到最新版本</a> 的更多信息。'
-
 legacy:
   alerts: 告警
   apps: 应用
   catalogs: 应用商店
   configMaps: ConfigMaps
   configuration: 配置
-  globalDnsEntries: 全局 DNS 条目
-  globalDnsProviders: 全局 DNS 提供商
   notifiers: Notifiers
   monitoring: 监控
-  psps: Pod 安全策略模板
   secrets: 密文
 
   project:
@@ -7460,9 +7407,6 @@ charts:
     service.ui.type:
       label: Longhorn UI 服务
       description: 定义 Longhorn UI 服务类型
-    enablePSP:
-      label: Pod 安全策略
-      description: 为 Longhorn 工作负载设置 Pod 安全策略
     csi.kubeletRootDir:
       label: Kubelet 根目录
       description: 指定 kubelet root-dir。如留空，则自动检测。

@@ -1,11 +1,39 @@
-import { _CREATE, _EDIT } from '@shell/config/query-params';
+import { NAME as PRODUCT_NAME } from '@shell/config/product/cis';
 import { CIS } from '@shell/config/types';
 import { findBy } from '@shell/utils/array';
 import { downloadFile, generateZip } from '@shell/utils/download';
-import { get, isEmpty, set } from '@shell/utils/object';
+import { get, isEmpty } from '@shell/utils/object';
 import { sortBy } from '@shell/utils/sort';
 import day from 'dayjs';
 import SteveModel from '@shell/plugins/steve/steve-class';
+
+// This could be removed and just replaced with schema.fetchResourceFields()... but there's some getters that use hasSpecsScheduledScanConfig before it runs
+/**
+ * For the given schema, determine if the schema of it's associated scan's type has scheduledScanConfig
+ *
+ * This is resourceFields based, so we need to fetch schema definition
+ */
+export const fetchSpecsScheduledScanConfig = async(schema) => {
+  await schema.fetchResourceFields();
+
+  return hasSpecsScheduledScanConfig(schema);
+};
+
+/**
+ * For the given schema, determine if the schema of it's associated scan's type has scheduledScanConfig
+ *
+ * Assumes schemaDefinitions have been fetched (see async fetchSpecsScheduledScanConfig above)
+ */
+export const hasSpecsScheduledScanConfig = (schema) => {
+  const specSchemaId = get(schema, 'resourceFields.spec.type');
+  const specSchema = schema.schemaDefinitions?.[specSchemaId];
+
+  if (!specSchema) {
+    return false;
+  }
+
+  return !!get(specSchema, 'resourceFields.scheduledScanConfig');
+};
 
 export default class ClusterScan extends SteveModel {
   get _availableActions() {
@@ -49,29 +77,8 @@ export default class ClusterScan extends SteveModel {
     return out;
   }
 
-  applyDefaults(vm, mode) {
-    if (mode === _CREATE || mode === _EDIT) {
-      const includeScheduling = this.canBeScheduled();
-      const spec = this.spec || {};
-
-      spec.scanProfileName = null;
-      if (includeScheduling) {
-        spec.scoreWarning = 'pass';
-        spec.scheduledScanConfig = { scanAlertRule: {}, retentionCount: 3 };
-      }
-      set(this, 'spec', spec);
-    }
-  }
-
   canBeScheduled() {
-    const schema = this.$getters['schemaFor'](this.type);
-    const specSchema = this.$getters['schemaFor'](get(schema, 'resourceFields.spec.type') || '');
-
-    if (!specSchema) {
-      return false;
-    }
-
-    return !!get(specSchema, 'resourceFields.scheduledScanConfig');
+    return hasSpecsScheduledScanConfig(this.$getters['schemaFor'](this.type));
   }
 
   get isScheduled() {
@@ -144,6 +151,21 @@ export default class ClusterScan extends SteveModel {
         downloadFile(`${ this.id }-reports`, zip, 'application/zip');
       });
     }
+  }
+
+  get scanProfileLink() {
+    if (this.status?.lastRunScanProfileName) {
+      return {
+        name:   'c-cluster-product-resource-id',
+        params: {
+          resource: CIS.CLUSTER_SCAN_PROFILE,
+          product:  PRODUCT_NAME,
+          id:       this.status?.lastRunScanProfileName
+        }
+      };
+    }
+
+    return {};
   }
 }
 

@@ -37,13 +37,13 @@ export default {
 
 <template>
   <div class="pgb">
-    <template v-for="(role, i) in boundRoles">
-      <nuxt-link
-        :key="role.id"
-        :to="role.detailLocation"
-      >
+    <template
+      v-for="(role, i) in boundRoles"
+      :key="role.id"
+    >
+      <router-link :to="role.detailLocation">
         {{ role.label }}
-      </nuxt-link>
+      </router-link>
       <template v-if="i + 1 < boundRoles.length">
         ,&nbsp;
       </template>

@@ -57,6 +57,8 @@ class EmptyCapiMachineDeployment extends CapiMachineDeployment {
 }
 
 export default {
+  emits: ['input'],
+
   components: {
     Loading,
     Banner,
@@ -99,7 +101,8 @@ export default {
       this.extCustomParams = { provider: this.value.machineProvider };
     }
 
-    const fetchOne = {};
+    const schema = this.$store.getters[`management/schemaFor`](CAPI.RANCHER_CLUSTER);
+    const fetchOne = { schemaDefinitions: schema.fetchResourceFields() };
 
     if ( this.$store.getters['management/canList'](CAPI.MACHINE_DEPLOYMENT) ) {
       fetchOne.machineDeployments = this.$store.dispatch('management/findAll', { type: CAPI.MACHINE_DEPLOYMENT });
@@ -193,7 +196,7 @@ export default {
     }
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     if ( this.logSocket ) {
       this.logSocket.disconnect();
       this.logSocket = null;
@@ -511,15 +514,18 @@ export default {
         return false;
       }
 
-      if ( this.value.isImported ) {
-        return !this.value.mgmt?.isReady && this.extDetailTabs.registration;
-      }
-
       if ( this.value.isCustom ) {
         return this.extDetailTabs.registration;
       }
 
-      if ( this.value.isHostedKubernetesProvider && !this.isClusterReady ) {
+      if ( this.value.isImported ) {
+        return !this.value.mgmt?.isReady && this.extDetailTabs.registration;
+      }
+
+      // Hosted kubernetes providers with private endpoints need the registration tab
+      // https://github.com/rancher/dashboard/issues/6036
+      // https://github.com/rancher/dashboard/issues/4545
+      if ( this.value.isHostedKubernetesProvider && this.value.isPrivateHostedProvider && !this.isClusterReady ) {
         return this.extDetailTabs.registration;
       }
 
@@ -552,11 +558,19 @@ export default {
 
     snapshotsGroupBy() {
       return 'backupLocation';
-    }
-  },
+    },
 
-  mounted() {
-    window.c = this;
+    extDetailTabsRelated() {
+      return this.extDetailTabs?.related;
+    },
+
+    extDetailTabsEvents() {
+      return this.extDetailTabs?.events;
+    },
+
+    extDetailTabsConditions() {
+      return this.extDetailTabs?.conditions;
+    }
   },
 
   methods: {
@@ -721,13 +735,14 @@ export default {
       :label="$fetchState.error"
     />
     <ResourceTabs
-      v-model="value"
+      :value="value"
       :default-tab="defaultTab"
       :need-related="hasLocalAccess"
       :extension-params="extCustomParams"
-      :needRelated="extDetailTabs.related"
-      :needEvents="extDetailTabs.events"
-      :needConditions="extDetailTabs.conditions"
+      :needRelated="extDetailTabsRelated"
+      :needEvents="extDetailTabsEvents"
+      :needConditions="extDetailTabsConditions"
+      @update:value="$emit('input', $event)"
     >
       <Tab
         v-if="showMachines"
@@ -775,17 +790,18 @@ export default {
                   v-clean-html="t('resourceTable.groupLabel.notInANodePool')"
                 />
                 <div
-                  v-if="group.ref && group.ref.template"
+                  v-if="group.ref && group.ref.providerSummary"
                   class="description text-muted text-small"
                 >
-                  {{ group.ref.providerDisplay }} &ndash;  {{ group.ref.providerLocation }} / {{ group.ref.providerSize }} ({{ group.ref.providerName }})
+                  {{ group.ref.providerSummary }}
                 </div>
               </div>
               <div
-                v-if="group.ref && poolSummaryInfo[group.ref]"
+                v-if="group.ref"
                 class="right group-header-buttons mr-20"
               >
                 <MachineSummaryGraph
+                  v-if="poolSummaryInfo[group.ref]"
                   :row="poolSummaryInfo[group.ref]"
                   :horizontal="true"
                   class="mr-20"
@@ -879,7 +895,7 @@ export default {
                 <template v-if="group.ref.hasLink('update')">
                   <button
                     v-clean-tooltip="t('node.list.scaleDown')"
-                    :disabled="group.ref.spec.quantity < 2"
+                    :disabled="!group.ref.canScaleDownPool()"
                     type="button"
                     class="btn btn-sm role-secondary"
                     @click="toggleScaleDownModal($event, group.ref)"
@@ -925,16 +941,14 @@ export default {
           <tbody class="logs-body">
             <template v-if="logs.length">
               <tr
-                v-for="line in logs"
-                :key="line.id"
+                v-for="(line, i) in logs"
+                :key="i"
               >
                 <td
-                  :key="line.id + '-time'"
                   v-clean-html="format(line.time)"
                   class="time"
                 />
                 <td
-                  :key="line.id + '-msg'"
                   v-clean-html="line.msg"
                   class="msg"
                 />
@@ -1005,6 +1019,7 @@ export default {
       >
         <SortableTable
           class="snapshots"
+          :data-testid="'cluster-snapshots-list'"
           :headers="value.isRke1 ? rke1SnapshotHeaders : rke2SnapshotHeaders"
           default-sort-by="age"
           :table-actions="value.isRke1"
@@ -1094,7 +1109,7 @@ export default {
   }
 }
 
-.snapshots ::v-deep .state-description{
+.snapshots :deep() .state-description{
   font-size: .8em;
   color: var(--error);
 }

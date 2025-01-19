@@ -10,9 +10,15 @@ module.exports = function(api) {
       { targets: { node: 'current' } }
     ]
   ];
-  const env = { test: { presets: [['@babel/env', { targets: { node: 'current' } }]] } };
+  const env = {
+    test: {
+      presets: [[
+        '@babel/env', { targets: { node: 'current' } }
+      ]]
+    }
+  };
 
-  const plugins = [];
+  const plugins = ['@babel/plugin-transform-nullish-coalescing-operator'];
 
   if (process.env.NODE_ENV === 'test') {
     plugins.push('transform-require-context');

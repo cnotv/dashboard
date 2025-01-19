@@ -2,6 +2,7 @@ import { indent as _indent } from '@shell/utils/string';
 import { addObject, findBy, removeObject, removeObjects } from '@shell/utils/array';
 import jsyaml from 'js-yaml';
 import { cleanUp, isEmpty } from '@shell/utils/object';
+import { parseType } from '@shell/models/schema';
 
 export const SIMPLE_TYPES = [
   'string',
@@ -33,7 +34,6 @@ const ALWAYS_ADD = [
 
 export const NEVER_ADD = [
   'metadata.clusterName',
-  'metadata.clusterName',
   'metadata.creationTimestamp',
   'metadata.deletionGracePeriodSeconds',
   'metadata.deletionTimestamp',
@@ -46,11 +46,16 @@ export const NEVER_ADD = [
   'metadata.resourceVersion',
   'metadata.relationships',
   'metadata.selfLink',
+  'metadata.state',
   'metadata.uid',
   // CRD -> Schema describes the schema used for validation, pruning, and defaulting of this version of the custom resource. If we allow processing we fall into inf loop on openAPIV3Schema.allOf which contains a cyclical ref of allOf props.
   'spec.versions.schema',
   'status',
   'stringData',
+  'links',
+  '_name',
+  '_labels',
+  '_annotations',
 ];
 
 export const ACTIVELY_REMOVE = [
@@ -83,26 +88,47 @@ export function createYaml(
   depth = 0,
   path = '',
   rootType = null,
-  dataOptions = {}
+  dataOptions = {},
 ) {
-  const schema = findBy(schemas, 'id', type);
-
-  if ( !rootType ) {
-    rootType = type;
-  }
-
-  if ( !schema ) {
-    return `Error loading schema for ${ type }`;
-  }
-
   data = data || {};
 
-  if ( depth === 0 ) {
+  let schema, rootSchema, schemaDefinitions, schemaResourceFields;
+
+  if (depth === 0) {
+    // `type` is a schema id
+    schema = findBy(schemas, 'id', type);
+
+    if ( !schema ) { // schema is only needed at the root level.
+      return `Error loading schema for ${ type }`;
+    }
+
+    rootSchema = schema;
+
+    schemaDefinitions = rootSchema.schemaDefinitions;
+    schemaResourceFields = rootSchema.resourceFields;
+
     const attr = schema.attributes || {};
 
     // Default to data.apiVersion/kind to accommodate spoofed types that aggregate multiple types
     data.apiVersion = (attr.group ? `${ attr.group }/${ attr.version }` : attr.version) || data.apiVersion;
     data.kind = attr.kind || data.kind;
+  } else {
+    rootSchema = findBy(schemas, 'id', rootType);
+
+    if (rootSchema.requiresResourceFields) { // See `requiresResourceFields` definition
+      schemaDefinitions = rootSchema.schemaDefinitions;
+      schemaResourceFields = schemaDefinitions[type]?.resourceFields;
+    } else {
+      schema = findBy(schemas, 'id', type);
+      if ( !schema ) { // schema is only needed at the root level.
+        return `Error loading schema for ${ type }`;
+      }
+      schemaResourceFields = schema.resourceFields;
+    }
+  }
+
+  if ( !rootType ) {
+    rootType = type;
   }
 
   const regularFields = [];
@@ -127,14 +153,14 @@ export function createYaml(
       const key = parts[parts.length - 1];
       const prefix = parts.slice(0, -1).join('.');
 
-      if ( prefix === path && schema.resourceFields && schema.resourceFields[key] ) {
+      if ( prefix === path && schemaResourceFields && schemaResourceFields[key] ) {
         addObject(regularFields, key);
       }
     }
   }
 
   // Include all fields in schema's resourceFields as comments
-  const commentFields = Object.keys(schema.resourceFields || {});
+  const commentFields = Object.keys(schemaResourceFields || {});
 
   commentFields.forEach((key) => {
     if ( typeof data[key] !== 'undefined' || (depth === 0 && key === '_type') ) {
@@ -150,7 +176,7 @@ export function createYaml(
   }
 
   // ACTIVELY_REMOVE are fields that should be removed even if they are defined in data
-  for ( const entry of ACTIVELY_REMOVE ) {
+  for ( const entry of (dataOptions.activelyRemove || ACTIVELY_REMOVE) ) {
     const parts = entry.split(/\./);
     const key = parts[parts.length - 1];
     const prefix = parts.slice(0, -1).join('.');
@@ -166,7 +192,7 @@ export function createYaml(
     const key = parts[parts.length - 1];
     const prefix = parts.slice(0, -1).join('.');
 
-    if ( prefix === path && schema.resourceFields && schema.resourceFields[key] ) {
+    if ( prefix === path && schemaResourceFields && schemaResourceFields[key] ) {
       removeObject(commentFields, key);
     }
   }
@@ -178,8 +204,6 @@ export function createYaml(
   const comments = commentFields.map((k) => {
     // Don't add a namespace comment for types that aren't namespaced.
     if ( path === 'metadata' && k === 'namespace' ) {
-      const rootSchema = findBy(schemas, 'id', rootType);
-
       if ( rootSchema && !rootSchema.attributes?.namespaced ) {
         return null;
       }
@@ -198,7 +222,7 @@ export function createYaml(
   // ---------------
 
   function stringifyField(key) {
-    const field = schema.resourceFields?.[key];
+    const field = schemaResourceFields?.[key];
     let out = `${ key }:`;
 
     // '_type' in steve maps to kubernetes 'type' field; show 'type' field in yaml
@@ -229,8 +253,8 @@ export function createYaml(
     }
 
     const type = typeMunge(field.type);
-    const mapOf = typeRef('map', type);
-    const arrayOf = typeRef('array', type);
+    const mapOf = typeRef('map', type, field);
+    const arrayOf = typeRef('array', type, field);
     const referenceTo = typeRef('reference', type);
 
     // type == map[mapOf]
@@ -250,7 +274,7 @@ export function createYaml(
       if ( SIMPLE_TYPES.includes(mapOf) ) {
         out += `#  key: ${ mapOf }`;
       } else {
-        // If not a simple type ie some sort of object/array, recusively build out commented fields (note data = null here) per the type's (mapOf's) schema
+        // If not a simple type ie some sort of object/array, recursively build out commented fields (note data = null here) per the type's (mapOf's) schema
         const chunk = createYaml(schemas, mapOf, null, processAlwaysAdd, depth + 1, (path ? `${ path }.${ key }` : key), rootType, dataOptions);
         let indented = indent(chunk);
 
@@ -275,7 +299,7 @@ export function createYaml(
             out += `\n${ indent(parsedData.trim()) }`;
           }
         } catch (e) {
-          console.error(`Error: Unale to parse array data for yaml of type: ${ type }`, e); // eslint-disable-line no-console
+          console.error(`Error: Unable to parse array data for yaml of type: ${ type }`, e); // eslint-disable-line no-console
         }
       }
 
@@ -331,7 +355,7 @@ export function createYaml(
       }
     }
 
-    const subDef = findBy(schemas, 'id', type);
+    const subDef = schemaDefinitions?.[type] || findBy(schemas, 'id', type);
 
     if ( subDef) {
       let chunk;
@@ -407,12 +431,19 @@ function getBlockIndentation(blockHeader) {
   return indentation?.[0] || '';
 }
 
-export function typeRef(type, str) {
-  const re = new RegExp(`^${ type }\\[(.*)\\]$`);
-  const match = str.match(re);
+/**
+ * Check for a specific type and if valid return it's sub type or self
+ * @param {string} type required type
+ * @param {string} str actual type
+ * @param {ResourceField} field resourceField entry to the actual type
+ *
+ * @returns the sub type, or if not found the type
+ */
+export function typeRef(type, str, field = null) {
+  const [foundType, foundSubType] = parseType(str, field);
 
-  if ( match ) {
-    return typeMunge(match[1]);
+  if (type === foundType) {
+    return typeMunge(foundSubType || foundType);
   }
 }
 
@@ -443,24 +474,29 @@ export function saferDump(obj) {
  *
  * this is required since jsyaml.dump doesn't support chomping and scalar style at the moment.
  * see: https://github.com/nodeca/js-yaml/issues/171
+
+ * @typedef {Object} DumpBlockOptions
+ * @property {('>' | '|')} [scalarStyle] - The scalar style.
+ * @property {('-' | '+' | '' | null)} [chomping] - The chomping style.
  *
  * @param {*} data the multiline block
- * @param {*} options blocks indicators, see: https://yaml-multiline.info
+ * @param {Object} options - Serialization options for jsyaml.dump.
+ * @param {number} options.lineWidth - Set max line width. Set -1 for unlimited width.
+ * @param {DumpBlockOptions} [options.dynamicProperties] - Options for dynamic properties.
+ *   Developers can provide their own property names under `options`.
  *
- * - scalarStyle:
- *     one of '|', '>'
- *     default '|'
- * - chomping:
- *     one of: null, '', '-', '+'
- *     default: null
  * @returns the result of jsyaml.dump with the addition of multiline indicators
  */
-export function dumpBlock(data, options = {}) {
-  const parsed = jsyaml.dump(data);
+export function dumpBlock(data, options = { lineWidth: -1 }) {
+  const parsed = jsyaml.dump(data, options);
 
   let out = parsed;
 
-  const blockFields = Object.keys(data).filter((k) => data[k].includes('\n'));
+  const blockFields = Object.keys(data).filter((k) => {
+    if (typeof data[k] === 'string') {
+      return data[k].includes('\n');
+    }
+  });
 
   if (blockFields.length) {
     for (const key of blockFields) {
@@ -472,7 +508,9 @@ export function dumpBlock(data, options = {}) {
       /**
        * Replace the original block indicators with the ones provided in the options param
        */
-      out = out.replace(header, `${ key }: ${ scalarStyle }${ chomping }${ indentation }`);
+      if (header) {
+        out = out.replace(header, `${ key }: ${ scalarStyle }${ chomping }${ indentation }`);
+      }
     }
   }
 

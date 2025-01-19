@@ -1,8 +1,13 @@
 <script>
 import { Card } from '@components/Card';
+import AppModal from '@shell/components/AppModal.vue';
+
 export default {
-  name:       'PromptRemove',
-  components: { Card },
+  name: 'PromptRemove',
+
+  emits: ['disable'],
+
+  components: { Card, AppModal },
   props:      {
     /**
      * Inherited global identifier prefix for tests
@@ -13,15 +18,18 @@ export default {
       default: 'disable-auth-provider'
     }
   },
+  data() {
+    return { showModal: false };
+  },
   methods: {
     show() {
-      this.$modal.show('disableAuthProviderModal');
+      this.showModal = true;
     },
     close() {
-      this.$modal.hide('disableAuthProviderModal');
+      this.showModal = false;
     },
     disable() {
-      this.$modal.hide('disableAuthProviderModal');
+      this.showModal = false;
       this.$emit('disable');
     },
   }
@@ -29,29 +37,29 @@ export default {
 </script>
 
 <template>
-  <modal
-    class="remove-modal"
+  <app-modal
+    v-if="showModal"
+    custom-class="remove-modal"
     name="disableAuthProviderModal"
     :width="400"
     height="auto"
     styles="max-height: 100vh;"
-    @closed="close"
+    @close="close"
   >
     <Card
       class="disable-auth-provider"
       :show-highlight-border="false"
     >
-      <h4
-        slot="title"
-        class="text-default-text"
-      >
-        {{ t('promptRemove.title') }}
-      </h4>
-      <div slot="body">
+      <template #title>
+        <h4 class="text-default-text">
+          {{ t('promptRemove.title') }}
+        </h4>
+      </template>
+      <template #body>
         <div class="mb-10">
           <p v-clean-html="t('promptRemove.attemptingToRemoveAuthConfig', null, true)" />
         </div>
-      </div>
+      </template>
       <template #actions>
         <button
           class="btn role-secondary"
@@ -69,7 +77,7 @@ export default {
         </button>
       </template>
     </Card>
-  </modal>
+  </app-modal>
 </template>
 
 <style lang='scss'>

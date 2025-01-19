@@ -1,16 +1,47 @@
 {
-  "extends": "./tsconfig.default.json",
+  "extends": "./tsconfig.paths.json",
   "compilerOptions": {
+    "target": "ES2018",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "lib": [
+      "ESNext",
+      "ESNext.AsyncIterable",
+      "DOM"
+    ],
+    "allowJs": true,
+    "sourceMap": true,
+    "strict": true,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "rootDir": ".",
     "types": [
-      "@types/node",
-      "@types/jest",
-      "@nuxt/types",
-    ]
+      "node",
+      "jest",
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "../node_modules/@types"
+    ],
   },
+  "include": [
+    "./**/*.ts",
+    "./**/*.d.ts",
+    "./**/*.tsx",
+    "./**/*.vue"
+  ],
   "exclude": [
-    "cypress",
-    "./cypress.config.ts",
-    "**/*.test.ts",
-    "**/*.spec.ts"
+    "node_modules",
+    "dist",
+    "dist-pkg",
+    "../dist",
+    "../dist-pkg",
+    "../creators",
+    "../scripts",
+    "../cypress",
+    "../cypress.config.ts",
+    "../docusaurus",
+    "../**/*.spec.ts"
   ]
 }

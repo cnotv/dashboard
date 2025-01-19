@@ -15,6 +15,8 @@ import {
 } from 'lodash';
 
 export default {
+  emits: ['input'],
+
   components: {
     ResourcesSummary,
     ResourceTable,
@@ -232,8 +234,9 @@ export default {
       />
     </div>
     <ResourceTabs
-      v-model="value"
+      :value="value"
       :mode="mode"
+      @input="$emit('input', $event)"
     >
       <Tab :name="t('namespace.resources')">
         <SortableTable
@@ -245,12 +248,12 @@ export default {
         >
           <template #col:type="{row}">
             <td>
-              <n-link
+              <router-link
                 v-if="typeListLocation(row.schema)"
                 :to="typeListLocation(row.schema)"
               >
                 {{ row.schema.pluralName }}
-              </n-link>
+              </router-link>
               <span v-else>{{ row.schema.pluralName }}</span>
             </td>
           </template>

@@ -63,6 +63,10 @@ export default class PagePo extends ComponentPo {
     return this.self().find('.primaryheader h1').invoke('text');
   }
 
+  waitForMastheadTitle(title: string) {
+    return this.mastheadTitle().should('contain', title);
+  }
+
   navToMenuEntry(label: string) {
     BurgerMenuPo.toggle();
     BurgerMenuPo.burgerMenuNavToMenubyLabel(label);
@@ -85,7 +89,15 @@ export default class PagePo extends ComponentPo {
     nav.navToSideMenuEntryByLabel(label);
   }
 
+  productNav(): ProductNavPo {
+    return new ProductNavPo();
+  }
+
   header() {
     return new HeaderPo();
+  }
+
+  extensionScriptImport(name: string) {
+    return this.self().get(`[data-purpose="extension"]`).get(`[id*="${ name }"]`);
   }
 }

@@ -5,8 +5,6 @@ import { Checkbox } from '@components/Form/Checkbox';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { RadioGroup } from '@components/Form/Radio';
 
-const DEFAULT_MONITORING_NAMESPACE = 'cattle-monitoring-system';
-
 export default {
   components: {
     Checkbox,
@@ -20,7 +18,7 @@ export default {
       default: 'create',
     },
 
-    secrets: {
+    monitoringSecrets: {
       type:    Array,
       default: () => [],
     },
@@ -43,12 +41,7 @@ export default {
 
   computed: {
     allSecrets() {
-      const { secrets } = this;
-
-      return secrets
-        .filter(
-          (sec) => sec.metadata.namespace === DEFAULT_MONITORING_NAMESPACE
-        )
+      return this.monitoringSecrets
         .map((sec) => ({ label: sec.metadata.name, value: sec.metadata.name }));
     },
 
@@ -62,22 +55,15 @@ export default {
     },
 
     existingSecret() {
-      return this.secrets.find(
-        (sec) => sec?.metadata?.name ===
-            'alertmanager-rancher-monitoring-alertmanager' &&
-          sec?.metadata?.namespace === DEFAULT_MONITORING_NAMESPACE
-      );
+      return this.monitoringSecrets
+        .find((sec) => sec?.metadata?.name === 'alertmanager-rancher-monitoring-alertmanager');
     },
 
     filteredSecrets() {
-      const { secrets } = this;
       const filtered = [];
 
-      secrets.forEach((secret) => {
-        if (
-          secret.metadata.name &&
-          secret.metadata.namespace === DEFAULT_MONITORING_NAMESPACE
-        ) {
+      this.monitoringSecrets.forEach((secret) => {
+        if ( secret.metadata.name ) {
           filtered.push(secret.metadata.name);
         }
       });
@@ -93,29 +79,17 @@ export default {
   },
 
   watch: {
-    filteredSecrets(newValue, oldValue) {
+    filteredSecrets(newValue) {
       if (isEmpty(newValue)) {
-        this.$set(
-          this.value.alertmanager.alertmanagerSpec,
-          'useExistingSecret',
-          false
-        );
+        this.value.alertmanager.alertmanagerSpec.useExistingSecret = false;
       }
 
       const { existingSecret } = this;
 
       if (existingSecret) {
         this.$nextTick(() => {
-          this.$set(
-            this.value.alertmanager.alertmanagerSpec,
-            'useExistingSecret',
-            true
-          );
-          this.$set(
-            this.value.alertmanager.alertmanagerSpec,
-            'configSecret',
-            existingSecret.metadata.name
-          );
+          this.value.alertmanager.alertmanagerSpec.useExistingSecret = true;
+          this.value.alertmanager.alertmanagerSpec.configSecret = existingSecret.metadata.name;
         });
       }
     },
@@ -124,14 +98,10 @@ export default {
 
       if (useExistingSecret) {
         if (existingSecret?.metadata?.name) {
-          this.$set(
-            this.value.alertmanager.alertmanagerSpec,
-            'configSecret',
-            existingSecret.metadata.name
-          );
+          this.value.alertmanager.alertmanagerSpec.configSecret = existingSecret.metadata.name;
         }
       } else {
-        this.$set(this.value.alertmanager.alertmanagerSpec, 'configSecret', '');
+        this.value.alertmanager.alertmanagerSpec['configSecret'] = '';
       }
     },
   },
@@ -140,7 +110,7 @@ export default {
     const amSecrets = this.value?.alertmanager?.alertmanagerSpec?.secrets ?? [];
 
     if (this.existingSecret && amSecrets.length <= 0) {
-      this.$set(this.value.alertmanager.alertmanagerSpec, 'useExistingSecret', true);
+      this.value.alertmanager.alertmanagerSpec['useExistingSecret'] = true;
     }
   },
 };
@@ -155,7 +125,7 @@ export default {
       <div class="row">
         <div class="col span-6">
           <Checkbox
-            v-model="value.alertmanager.enabled"
+            v-model:value="value.alertmanager.enabled"
             :label="t('monitoring.alerting.enable.label')"
           />
         </div>
@@ -164,7 +134,7 @@ export default {
         <div class="row">
           <div class="col span-6">
             <RadioGroup
-              v-model="value.alertmanager.alertmanagerSpec.useExistingSecret"
+              v-model:value="value.alertmanager.alertmanagerSpec.useExistingSecret"
               name="useExistingSecret"
               :disabled="forceCreateNewSecret"
               label-key="monitoring.alerting.secrets.radio.label"
@@ -177,7 +147,7 @@ export default {
           <div class="col span-6">
             <LabeledSelect
               v-if="value.alertmanager.alertmanagerSpec.useExistingSecret"
-              v-model="value.alertmanager.alertmanagerSpec.configSecret"
+              v-model:value="value.alertmanager.alertmanagerSpec.configSecret"
               class="provider"
               :label="t('monitoring.alerting.secrets.label')"
               :options="filteredSecrets"
@@ -190,7 +160,7 @@ export default {
         >
           <div class="col span-6">
             <LabeledSelect
-              v-model="value.alertmanager.alertmanagerSpec.secrets"
+              v-model:value="value.alertmanager.alertmanagerSpec.secrets"
               :options="allSecrets"
               :label="t('monitoring.alerting.secrets.additional.label')"
               :mode="mode"

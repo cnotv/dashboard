@@ -15,6 +15,7 @@ import ReferenceType from './Reference';
 import CloudCredentialType from './CloudCredential';
 import RadioType from './Radio';
 import YamlType from './Yaml';
+import Loading from '@shell/components/Loading';
 
 export const knownTypes = {
   string:          StringType,
@@ -44,9 +45,9 @@ export function componentForQuestion(q) {
 
   if ( knownTypes[type] ) {
     return type;
-  } else if ( type.startsWith('array[') ) { // This only really works for array[string|multiline], but close enough for now.
+  } else if ( type.startsWith('array') ) { // This only really works for array[string|multiline], but close enough for now.
     return ArrayType;
-  } else if ( type.startsWith('map[') ) { // Same, only works with map[string|multiline]
+  } else if ( type.startsWith('map') ) { // Same, only works with map[string|multiline]
     return MapType;
   } else if ( type.startsWith('reference[') ) { // Same, only works with map[string|multiline]
     return ReferenceType;
@@ -115,7 +116,13 @@ function migrate(expr) {
 }
 
 export default {
-  components: { Tab, ...knownTypes },
+  emits: ['updated'],
+
+  components: {
+    ...knownTypes,
+    Tab,
+    Loading,
+  },
 
   props: {
     mode: {
@@ -162,6 +169,13 @@ export default {
     emit: {
       type:    Boolean,
       default: false,
+    }
+  },
+
+  async fetch() {
+    // If this source is a schema, ensure the schema's `resourceFields` is populated
+    if (this.source.type === 'schema' && this.source.requiresResourceFields) {
+      await this.source.fetchResourceFields();
     }
   },
 
@@ -258,7 +272,7 @@ export default {
       }
 
       if ( this.tabbed === 'multiple' ) {
-        return this.groups.length > 1;
+        return !!this.groups.length;
       }
 
       return true;
@@ -434,17 +448,21 @@ export default {
 </script>
 
 <template>
-  <form v-if="asTabs">
+  <Loading
+    v-if="$fetchState.pending"
+    mode="relative"
+  />
+  <form v-else-if="asTabs">
     <Tab
-      v-for="g in groups"
-      :key="g.name"
+      v-for="(g, i) in groups"
+      :key="i"
       :name="g.name"
       :label="g.name"
       :weight="g.weight"
     >
       <div
-        v-for="q in g.questions"
-        :key="q.variable"
+        v-for="(q, j) in g.questions"
+        :key="`${i}-${j}`"
         class="row question"
       >
         <div class="col span-12">
@@ -456,7 +474,7 @@ export default {
             :value="get(value, q.variable)"
             :disabled="disabled"
             :chart-name="chartName"
-            @input="update(q.variable, $event)"
+            @update:value="update(q.variable, $event)"
           />
         </div>
       </div>
@@ -464,15 +482,15 @@ export default {
   </form>
   <form v-else>
     <div
-      v-for="g in groups"
-      :key="g.name"
+      v-for="(g, i) in groups"
+      :key="i"
     >
       <h3 v-if="groups.length > 1">
         {{ g.label }}
       </h3>
       <div
-        v-for="q in g.questions"
-        :key="q.variable"
+        v-for="(q, j) in g.questions"
+        :key="`${i}-${j}`"
         class="row question"
       >
         <div class="col span-12">
@@ -485,7 +503,7 @@ export default {
             :value="get(value, q.variable)"
             :disabled="disabled"
             :chart-name="chartName"
-            @input="update(q.variable, $event)"
+            @update:value="update(q.variable, $event)"
           />
         </div>
       </div>

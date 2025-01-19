@@ -1,16 +1,17 @@
+import { CYPRESS_SAFE_RESOURCE_REVISION } from '../../../blueprint.utils';
+
 export const deploymentCollection = {
   type:         'collection',
   links:        { self: 'https://localhost:8005/v1/apps.deployments' },
   createTypes:  { 'apps.deployment': 'https://localhost:8005/v1/apps.deployments' },
   actions:      {},
   resourceType: 'apps.deployment',
-  revision:     '12999812',
+  revision:     CYPRESS_SAFE_RESOURCE_REVISION,
   count:        15,
   data:         [
 
     {
       id:    'default/test-deployment',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/default/test-deployment',
         self:   'https://localhost:8005/v1/apps.deployments/default/test-deployment',
@@ -165,7 +166,7 @@ export const deploymentCollection = {
             transitioning: true
           }
         ],
-        resourceVersion: '12999806',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment does not have minimum availability.',
@@ -256,12 +257,11 @@ export const deploymentCollectionResponseFull = {
   createTypes:  { 'apps.deployment': 'https://localhost:8005/v1/apps.deployments' },
   actions:      {},
   resourceType: 'apps.deployment',
-  revision:     '12999812',
+  revision:     CYPRESS_SAFE_RESOURCE_REVISION,
   count:        15,
   data:         [
     {
       id:    'cattle-fleet-local-system/fleet-agent',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-fleet-local-system/fleet-agent',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-fleet-local-system/fleet-agent',
@@ -456,7 +456,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '6109',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -597,7 +597,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-fleet-system/fleet-controller',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-fleet-system/fleet-controller',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-fleet-system/fleet-controller',
@@ -808,7 +807,7 @@ export const deploymentCollectionResponseFull = {
             state:    'deployed'
           }
         ],
-        resourceVersion: '3067',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -941,7 +940,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-fleet-system/gitjob',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-fleet-system/gitjob',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-fleet-system/gitjob',
@@ -1116,7 +1114,7 @@ export const deploymentCollectionResponseFull = {
             state:    'deployed'
           }
         ],
-        resourceVersion: '3089',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -1219,7 +1217,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-monitoring-system/pushprox-k3s-server-proxy',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/pushprox-k3s-server-proxy',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/pushprox-k3s-server-proxy',
@@ -1396,7 +1393,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '787692',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -1502,7 +1499,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-monitoring-system/rancher-monitoring-grafana',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-grafana',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-grafana',
@@ -2070,7 +2066,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '787803',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -2486,7 +2482,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-monitoring-system/rancher-monitoring-kube-state-metrics',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-kube-state-metrics',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-kube-state-metrics',
@@ -2710,7 +2705,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '787731',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -2852,7 +2847,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-monitoring-system/rancher-monitoring-operator',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-operator',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-operator',
@@ -3093,7 +3087,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '12995749',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -3251,7 +3245,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-monitoring-system/rancher-monitoring-prometheus-adapter',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-prometheus-adapter',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-monitoring-system/rancher-monitoring-prometheus-adapter',
@@ -3524,7 +3517,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '787962',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -3704,7 +3697,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-system/rancher-webhook',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-system/rancher-webhook',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-system/rancher-webhook',
@@ -3960,7 +3952,7 @@ export const deploymentCollectionResponseFull = {
             state:    'deployed'
           }
         ],
-        resourceVersion: '663180',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -4117,7 +4109,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'cattle-ui-plugin-system/ui-plugin-operator',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/cattle-ui-plugin-system/ui-plugin-operator',
         self:   'https://localhost:8005/v1/apps.deployments/cattle-ui-plugin-system/ui-plugin-operator',
@@ -4306,7 +4297,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '12900726',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',
@@ -4417,7 +4408,6 @@ export const deploymentCollectionResponseFull = {
 
     {
       id:    'default/test-deployment',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/default/test-deployment',
         self:   'https://localhost:8005/v1/apps.deployments/default/test-deployment',
@@ -4572,7 +4562,7 @@ export const deploymentCollectionResponseFull = {
             transitioning: true
           }
         ],
-        resourceVersion: '12999806',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment does not have minimum availability.',
@@ -4656,7 +4646,6 @@ export const deploymentCollectionResponseFull = {
     },
     {
       id:    'kube-system/coredns',
-      type:  'apps.deployment',
       links: {
         remove: 'https://localhost:8005/v1/apps.deployments/kube-system/coredns',
         self:   'https://localhost:8005/v1/apps.deployments/kube-system/coredns',
@@ -4963,7 +4952,7 @@ export const deploymentCollectionResponseFull = {
             message: 'ReplicaSet is available. Replicas: 1'
           }
         ],
-        resourceVersion: '1377',
+        resourceVersion: CYPRESS_SAFE_RESOURCE_REVISION,
         state:           {
           error:         false,
           message:       'Deployment is available. Replicas: 1',

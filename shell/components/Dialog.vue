@@ -1,8 +1,11 @@
 <script>
 import AsyncButton from '@shell/components/AsyncButton';
+import AppModal from '@shell/components/AppModal.vue';
 
 export default {
-  components: { AsyncButton },
+  emits: ['okay', 'closed'],
+
+  components: { AsyncButton, AppModal },
 
   props: {
     name: {
@@ -43,7 +46,6 @@ export default {
 
     closeDialog(result) {
       if (!this.closed) {
-        this.$modal.hide(this.name);
         this.$emit('closed', result);
         this.closed = true;
       }
@@ -53,11 +55,12 @@ export default {
 </script>
 
 <template>
-  <modal
+  <app-modal
+    v-if="!closed"
     :name="name"
     height="auto"
     :scrollable="true"
-    @closed="closeDialog(false)"
+    @close="closeDialog(false)"
     @before-open="beforeOpen"
   >
     <div class="modal-dialog">
@@ -90,7 +93,7 @@ export default {
         </div>
       </div>
     </div>
-  </modal>
+  </app-modal>
 </template>
 
 <style lang="scss" scoped>

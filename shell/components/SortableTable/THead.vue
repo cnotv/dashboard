@@ -5,6 +5,8 @@ import { AUTO, CENTER, fitOnScreen } from '@shell/utils/position';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 
 export default {
+  emits: ['update-cols-options', 'on-toggle-all', 'group-value-change', 'on-sort-change', 'col-visibility-change'],
+
   components: { Checkbox, LabeledSelect },
   props:      {
     columns: {
@@ -136,6 +138,9 @@ export default {
     isIndeterminate() {
       return this.howMuchSelected === SOME;
     },
+    hasColumnWithSubLabel() {
+      return this.columns.some((col) => col.subLabel);
+    }
   },
 
   methods: {
@@ -157,20 +162,26 @@ export default {
       return col.name === this.sortBy;
     },
 
+    ariaSort(col) {
+      if (this.isCurrent(col)) {
+        return this.descending ? this.t('generic.descending') : this.t('generic.ascending');
+      }
+
+      return this.t('generic.none');
+    },
+
     tableColsOptionsClick(ev) {
       // set menu position
       const menu = document.querySelector('.table-options-container');
       const elem = document.querySelector('.table-options-btn');
 
-      if (!this.tableColsMenuPosition) {
-        this.tableColsMenuPosition = fitOnScreen(menu, ev || elem, {
-          overlapX:  true,
-          fudgeX:    26,
-          fudgeY:    -22,
-          positionX: CENTER,
-          positionY: AUTO,
-        });
-      }
+      this.tableColsMenuPosition = fitOnScreen(menu, ev || elem, {
+        overlapX:  true,
+        fudgeX:    326,
+        fudgeY:    -22,
+        positionX: CENTER,
+        positionY: AUTO,
+      });
 
       // toggle visibility
       this.tableColsOptionsVisibility = !this.tableColsOptionsVisibility;
@@ -208,14 +219,13 @@ export default {
 
 <template>
   <thead>
-    <tr :class="{'loading': loading}">
+    <tr :class="{'loading': loading, 'top-aligned': hasColumnWithSubLabel}">
       <th
         v-if="tableActions"
         :width="checkWidth"
-        align="middle"
       >
         <Checkbox
-          v-model="isAll"
+          v-model:value="isAll"
           class="check"
           data-testid="sortable-table_check_select_all"
           :indeterminate="isIndeterminate"
@@ -227,23 +237,39 @@ export default {
         :width="expandWidth"
       />
       <th
-        v-for="col in columns"
+        v-for="(col) in columns"
         v-show="!hasAdvancedFiltering || (hasAdvancedFiltering && col.isColVisible)"
         :key="col.name"
         :align="col.align || 'left'"
         :width="col.width"
         :class="{ sortable: col.sort, [col.breakpoint]: !!col.breakpoint}"
+        :tabindex="col.sort ? 0 : -1"
+        class="sortable-table-head-element"
+        :aria-sort="ariaSort(col)"
         @click.prevent="changeSort($event, col)"
+        @keyup.enter="changeSort($event, col)"
+        @keyup.space="changeSort($event, col)"
       >
         <div
           class="table-header-container"
           :class="{ 'not-filterable': hasAdvancedFiltering && !col.isFilter }"
         >
-          <span
-            v-if="col.sort"
+          <div
             v-clean-tooltip="tooltip(col)"
+            class="content"
           >
             <span v-clean-html="labelFor(col)" />
+            <span
+              v-if="col.subLabel"
+              class="text-muted"
+            >
+              {{ col.subLabel }}
+            </span>
+          </div>
+          <div
+            v-if="col.sort"
+            class="sort"
+          >
             <i
               v-show="hasAdvancedFiltering && !col.isFilter"
               v-clean-tooltip="t('sortableTable.tableHeader.noFilter')"
@@ -260,11 +286,7 @@ export default {
                 class="icon icon-sort-up icon-stack-1x"
               />
             </span>
-          </span>
-          <span
-            v-else
-            v-clean-tooltip="tooltip(col)"
-          >{{ labelFor(col) }}</span>
+          </div>
         </div>
       </th>
       <th
@@ -295,7 +317,7 @@ export default {
             >
               <span class="table-options-col-subtitle">{{ t('sortableTable.tableHeader.groupBy') }}:</span>
               <LabeledSelect
-                v-model="advGroup"
+                v-model:value="advGroup"
                 class="table-options-grouping-select"
                 :clearable="true"
                 :options="groupOptions"
@@ -318,10 +340,10 @@ export default {
               >
                 <Checkbox
                   v-show="!col.preventColToggle"
-                  v-model="col.isColVisible"
+                  v-model:value="col.isColVisible"
                   class="table-options-checkbox"
                   :label="col.label"
-                  @input="tableOptionsCheckbox($event, col.label)"
+                  @update:value="tableOptionsCheckbox($event, col.label)"
                 />
               </li>
             </ul>
@@ -396,15 +418,17 @@ export default {
       }
     }
 
+    .top-aligned th {
+      vertical-align: top;
+      padding-top: 10px;
+    }
+
     thead {
       tr {
         background-color: var(--sortable-table-header-bg);
         color: var(--body-text);
         text-align: left;
-
-        &:not(.loading) {
-          border-bottom: 1px solid var(--sortable-table-top-divider);
-        }
+        border-bottom: 1px solid var(--sortable-table-top-divider);
       }
     }
 
@@ -414,12 +438,17 @@ export default {
       border: 0;
       color: var(--body-text);
 
-      .table-header-container {
-        display: inherit;
+      &.sortable-table-head-element:focus-visible {
+        @include focus-outline;
+        outline-offset: -4px;
+      }
 
-        > span {
+      .table-header-container {
+        display: inline-flex;
+
+        .content {
           display: flex;
-          align-items: center;
+          flex-direction: column;
         }
 
         &.not-filterable {

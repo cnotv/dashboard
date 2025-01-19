@@ -1,13 +1,14 @@
+import { toRaw } from 'vue';
 import cloneDeep from 'lodash/cloneDeep';
 import flattenDeep from 'lodash/flattenDeep';
 import compact from 'lodash/compact';
 import { JSONPath } from 'jsonpath-plus';
-import Vue from 'vue';
 import transform from 'lodash/transform';
 import isObject from 'lodash/isObject';
 import isArray from 'lodash/isArray';
 import isEqual from 'lodash/isEqual';
 import difference from 'lodash/difference';
+import mergeWith from 'lodash/mergeWith';
 import { splitObjectPath, joinObjectPath } from '@shell/utils/string';
 import { addObject } from '@shell/utils/array';
 
@@ -24,10 +25,10 @@ export function set(obj, path, value) {
     const key = parts[i];
 
     if ( i === parts.length - 1 ) {
-      Vue.set(ptr, key, value);
+      ptr[key] = value;
     } else if ( !ptr[key] ) {
       // Make sure parent keys exist
-      Vue.set(ptr, key, {});
+      ptr[key] = {};
     }
 
     ptr = ptr[key];
@@ -95,19 +96,33 @@ export function remove(obj, path) {
   // Remove the very last part of the path
 
   if (parentAry.length === 1) {
-    Vue.set(obj, path, undefined);
+    obj[path] = undefined;
     delete obj[path];
   } else {
     const leafKey = parentAry.pop();
     const parent = get(obj, joinObjectPath(parentAry));
 
     if ( parent ) {
-      Vue.set(parent, leafKey, undefined);
+      parent[leafKey] = undefined;
       delete parent[leafKey];
     }
   }
 
   return obj;
+}
+
+/**
+ * `delete` a property at the given path.
+ *
+ * This is similar to `remove` but doesn't need any fancy kube obj path splitting
+ * and doesn't use `Vue.set` (avoids reactivity)
+ */
+export function deleteProperty(obj, path) {
+  const pathAr = path.split('.');
+  const propToDelete = pathAr.pop();
+
+  // Walk down path until final prop, then delete final prop
+  delete pathAr.reduce((o, k) => o[k] || {}, obj)[propToDelete];
 }
 
 export function getter(path) {
@@ -411,3 +426,76 @@ export function pickBy(obj = {}, predicate = (value, key) => false) {
 export const toDictionary = (array, callback) => Object.assign(
   {}, ...array.map((item) => ({ [item]: callback(item) }))
 );
+
+export function dropKeys(obj, keys) {
+  if ( !obj ) {
+    return;
+  }
+
+  for ( const k of keys ) {
+    delete obj[k];
+  }
+}
+
+/**
+ * Recursively convert a reactive object to a raw object
+ * @param {*} obj
+ * @param {*} cache
+ * @returns
+ */
+export function deepToRaw(obj, cache = new WeakSet()) {
+  if (obj === null || typeof obj !== 'object') {
+    // If obj is null or a primitive, return it as is
+    return obj;
+  }
+
+  // If the object has already been processed, return it to prevent circular references
+  if (cache.has(obj)) {
+    return obj;
+  }
+  cache.add(obj);
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => deepToRaw(item, cache));
+  } else {
+    const rawObj = toRaw(obj);
+    const result = {};
+
+    for (const key in rawObj) {
+      if (typeof rawObj[key] === 'function' || typeof rawObj[key] === 'symbol') {
+        result[key] = null;
+      } else {
+        result[key] = deepToRaw(rawObj[key], cache);
+      }
+    }
+
+    return result;
+  }
+}
+
+/**
+ * Helper function to alter Lodash merge function default behaviour on merging arrays while updating machine pool configuration.
+ *
+ * In rke2.vue, the syncMachineConfigWithLatest function updates machine pool configuration by
+ * merging the latest configuration received from the backend with the current configuration updated by the user.
+ * However, Lodash's merge function treats arrays like object so index values are merged and not appended to arrays
+ * resulting in undesired outcomes for us, Example:
+ *
+ * const lastSavedConfigFromBE = { a: ["test"] };
+ * const currentConfigByUser = { a: [] };
+ * merge(lastSavedConfigFromBE, currentConfigByUser); // returns { a: ["test"] }; but we expect { a: [] };
+ *
+ * More info: https://github.com/lodash/lodash/issues/1313
+ *
+ * This helper function addresses the issue by always replacing the old array with the new array during the merge process.
+ *
+ * This helper is used for another case in rke2.vue to handle merging addon chart default values with the user's current values.
+ * It fixed https://github.com/rancher/dashboard/issues/12418
+ */
+export function mergeWithReplaceArrays(obj1 = {}, obj2 = {}) {
+  return mergeWith(obj1, obj2, (obj1Value, obj2Value) => {
+    if (Array.isArray(obj1Value) && Array.isArray(obj2Value)) {
+      return obj2Value;
+    }
+  });
+}

@@ -1,8 +1,7 @@
 <script lang="ts">
-import Vue, { PropType } from 'vue';
-
-import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
+import { PropType, defineComponent } from 'vue';
 import { findStringIndex, hasDuplicatedStrings } from '@shell/utils/array';
+import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 
 type Error = 'duplicate';
 type ErrorMessages = Record<Error, string>;
@@ -29,20 +28,16 @@ const CLASS = {
 /**
  * Manage a list of strings
  */
-export default Vue.extend({
-
+export default defineComponent({
   name:       'StringList',
   components: { LabeledInput },
-
-  props: {
+  props:      {
     /**
      * The items source
      */
     items: {
-      type: Array as PropType<string[]>,
-      default() {
-        return [];
-      },
+      type:    Array as PropType<string[]>,
+      default: () => [],
     },
     /**
      * Determines if items with same text will be treated differently, depending on the letters case
@@ -77,17 +72,25 @@ export default Vue.extend({
      * Custom Error messages
      */
     errorMessages: {
-      type: Object as PropType<ErrorMessages>,
-      default() {
-        return {} as ErrorMessages;
-      },
+      type:    Object as PropType<ErrorMessages>,
+      default: () => ({} as ErrorMessages),
     },
+    /**
+     * Enables bulk addition and defines the delimiter to split the input string.
+     */
+    bulkAdditionDelimiter: {
+      type:    RegExp,
+      default: null,
+    }
   },
+
+  emits: ['type:item', 'errors', 'change', 'update:value', 'blur', 'update:validation'],
+
   data() {
     return {
-      value:        null as string | null,
+      value:        undefined as string | undefined,
       selected:     null as string | null,
-      editedItem:   null as string | null,
+      editedItem:   undefined as string | undefined,
       isCreateItem: false,
       errors:       { duplicate: false } as Record<Error, boolean>
     };
@@ -125,13 +128,9 @@ export default Vue.extend({
   },
 
   methods: {
-    onChange(value: string) {
+    onChange(value: string, index?: number) {
       this.value = value;
-
-      const items = [
-        ...this.items,
-        this.value
-      ];
+      const items = this.addValueToItems(this.items, value, index);
 
       this.toggleError(
         'duplicate',
@@ -216,7 +215,7 @@ export default Vue.extend({
     },
 
     setFocus(refId: string) {
-      this.$nextTick(() => (this.getElemByRef(refId) as Vue & HTMLElement)?.focus());
+      this.$nextTick(() => (this.getElemByRef(refId) as HTMLElement)?.focus());
     },
 
     /**
@@ -253,7 +252,7 @@ export default Vue.extend({
     },
 
     toggleErrorClass(refId: string, val: boolean) {
-      const input = (this.getElemByRef(refId) as Vue)?.$el;
+      const input = (this.getElemByRef(refId))?.$el;
 
       if (input) {
         if (val) {
@@ -278,7 +277,7 @@ export default Vue.extend({
         this.isCreateItem = true;
         this.setFocus(INPUT.create);
       } else {
-        this.value = null;
+        this.value = undefined;
         this.toggleError('duplicate', false);
         this.onSelectLeave();
 
@@ -300,11 +299,11 @@ export default Vue.extend({
         this.editedItem = item || '';
         this.setFocus(INPUT.edit);
       } else {
-        this.value = null;
+        this.value = undefined;
         this.toggleError('duplicate', false);
         this.onSelectLeave();
 
-        this.editedItem = null;
+        this.editedItem = undefined;
       }
     },
 
@@ -321,10 +320,7 @@ export default Vue.extend({
       const value = this.value?.trim();
 
       if (value) {
-        const items = [
-          ...this.items,
-          value,
-        ];
+        const items = this.addValueToItems(this.items, value);
 
         if (!hasDuplicatedStrings(items, this.caseSensitive)) {
           this.updateItems(items);
@@ -343,12 +339,8 @@ export default Vue.extend({
       const value = this.value?.trim();
 
       if (value) {
-        const items = [...this.items];
-        const index = findStringIndex(items, item, false);
-
-        if (index !== -1) {
-          items[index] = value;
-        }
+        const index = findStringIndex(this.items, item, false);
+        const items = index !== -1 ? this.addValueToItems(this.items, value, index) : this.items;
 
         if (!hasDuplicatedStrings(items, this.caseSensitive)) {
           this.updateItems(items);
@@ -358,6 +350,49 @@ export default Vue.extend({
       if (closeInput) {
         this.toggleEditMode(false);
       }
+    },
+
+    /**
+     * Add a new or update an exiting item in the items list.
+     *
+     * @param items The current items list.
+     * @param value The new value to be added.
+     * @param index The list index of the item to be updated (optional).
+     * @returns Updated items list.
+     */
+    addValueToItems(items: string[], value: string, index?: number): string[] {
+      const updatedItems = [...items];
+
+      // Add new item
+      if (index === undefined) {
+        if (this.bulkAdditionDelimiter && value.search(this.bulkAdditionDelimiter) >= 0) {
+          updatedItems.push(...this.splitBulkValue(value));
+        } else {
+          updatedItems.push(value);
+        }
+      } else { // Update existing item
+        if (this.bulkAdditionDelimiter && value.search(this.bulkAdditionDelimiter) >= 0) {
+          updatedItems.splice(index, 1, ...this.splitBulkValue(value));
+        } else {
+          updatedItems[index] = value;
+        }
+      }
+
+      return updatedItems;
+    },
+
+    /**
+     * Split the value by the defined delimiter and remove empty strings.
+     *
+     * @param value The value to be split.
+     * @returns Array containing split values.
+     */
+    splitBulkValue(value: string): string[] {
+      return value
+        .split(this.bulkAdditionDelimiter)
+        .filter((item) => {
+          return item.trim().length > 0;
+        });
     },
 
     /**
@@ -376,7 +411,6 @@ export default Vue.extend({
       this.$emit('change', items);
     },
   },
-
 });
 </script>
 
@@ -393,8 +427,8 @@ export default Vue.extend({
       @dblclick="onClickEmptyBody()"
     >
       <div
-        v-for="item in items"
-        :key="item"
+        v-for="(item, index) in items"
+        :key="index"
         :ref="item"
         :class="{
           selected: selected === item,
@@ -421,9 +455,9 @@ export default Vue.extend({
           :data-testid="`item-edit-${item}`"
           class="edit-input static"
           :value="value != null ? value : item"
-          @input="onChange($event)"
+          @update:value="onChange($event, index)"
           @blur.prevent="updateItem(item)"
-          @keydown.native.enter="updateItem(item, !errors.duplicate)"
+          @keydown.enter="updateItem(item, !errors.duplicate)"
         />
       </div>
       <div
@@ -437,9 +471,9 @@ export default Vue.extend({
           type="text"
           :value="value"
           :placeholder="placeholder"
-          @input="onChange($event)"
+          @update:value="onChange($event)"
           @blur.prevent="saveItem"
-          @keydown.native.enter="saveItem(!errors.duplicate)"
+          @keydown.enter="saveItem(!errors.duplicate)"
         />
       </div>
     </div>
@@ -463,7 +497,7 @@ export default Vue.extend({
         <button
           data-testid="button-add"
           class="btn btn-sm role-tertiary add-button"
-          :disabled="isCreateItem || editedItem"
+          :disabled="!!isCreateItem || !!editedItem"
           @click.prevent="onClickPlusButton"
         >
           <span class="icon icon-plus icon-sm" />
@@ -598,7 +632,7 @@ export default Vue.extend({
   }
 }
 
-::v-deep {
+:deep() {
   .labeled-input INPUT.no-label,
   .labeled-input INPUT:hover.no-label,
   .labeled-input INPUT:focus.no-label {

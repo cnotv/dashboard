@@ -10,22 +10,40 @@ export const gitRepoCreateRequest = {
     paths:        ['simple'],
     correctDrift: { enabled: false },
     targets:      [
-      {
-        clusterSelector: {
-          matchExpressions: [
-            {
-              key:      'provider.cattle.io',
-              operator: 'NotIn',
-              values:   [
-                'harvester'
-              ]
-            }
-          ]
-        }
-      }
+      { clusterName: 'some-fake-cluster-id' }
     ],
     insecureSkipTLSVerify: false,
     helmRepoURLRegex:      'https://charts.rancher.io/*',
     helmSecretName:        'auth-95j88'
   }
 };
+
+export function gitRepoTargetAllClustersRequest(
+  namespace: string,
+  name: string,
+  repo: string,
+  branch: string,
+  path: string
+):object {
+  return {
+    type:     'fleet.cattle.io.gitrepo',
+    metadata: {
+      namespace,
+      name
+    },
+    spec: {
+      repo,
+      branch,
+      paths:        [path],
+      correctDrift: { enabled: false },
+      targets:      [{
+        clusterSelector: {
+          matchExpressions: [{
+            key: 'provider.cattle.io', operator: 'NotIn', values: ['harvester']
+          }]
+        }
+      }],
+      insecureSkipTLSVerify: false
+    }
+  };
+}

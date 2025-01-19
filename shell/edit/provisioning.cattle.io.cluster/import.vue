@@ -14,12 +14,14 @@ import { NAME as HARVESTER_MANAGER } from '@shell/config/harvester-manager-types
 import { HARVESTER as HARVESTER_FEATURE, mapFeature } from '@shell/store/features';
 import { addObject } from '@shell/utils/array';
 import { HIDE_DESC, mapPref } from '@shell/store/prefs';
-import Labels from './Labels';
-import AgentEnv from './AgentEnv';
+import Labels from '@shell/edit/provisioning.cattle.io.cluster/Labels';
+import AgentEnv from '@shell/edit/provisioning.cattle.io.cluster/AgentEnv';
 
 const HARVESTER_HIDE_KEY = 'cm-harvester-import';
 
 export default {
+  emits: ['input'],
+
   components: {
     Banner,
     ClusterMembershipEditor,
@@ -33,6 +35,8 @@ export default {
   },
 
   mixins: [CreateEditView],
+
+  inheritAttrs: false,
 
   props: {
     mode: {
@@ -110,7 +114,7 @@ export default {
     },
 
     onMembershipUpdate(update) {
-      this.$set(this, 'membershipUpdate', update);
+      this['membershipUpdate'] = update;
     },
 
     hideHarvesterNotice() {
@@ -143,20 +147,21 @@ export default {
       @close="hideHarvesterNotice"
     >
       {{ t('cluster.harvester.importNotice') }}
-      <nuxt-link :to="harvesterLocation">
+      <router-link :to="harvesterLocation">
         {{ t('product.harvesterManager') }}
-      </nuxt-link>
+      </router-link>
     </Banner>
 
     <NameNsDescription
       v-if="!isView"
-      v-model="value"
+      :value="value"
       :mode="mode"
       :namespaced="false"
       name-label="cluster.name.label"
       name-placeholder="cluster.name.placeholder"
       description-label="cluster.description.label"
       description-placeholder="cluster.description.placeholder"
+      @update:value="$emit('input', $event)"
     />
 
     <Tabbed :side-tabs="true">
@@ -179,12 +184,14 @@ export default {
         />
       </Tab>
       <AgentEnv
-        v-model="value"
+        :value="value"
         :mode="mode"
+        @update:value="$emit('input', $event)"
       />
       <Labels
-        v-model="value"
+        :value="value"
         :mode="mode"
+        @update:value="$emit('input', $event)"
       />
     </Tabbed>
   </CruResource>
