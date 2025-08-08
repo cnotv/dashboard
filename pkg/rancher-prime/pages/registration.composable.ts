@@ -19,7 +19,7 @@ interface RegistrationDashboard {
   expiration: string;
   color: 'error' | 'success';
   message: string;
-  status: 'valid' | 'error' | 'none';
+  status: 'valid' | 'error' | 'none' | 'expired';
   registrationLink?: string; // not generated on failure or reset
   resourceLink?: string; // not generated on empty registration
 }
@@ -409,6 +409,7 @@ export const usePrimeRegistration = (storeArg?: Store<any>) => {
         // Retrieve failure message from conditions
         const conditions = registration.status?.conditions || [];
         const errorMessage = getErrorMessages(conditions);
+        const isExpired = registration.status?.registrationExpiresAt && new Date(registration.status.registrationExpiresAt) < new Date();
 
         if (errorMessage) {
           onError(errorMessage);
@@ -419,10 +420,10 @@ export const usePrimeRegistration = (storeArg?: Store<any>) => {
         return {
           ...commonRegistration,
           product:    '--',
-          expiration: '--',
+          expiration: isExpired ? dateTimeFormat(registration.status?.registrationExpiresAt, store) : '--',
           color:      'error',
           message:    'registration.list.table.badge.invalid',
-          status:     'error'
+          status:     isExpired ? 'expired' : 'error',
         };
       }
     }
