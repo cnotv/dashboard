@@ -1,0 +1,39 @@
+{
+  "lastUpdated": "2026-07-30T13:13:43Z",
+  "commands": {
+    "test": "yarn test:ci [file]",
+    "lint": "yarn lint (eslint --max-warnings 0 --ext .js,.ts,.vue .)",
+    "lintFix": "./node_modules/.bin/eslint --fix --ext .ts,.vue <files>",
+    "build": "yarn build",
+    "install": "yarn install --frozen-lockfile"
+  },
+  "testFramework": "Jest with ts-jest, Chai-style assertions via jest matchers",
+  "testPatterns": {
+    "storeTests": "Import state/getters/mutations/actions directly, call them with plain objects",
+    "mockPlugin": "Cast as unknown as Plugin for lightweight Plugin stubs",
+    "itEach": "Named objects with desc field for table-driven tests",
+    "assertions": "toStrictEqual over toEqual, toHaveBeenCalledWith over toHaveBeenCalled"
+  },
+  "tasks": {
+    "lastRun": {
+      "task1_discover_commands": "2026-07-30",
+      "task2_identify_opportunities": "2026-07-30",
+      "task3_implement_tests": "2026-07-30",
+      "task7_monthly_summary": "2026-07-30"
+    }
+  },
+  "completedWork": [
+    {
+      "date": "2026-07-30",
+      "pr": "#aw_uiplugins1 (pending creation)",
+      "description": "Added 18 unit tests for shell/store/uiplugins.ts covering state, getters, mutations, actions",
+      "branch": "test-assist/uiplugins-store-tests"
+    }
+  ],
+  "backlog": [
+    "shell/utils/v-sphere.ts - complex VSphere utils, no tests",
+    "shell/utils/type-helpers.ts - no tests (trivial, low priority)",
+    "shell/store/cru-resource.ts - trivial, low priority",
+    "shell/components - 414 vue files, 172 tests - many untested components"
+  ]
+}
