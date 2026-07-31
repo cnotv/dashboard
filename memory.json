@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-30T13:13:43Z",
+  "lastUpdated": "2026-07-31T13:17:00Z",
   "commands": {
     "test": "yarn test:ci [file]",
     "lint": "yarn lint (eslint --max-warnings 0 --ext .js,.ts,.vue .)",
@@ -7,33 +7,41 @@
     "build": "yarn build",
     "install": "yarn install --frozen-lockfile"
   },
-  "testFramework": "Jest with ts-jest, Chai-style assertions via jest matchers",
+  "testFramework": "Jest with ts-jest, Vue Test Utils (@vue/test-utils), Chai-style assertions via jest matchers",
   "testPatterns": {
     "storeTests": "Import state/getters/mutations/actions directly, call them with plain objects",
     "mockPlugin": "Cast as unknown as Plugin for lightweight Plugin stubs",
     "itEach": "Named objects with desc field for table-driven tests",
-    "assertions": "toStrictEqual over toEqual, toHaveBeenCalledWith over toHaveBeenCalled"
+    "assertions": "toStrictEqual over toEqual, toHaveBeenCalledWith over toHaveBeenCalled",
+    "componentTests": "shallowMount with stubs for child components, mockRouter for $router"
   },
   "tasks": {
     "lastRun": {
       "task1_discover_commands": "2026-07-30",
       "task2_identify_opportunities": "2026-07-30",
-      "task3_implement_tests": "2026-07-30",
-      "task7_monthly_summary": "2026-07-30"
+      "task3_implement_tests": "2026-07-31",
+      "task4_maintain_prs": "2026-07-31",
+      "task7_monthly_summary": "2026-07-31"
     }
   },
   "completedWork": [
     {
+      "date": "2026-07-31",
+      "pr": "test-assist/count-gauge-tests (pending)",
+      "description": "Added 13 unit tests for CountGauge.vue covering percentage, clickable, showAlerts computed + visitLocation method",
+      "branch": "test-assist/count-gauge-tests"
+    },
+    {
       "date": "2026-07-30",
-      "pr": "#aw_uiplugins1 (pending creation)",
+      "pr": "test-assist/uiplugins-store-tests (pending)",
       "description": "Added 18 unit tests for shell/store/uiplugins.ts covering state, getters, mutations, actions",
       "branch": "test-assist/uiplugins-store-tests"
     }
   ],
   "backlog": [
-    "shell/utils/v-sphere.ts - complex VSphere utils, no tests",
-    "shell/utils/type-helpers.ts - no tests (trivial, low priority)",
-    "shell/store/cru-resource.ts - trivial, low priority",
-    "shell/components - 414 vue files, 172 tests - many untested components"
+    "shell/utils/v-sphere.ts (289 lines) - complex VSphere secret management, highly testable with store mocks",
+    "shell/components/ - 75+ untested components; focus ones with computed/method logic",
+    "shell/utils/autoscaler-utils.ts - tiny feature-flag helper, easy to test",
+    "shell/utils/brand.ts - getBrandMeta with try/catch logic"
   ]
 }
