@@ -1,0 +1,60 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "vue": {
+    "config": []
+  },
+  "ignoreExportsUsedInFile": true,
+  "ignore": [
+    "**/__tests__/**",
+    "**/*.test.{js,ts}",
+    "**/*.spec.{js,ts}",
+    "**/dist/**",
+    "**/babel.config.js",
+    "**/vue.config.js"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "shell/initialize/entry.js",
+        "shell/config/router/routes.js",
+        "shell/pages/**/*.{vue,js,ts}",
+        "shell/models/**/*.{js,ts}",
+        "shell/detail/**/*.{vue,js,ts}",
+        "shell/edit/**/*.{vue,js,ts}",
+        "shell/list/**/*.{vue,js,ts}",
+        "shell/chart/**/*.{vue,js,ts}",
+        "shell/cloud-credential/**/*.{vue,js,ts}",
+        "shell/machine-config/**/*.{vue,js,ts}",
+        "shell/promptRemove/**/*.{vue,js,ts}",
+        "shell/dialog/**/*.{vue,js,ts}",
+        "shell/store/**/*.{js,ts}",
+        "shell/plugins/**/*.{js,ts}",
+        "shell/directives/**/*.{js,ts}",
+        "pkg/*/index.{ts,js}",
+        "pkg/*/pages/**/*.{vue,js,ts}",
+        "pkg/*/edit/**/*.{vue,js,ts}",
+        "pkg/*/list/**/*.{vue,js,ts}",
+        "pkg/*/detail/**/*.{vue,js,ts}",
+        "pkg/*/models/**/*.{vue,js,ts}",
+        "pkg/*/chart/**/*.{vue,js,ts}",
+        "pkg/*/cloud-credential/**/*.{vue,js,ts}",
+        "pkg/*/machine-config/**/*.{vue,js,ts}",
+        "pkg/*/promptRemove/**/*.{vue,js,ts}",
+        "pkg/*/dialog/**/*.{vue,js,ts}",
+        "pkg/*/config/**/*.{vue,js,ts}",
+        "pkg/*/routing/**/*.{vue,js,ts}",
+        "pkg/*/types/**/*.{vue,js,ts}",
+        "pkg/*/l10n/**/*.{vue,js,ts}"
+      ],
+      "project": [
+        "shell/**/*.{js,ts,vue}",
+        "pkg/*/**/*.{js,ts,vue}",
+        "!pkg/rancher-components/**"
+      ]
+    },
+    "pkg/rancher-components": {
+      "entry": ["src/index.ts", "src/main.ts"],
+      "project": ["src/**/*.{js,ts,vue}"]
+    }
+  }
+}
