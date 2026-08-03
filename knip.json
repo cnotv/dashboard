@@ -1,0 +1,42 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "vue": false,
+  "entry": [
+    "shell/initialize/entry.js",
+    "shell/initialize/App.vue",
+    "shell/config/router/routes.js",
+    "shell/config/router/navigation-guards/**/*.{js,ts}",
+    "shell/pages/**/*.{vue,js,ts}",
+    "shell/models/**/*.{js,ts}",
+    "shell/detail/**/*.{vue,js,ts}",
+    "shell/edit/**/*.{vue,js,ts}",
+    "shell/list/**/*.{vue,js,ts}",
+    "shell/chart/**/*.{vue,js,ts}",
+    "shell/cloud-credential/**/*.{vue,js,ts}",
+    "shell/machine-config/**/*.{vue,js,ts}",
+    "shell/promptRemove/**/*.{vue,js,ts}",
+    "shell/dialog/**/*.{vue,js,ts}",
+    "shell/store/**/*.{js,ts}",
+    "shell/plugins/**/*.{js,ts}",
+    "shell/directives/**/*.{js,ts}",
+    "shell/scripts/**/*.{js,ts}",
+    "shell/server/**/*.{js,ts}",
+    "pkg/*/index.ts",
+    "pkg/*/**/index.ts"
+  ],
+  "project": [
+    "shell/**/*.{js,ts,vue}",
+    "pkg/**/*.{js,ts,vue}"
+  ],
+  "ignore": [
+    "**/__tests__/**",
+    "**/*.test.{js,ts}",
+    "**/*.spec.{js,ts}",
+    "**/node_modules/**",
+    "**/dist/**",
+    "shell/vue.config.js",
+    "shell/vue-config-helper.js"
+  ],
+  "ignoreDependencies": [],
+  "ignoreExportsUsedInFile": true
+}
