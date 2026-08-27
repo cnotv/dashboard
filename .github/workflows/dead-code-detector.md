@@ -15,7 +15,8 @@ if: (github.repository_owner == 'rancher' || vars.ENABLE_AGENTIC_WORKFLOWS == 't
 imports:
   - shared/rancher-server.md
   - shared/evidence.md
-  - shared/report-and-fix.md
+  - shared/fix-from-backlog.md
+  - shared/report-findings.md
   - shared/lessons.md
 
 permissions:
@@ -101,7 +102,14 @@ Remove dead code from this repository, and report what cannot yet be removed.
 
 The sections above are the house rules — the runtime you are running in, how to capture UI evidence, how findings become issues and pull requests, and how lessons are recorded. This section is the part specific to dead code: what counts as a candidate, what may never be one, and how candidates group into the clusters that become issues.
 
-Read them together. Wherever the shared protocol says "finding", it means a [**cluster**](#clusters), and wherever it writes `<bot-label>`, substitute `bot/dead-code-detector`.
+Read them together. Wherever the shared protocol says "finding", it means a [**cluster**](#clusters), and wherever it writes `<bot-label>` or `<candidate-labels>`, substitute `bot/dead-code-detector` — for this workflow they are the same label, because the only issues it fixes are the ones it filed.
+
+Each run does **both** of these, in this order:
+
+1. **Remediate the backlog** — take the open issues carrying the bot label that earlier runs filed, re-verify each from scratch, and either fix it and open a pull request that closes the issue, or, if re-verification disproves it, comment on it with the disproof. This is the "Remediation protocol" section
+2. **Find what is new** — look for what nobody has reported yet, and file an issue for each verified finding. Where the pull request budget still has room after step 1, fix the finding on this run too and open the pull request alongside its issue. This is the "Reporting protocol" section
+
+Neither phase is a fallback for the other. A full backlog does not excuse skipping detection, and an empty backlog does not turn detection into the whole run. Every finding gets an issue, and every issue that can be resolved gets a pull request that resolves it: the issue is the record, the pull request is the fix, and a run that produces one without the other has done half the job.
 
 - **Bot label**: `bot/dead-code-detector`
 - **Branch prefix**: `dead-code/` — a pull request on any other branch is rejected before it is opened
