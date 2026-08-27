@@ -15,7 +15,8 @@ if: (github.repository_owner == 'rancher' || vars.ENABLE_AGENTIC_WORKFLOWS == 't
 imports:
   - shared/rancher-server.md
   - shared/evidence.md
-  - shared/report-and-fix.md
+  - shared/fix-from-backlog.md
+  - shared/report-findings.md
   - shared/lessons.md
 
 permissions:
@@ -27,7 +28,6 @@ safe-outputs:
   create-issue:
     title-prefix: "[dead-code] "
     labels: [bot/dead-code-detector, bot/skip-grooming]
-    group: true
     max: 3
   create-pull-request:
     draft: true
@@ -42,6 +42,19 @@ safe-outputs:
     # `dead-code/new-<slug>` form a same-run pair uses.
     allowed-branches:
       - "dead-code/*"
+    # Use the branch name the agent asked for, verbatim. Without this the
+    # handler appends 16 hex characters of collision salt, turning
+    # `dead-code/75-poller-sequential` into
+    # `dead-code/75-poller-sequential-39272520176721d9`.
+    preserve-branch-name: true
+    # Required alongside the above. With preserve-branch-name on, a branch name
+    # that already exists on the remote is a hard error and the pull request is
+    # dropped — and these names collide by design, since re-picking issue 75
+    # regenerates `dead-code/75-...`. A leftover branch here only ever belongs
+    # to a pull request that was closed or merged, so recreating it is safe:
+    # anything still open would have been filtered out by the budget check
+    # before a fix was attempted.
+    recreate-ref: true
     # Exclusive allowlist: a patch touching anything outside this set is refused.
     # A dead code removal has no business anywhere else.
     allowed-files:
@@ -59,14 +72,24 @@ safe-outputs:
       # .github/workflows/.
       exclude:
         - .github/agents/lessons/
-  # Refuting a wrong issue and correcting an incomplete one are both done by
-  # commenting rather than by filing a corrected duplicate.
+  # Refuting a wrong issue, correcting an incomplete one, and flagging an open
+  # pull request that has fallen behind its base are all done by commenting
+  # rather than by filing a corrected duplicate or force-pushing someone's
+  # branch. Six slots so the rebase notices do not crowd out the refutations.
   add-comment:
     target: "*"
-    max: 3
+    max: 6
 tools:
   github:
     min-integrity: none
+env:
+  # The Copilot harness arms an inactivity watchdog as soon as the run's first
+  # safe output lands, and SIGTERMs the agent when it next goes quiet. The
+  # default is 20s, which `create_pull_request` cannot survive: staging and
+  # pushing a branch takes longer than that and emits nothing while it runs, so
+  # the call is aborted and the run ends with an issue but no pull request.
+  # Ten minutes covers a push on a repository this size.
+  GH_AW_HARNESS_WATCHDOG_TIMEOUT_MS: "600000"
 # Remediation runs `yarn lint` and `yarn test:ci` before opening a pull request,
 # and a UI removal additionally builds and records the dashboard, so the budget
 # has to cover a dependency install, a full unit test run and a dev build.
@@ -79,12 +102,19 @@ Remove dead code from this repository, and report what cannot yet be removed.
 
 The sections above are the house rules — the runtime you are running in, how to capture UI evidence, how findings become issues and pull requests, and how lessons are recorded. This section is the part specific to dead code: what counts as a candidate, what may never be one, and how candidates group into the clusters that become issues.
 
-Read them together. Wherever the shared protocol says "finding", it means a [**cluster**](#clusters), and wherever it writes `<bot-label>`, substitute `bot/dead-code-detector`.
+Read them together. Wherever the shared protocol says "finding", it means a [**cluster**](#clusters), and wherever it writes `<bot-label>` or `<candidate-labels>`, substitute `bot/dead-code-detector` — for this workflow they are the same label, because the only issues it fixes are the ones it filed.
+
+Each run does **both** of these, in this order:
+
+1. **Remediate the backlog** — take the open issues carrying the bot label that earlier runs filed, re-verify each from scratch, and either fix it and open a pull request that closes the issue, or, if re-verification disproves it, comment on it with the disproof. This is the "Remediation protocol" section
+2. **Find what is new** — look for what nobody has reported yet, and file an issue for each verified finding. Where the pull request budget still has room after step 1, fix the finding on this run too and open the pull request alongside its issue. This is the "Reporting protocol" section
+
+Neither phase is a fallback for the other. A full backlog does not excuse skipping detection, and an empty backlog does not turn detection into the whole run. Every finding gets an issue, and every issue that can be resolved gets a pull request that resolves it: the issue is the record, the pull request is the fix, and a run that produces one without the other has done half the job.
 
 - **Bot label**: `bot/dead-code-detector`
 - **Branch prefix**: `dead-code/` — a pull request on any other branch is rejected before it is opened
 - **Lessons file**: `.github/agents/lessons/dead-code.md`
-- **Budgets**: at most **three** open pull requests carrying the bot label at a time, and at most **three** issues filed per run
+- **Budgets**: at most **three** open pull requests carrying the bot label at a time, at most **three** issues filed per run, and at most **six** comments — shared between refutations, corrections and the rebase notices in "Keeping the open pull requests mergeable"
 
 The lessons file holds the search idioms that have produced false findings here and the confidence rubric under "Provenance and confidence". It binds this run with the same force as this section, so nothing below repeats it. Read it before composing a search, not after.
 
