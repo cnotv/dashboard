@@ -18,13 +18,13 @@ safe-outputs:
 
 ## Capturing UI evidence
 
-A change to what the dashboard renders needs a recording of the dashboard still rendering. A passing test suite is not that evidence: it never touched the screen.
+A change to what the dashboard renders needs a recording of the dashboard still rendering. Passing tests are not that evidence: they never touched the screen.
 
-**A change touches the UI** if it adds, deletes or edits any `.vue` or `.scss` file, anything under `shell/pages/`, `shell/components/`, `shell/detail/`, `shell/edit/`, `shell/list/`, `shell/dialog/`, `shell/promptRemove/`, `shell/chart/`, `shell/cloud-credential/`, `shell/machine-config/` or the `pkg/*/` equivalents, or any translation key. A change confined to `.ts`/`.js` under `shell/utils/` or `shell/config/`, or to `cypress/`, `storybook/`, `docusaurus/` or `creators/`, does not — say so in the Evidence section of the body rather than attaching nothing without explanation.
+**A change touches the UI** if it adds, deletes or edits any `.vue` or `.scss` file, anything under `shell/pages/`, `shell/components/`, `shell/detail/`, `shell/edit/`, `shell/list/`, `shell/dialog/`, `shell/promptRemove/`, `shell/chart/`, `shell/cloud-credential/`, `shell/machine-config/` or the `pkg/*/` equivalents, or any translation key. Confined to `.ts`/`.js` under `shell/utils/` or `shell/config/`, or to `cypress/`, `storybook/`, `docusaurus/` or `creators/`: it does not — say so in the body's Evidence section rather than attaching nothing without explanation.
 
-Capture only **after** `yarn lint` and `yarn test:ci` have passed. A recording of a broken build shows nothing worth reviewing.
+Capture only **after** `yarn lint` and `yarn test:ci` pass. Recording of a broken build shows nothing worth reviewing.
 
-1. Serve the dashboard from the working tree, against the Rancher described under "Runtime environment", and wait for the first compile:
+1. Serve the dashboard from the working tree, against the Rancher under "Runtime environment", and wait for first compile:
 
    ```bash
    # <rancher-host> is whichever address the probe under "Runtime environment" showed
@@ -35,9 +35,9 @@ Capture only **after** `yarn lint` and `yarn test:ci` have passed. A recording o
    timeout 900 bash -c 'until grep -q "Compiled successfully" /tmp/gh-aw/agent/dashboard-dev.log; do sleep 10; done'
    ```
 
-   A compile failure is a failed gate — quote what it printed, and open no pull request. A compile that does not finish inside the timeout is not: open the pull request without a video and say which of the two happened.
+   Compile failure is a failed gate — quote what it printed, open no pull request. Compile not finishing inside the timeout is not a failed gate: open the pull request without video, saying which of the two happened.
 
-2. Record the walkthrough, and take at least one still. The dev server's certificate is self-signed, so the browser has to be told to accept it, and that has to be set before the session is opened:
+2. Record the walkthrough, take at least one still. Dev server certificate is self-signed, so the browser must be told to accept it before the session opens:
 
    ```bash
    export PLAYWRIGHT_MCP_IGNORE_HTTPS_ERRORS=true
@@ -52,21 +52,19 @@ Capture only **after** `yarn lint` and `yarn test:ci` have passed. A recording o
    playwright-cli close
    ```
 
-3. Visit **every** screen the change affects, plus the screen that reaches it. Mark each with a `video-chapter` so a reviewer can find it without scrubbing
-4. Run `playwright-cli console error` on each screen. An error the change introduced is a failed change, not a caveat to note in the body — abandon it
-5. Keep the video under a minute. A recording nobody watches is worse than a screenshot somebody does — if the walkthrough will not fit, cut it to the one screen that matters
+3. Visit **every** screen the change affects, plus the screen reaching it. Mark each with `video-chapter` so a reviewer finds it without scrubbing
+4. Run `playwright-cli console error` on each screen. An error the change introduced is a failed change, not a caveat for the body — abandon it
+5. Keep video under a minute. Recording nobody watches is worse than a screenshot somebody does — walkthrough will not fit, cut to the one screen that matters
 
 ### Publishing and embedding
 
-Call the `upload_asset` tool with the file path. It returns a URL **immediately**, before the run ends, of the form `https://github.com/<owner>/<repo>/blob/assets/<workflow>/<sha256>.<ext>?raw=true`. Paste that URL into the bodies you write; do not try to construct it yourself, and do not wait for anything.
+Call `upload_asset` with the file path. Returns a URL **immediately**, before the run ends, shaped `https://github.com/<owner>/<repo>/blob/assets/<workflow>/<sha256>.<ext>?raw=true`. Paste it into bodies you write; never construct it yourself, never wait.
 
-The same asset can be referenced from more than one body. Upload once, and put the same URL in the issue **and** in the pull request that fixes it.
+One asset serves several bodies. Upload once, same URL in the issue **and** in the pull request fixing it.
 
-How to embed each kind:
+- **`.png` renders inline** in an issue or pull request body: `![<what the screen shows>](<url>)`
+- **`.webm` does not render inline** from this URL — GitHub auto-embeds video only from its own attachment host. Plain markdown link, `[Walkthrough recording (webm)](<url>)`, with an inline `.png` still above it. A `<video src>` tag pointing here renders as nothing, so never use one
 
-- **A `.png` renders inline** in an issue or pull request body. Write it as `![<what the screen shows>](<url>)`
-- **A `.webm` does not render inline** from this kind of URL — GitHub only auto-embeds video for its own attachment host. Write it as a plain markdown link, `[Walkthrough recording (webm)](<url>)`, and put an inline `.png` still above it. A `<video src>` tag pointing at this URL renders as nothing at all, so never use one
+Assets are pushed to their branch by a job running **in parallel** with the one creating issues and pull requests, so a URL can 404 for seconds after the body posts. Expected, self-correcting, never a reason to retry the upload.
 
-The assets are pushed to their branch by a job that runs **in parallel** with the one that creates issues and pull requests, so a URL can 404 for a few seconds after the body is posted. That is expected and self-corrects; it is not a reason to retry the upload.
-
-If a recording could not be produced at all, take a `playwright-cli screenshot` of the affected screen instead, publish that, and say in the body why there is no video.
+No recording possible: `playwright-cli screenshot` of the affected screen, publish that, say in the body why there is no video.

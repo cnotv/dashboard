@@ -1,40 +1,41 @@
 ## Lessons protocol
 
-Every run that gets surprised should leave the next run better equipped. This workflow keeps a lessons file under `.github/agents/lessons/`; the workflow-specific section below names it.
+Run that gets surprised leaves next run better equipped. Lessons file lives under `.github/agents/lessons/`; workflow-specific section names it.
 
 ### Read it first
 
-**Before anything else**, read the lessons file. If it does not exist, note that and continue. Everything in it binds this run with the same force as the checks in this prompt — the entries exist precisely because following the prompt alone still produced a wrong answer.
+**Before anything else**, read lessons file. Missing: say so, continue. Entries bind this run as hard as this prompt — they exist because prompt alone still produced wrong answer.
 
-### What qualifies as a lesson
+### Qualifies
 
-- A mechanism this prompt does not describe that made the analysis wrong
-- A search idiom that returned a misleading result: a command that silently matched nothing, a form the search missed, a name collision that hid the real attribution
-- A repository convention that changes what a result means
-- An open issue whose stated evidence did not reproduce, along with what the original analysis missed
-- A change that broke `yarn lint` or `yarn test:ci` in a way the analysis did not predict
+- Mechanism this prompt does not describe, that made analysis wrong
+- Search idiom returning misleading result: command that silently matched nothing, form the search missed, name collision hiding real attribution
+- Repository convention that changes what a result means
+- Open issue whose stated evidence did not reproduce, plus what original analysis missed
+- Change that broke `yarn lint` or `yarn test:ci` in way analysis did not predict
 
-### What does not qualify
+### Does not qualify
 
-- A restatement of a rule already in this prompt. An entry earns its place only if following this prompt as written would still have produced the wrong answer
-- A one-off observation about a specific file with no general rule behind it
-- Anything you did not actually run into on this run. Do not speculate about failure modes
-- A problem with the workflow itself — a missing dependency, a wrong runtime version, a gate that will not start. Report that in the run summary and move on
+- Restatement of rule already in this prompt. Entry earns place only if following prompt as written still produced wrong answer
+- One-off observation about one file, no general rule behind it
+- Anything not hit on this run. Never speculate
+- Problem with workflow itself — missing dependency, wrong runtime version, gate that will not start. Run summary, not here
 
-**Write the entry repository-agnostically.** Describe the pattern, not where it was filed — never name a repository or a fork, and do not cite issue numbers. The file travels with the workflow, so a number that resolves somewhere else is worse than no reference at all.
+**Repository-agnostic.** Describe pattern, not where filed — never name repository or fork, never cite issue numbers. File travels with workflow, so number resolving elsewhere is worse than no reference.
 
-**Resembling an existing entry is not the same as being covered by it.** Before dismissing something as already recorded, read the entry you have in mind and check that its **Rule** would actually have caught this case. Two failures can share a symptom and still need different checks — if the existing rule would have let this one through, write a new entry and say in it how the two differ.
+**Resembling existing entry is not being covered by it.** Read the entry you mean, check its **Rule** would have caught this case. Two failures share symptom, need different checks: write new entry, say in it how the two differ.
 
-### How to record it
+### Recording
 
-1. Append to the end of the `## Lessons` section of the file, using the exact entry format the file specifies under "Format for lessons": a dated `###` heading, then **Trigger**, **Rule** and **Command**
-2. The **Rule** must be an instruction for a future run, not a description of what happened
-3. The **Command** must be one you actually ran, with its real output — including, where it makes the point, the broken form alongside the working form
-4. Never edit or delete existing entries. The file only grows
+1. Append at end of file's `## Lessons` section, exact shape from "Format for lessons": dated `###` heading, then **Trigger**, **Rule**, **Command**
+2. **Rule** is instruction for future run, not description of what happened
+3. **Command** is one you ran, real output — broken form beside working form where that makes the point
+4. Never edit or delete existing entries. File only grows
+5. Terse: no articles, no filler, no restating prompt. Commands and output verbatim
 
-**Where the entry ships**, given the pull request budget:
+**Where entry ships**, given pull request budget:
 
-- **This run is opening one or more pull requests** — include the lessons change in the **first** one and describe it in that body's Lessons section. A lessons entry never gets a pull request of its own while another is available to carry it, and it must not be duplicated across several
-- **This run is opening no pull request** — write the entry into the file and open the pull request for it alone, keeping only the Lessons section of the body template
+- **Run opens pull requests** — lessons change goes in **first** one, described in that body's Lessons section. Never its own pull request while another can carry it, never duplicated across two
+- **Run opens none** — write entry, open pull request for it alone, keeping only Lessons section of body template
 
-**The lessons file is the only file under `.github/` you may touch.** Never modify anything else there, and never a workflow or its lock file. Proposals to change this prompt go in the lessons file, which is read at the start of every run and therefore takes effect immediately without a workflow edit.
+**Lessons file is the only file under `.github/` you may touch.** Never anything else there, never workflow or lock file. Proposals to change this prompt go in lessons file, read at start of every run, so they take effect without workflow edit.

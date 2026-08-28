@@ -1,38 +1,38 @@
 # Dead Code Detector — Lessons
 
-Written and maintained by the Dead Code Detector workflow
-(`.github/workflows/dead-code-detector.md`), which reads this file at the start of every run.
+Written and maintained by Dead Code Detector workflow
+(`.github/workflows/dead-code-detector.md`), read at start of every run.
 
 ## Provenance and confidence
 
-Git history is what separates a guess from a judgement. For every candidate, establish how it
-came to have no consumers, and let that set the confidence — not how empty the search looked.
+Git history separates guess from judgement. Per candidate, establish how it came to have no
+consumers. That sets confidence — not how empty the search looked.
 
-Three shapes recur, in descending order of certainty:
+Three shapes, descending certainty:
 
-- **Explicitly replaced** — a commit swaps a reference to this component for a reference to
-  another one, typically in a config or table-headers file. Someone decided this component was
-  superseded and acted on it. **Very high confidence (95%+)**
-- **Orphaned by a removal** — the only consumers lived in a directory or package that was later
-  deleted wholesale. The component was not judged, it was left behind. There is a clear audit
-  trail, but nobody ever decided about this file specifically. **High confidence (85–95%)**
-- **Never used** — the search finds no consumer at any point in history. The code may be
-  speculative, half-finished, or carried over from another codebase. Absence of a decision is not
-  a decision: string-keyed and dynamic references are exactly what leaves no import to find, so
-  this shape needs runtime confirmation. **Medium confidence (70–85%) at best**
+- **Explicitly replaced** — commit swaps a reference to this component for another, typically in a
+  config or table-headers file. Someone decided it was superseded and acted.
+  **Very high confidence (95%+)**
+- **Orphaned by a removal** — only consumers lived in a directory or package later deleted
+  wholesale. Component was never judged, only left behind. Clear audit trail, no decision.
+  **High confidence (85–95%)**
+- **Never used** — no consumer at any point in history. Speculative, half-finished, or carried over
+  from another codebase. Absence of a decision is not a decision: string-keyed and dynamic
+  references are exactly what leaves no import to find, so this shape needs runtime confirmation.
+  **Medium confidence (70–85%) at best**
 
-Anything that fits none of the three — unclear provenance, recent changes, or a dynamic resolution
-pattern that could not be ruled out — is **Low (<70%)** and is not reported at all.
+Fitting none of the three — unclear provenance, recent changes, dynamic resolution not ruled out —
+is **Low (<70%)** and is never reported.
 
-Establish the shape with a history search for the name across config and package directories, and
-a search for the commit where the last usage disappeared. Quote the commands and their real output
-in the issue — a confidence level with no commands behind it is an assertion, and the reviewer has
-no way to check it without redoing the work.
+Establish the shape with a history search for the name across config and package directories, plus
+a search for the commit where last usage disappeared. Quote commands and real output in the issue:
+a confidence level with no commands behind it is an assertion, and the reviewer cannot check it
+without redoing the work.
 
 ### Worked examples
 
-Three formatter components, one per shape. All three are currently unreferenced by any config
-file, so the search of current code cannot tell them apart — only the history can.
+Three formatter components, one per shape. All three currently unreferenced by any config file, so
+a search of current code cannot tell them apart. Only history can.
 
 **Explicitly replaced** — `shell/components/formatter/DelayedValue.vue`:
 
@@ -42,7 +42,7 @@ git log --all --oneline -S "DelayedValue" -- "shell/config/"
 # 609f73918d Performance: Fix issues with live and delayed columns
 ```
 
-The second commit changes `formatter: 'DelayedValue'` to `formatter: 'LivePodRestarts'`. Someone
+Second commit changes `formatter: 'DelayedValue'` to `formatter: 'LivePodRestarts'`. Someone
 decided and acted.
 
 **Orphaned by a removal** — `shell/components/formatter/ImagePercentageBar.vue`:
@@ -53,8 +53,8 @@ git log --all --oneline -S "ImagePercentageBar" -- "pkg/"
 # 43d338fac2 Harvester Plugin
 ```
 
-Its only consumer was a table-headers file in a package that was later deleted wholesale. Clear
-audit trail, but no decision was ever made about this file.
+Only consumer was a table-headers file in a package later deleted wholesale. Clear audit trail, no
+decision ever made about this file.
 
 **Never used** — `shell/components/formatter/LinkDetailImage.vue`:
 
@@ -63,13 +63,13 @@ git log --all --oneline -S "LinkDetailImage" -- "shell/config/" "pkg/"
 # (no output)
 ```
 
-No consumer at any point in history. This is the weakest of the three, not the strongest: an
-empty history is also what a string-keyed reference that never touched a config file looks like.
+No consumer at any point in history. Weakest of the three, not strongest: empty history is also
+what a string-keyed reference that never touched a config file looks like.
 
 ## Format for lessons
 
-Lessons are things that made live code look dead, or made an empty result look like proof.
-Append them at the end, newest last, using exactly this shape:
+Lessons are things that made live code look dead, or made an empty result look like proof. Append
+at end, newest last, exactly this shape:
 
 ```markdown
 ### YYYY-MM-DD — Short title
@@ -79,32 +79,33 @@ Append them at the end, newest last, using exactly this shape:
 - **Command**: a command that demonstrates the rule, with its real output
 ```
 
-Do not add an entry that merely restates a rule already in the detector prompt. An entry earns
-its place only if following the prompt as written would still have produced the wrong answer.
+Entries terse: no articles, no filler, no rationale the rule already carries. Commands and output
+verbatim.
 
-A near-miss with an existing entry is still a new entry. Two failures that share a symptom but
-need different checks belong in different entries — say in the **Rule** how the new one differs.
+Never add an entry restating a rule already in the detector prompt. Entry earns its place only if
+following the prompt as written would still have produced the wrong answer.
 
-Say each thing once and point at it from anywhere else. If an entry refers to another one, name
-it by its title and re-read that entry first to confirm it still says what you are claiming; a
-pointer that has gone stale reads as verified and is not.
+Near-miss with an existing entry is still a new entry. Two failures sharing a symptom but needing
+different checks belong in different entries — say in **Rule** how the new one differs.
 
-This file is about identifying dead code, and nothing else. Problems with the workflow itself —
-a missing dependency, a wrong runtime version, a gate that will not start — do not belong here.
-Describe the pattern, not where it was filed: never name a repository or a fork in an entry, and
-do not cite issue numbers.
+Say each thing once, point at it from anywhere else. Entry referring to another names it by title,
+and you re-read that entry first to confirm it still says what you claim; stale pointer reads as
+verified and is not.
+
+This file is about identifying dead code, nothing else. Problems with the workflow itself —
+missing dependency, wrong runtime version, gate that will not start — never belong here. Describe
+the pattern, not where it was filed: never name a repository or fork, never cite issue numbers.
 
 ## Lessons
 
 ### 2026-08-19 — `--include` does not expand braces
 
-- **Trigger**: Candidates reported as unreferenced on evidence that was entirely empty `grep`
-  output
-- **Rule**: Never pass a brace list to `--include`. It takes one glob per flag and does not expand
+- **Trigger**: Candidates reported unreferenced on evidence that was entirely empty `grep` output
+- **Rule**: Never pass a brace list to `--include`. Takes one glob per flag, does not expand
   braces, so the command searches nothing and exits 0 — and no output reads exactly like proof of
-  deadness. Pass repeated flags, or use `rg`, which does not need them. Before trusting any
-  negative, run the same command against a symbol known to be live; if the control also returns
-  nothing, the command is broken rather than the codebase
+  deadness. Pass repeated flags, or use `rg`, which needs none. Before trusting any negative, run
+  the same command against a symbol known to be live; control also returning nothing means the
+  command is broken rather than the codebase
 - **Command**:
 
   ```bash
@@ -116,10 +117,10 @@ do not cite issue numbers.
 
 ### 2026-08-19 — Relative imports hide consumers
 
-- **Trigger**: A utility module reported as dead while a sibling module was importing it
-- **Rule**: Search every import form, not just the `@shell/…` alias. Files in the same directory
-  import each other as `./name`, and `../` and `~/` forms also occur. A search for the aliased
-  path alone finds none of them
+- **Trigger**: Utility module reported dead while a sibling module imported it
+- **Rule**: Search every import form, not just the `@shell/…` alias. Files in one directory import
+  each other as `./name`; `../` and `~/` forms also occur. A search for the aliased path alone
+  finds none of them
 - **Command**:
 
   ```bash
@@ -129,12 +130,12 @@ do not cite issue numbers.
 
 ### 2026-08-19 — One exported name, two modules
 
-- **Trigger**: An export that looked unused because every importer was taking the identically
-  named export from a different file
-- **Rule**: Attribute a symbol to its module before calling it unused. Read the module path in
-  each importer's `from` clause rather than counting name matches. If a second definition is
-  absorbing all the traffic, the duplicate really is dead — but for a different reason and with a
-  different fix, and the issue has to say which copy is which
+- **Trigger**: Export that looked unused because every importer took the identically named export
+  from a different file
+- **Rule**: Attribute a symbol to its module before calling it unused. Read the module path in each
+  importer's `from` clause rather than counting name matches. Second definition absorbing all the
+  traffic means the duplicate really is dead — but for a different reason, with a different fix,
+  and the issue has to say which copy is which
 - **Command**:
 
   ```bash
@@ -147,10 +148,9 @@ do not cite issue numbers.
 
 ### 2026-08-19 — Excluding by bare filename drops real consumers
 
-- **Trigger**: A reference count taken with the defining file filtered out by name
-- **Rule**: `grep -v` and `--exclude` match on the basename, so filtering out a definition also
-  filters out every same-named file elsewhere in the tree — including consumers. Filter on the
-  full path
+- **Trigger**: Reference count taken with the defining file filtered out by name
+- **Rule**: `grep -v` and `--exclude` match the basename, so filtering out a definition also filters
+  out every same-named file elsewhere in the tree — consumers included. Filter on the full path
 - **Command**:
 
   ```bash
@@ -164,15 +164,15 @@ do not cite issue numbers.
 
 ### 2026-08-19 — A name match is not a reference
 
-- **Trigger**: A component whose apparent consumers were a CSS class and an unrelated identifier
-  that happened to contain its name
-- **Rule**: Never judge a component by a bare-name search. Search the forms that constitute a real
+- **Trigger**: Component whose apparent consumers were a CSS class and an unrelated identifier
+  containing its name
+- **Rule**: Never judge a component by a bare-name search. Search the forms constituting a real
   reference — `import ... from '.../Name'`, a `components: {}` entry, `<Name`, `<kebab-name` — and
-  read every remaining match before counting it as a consumer; a hit inside a longer identifier is
-  noise until you have opened the line. This is not the two-modules case above: there is no second
-  definition here, only a name that happens to be a substring. The reverse case matters too — a
-  style rule left behind in a file that no longer uses the component is itself dead code, so list
-  it in the removal steps instead of letting it scare you off the finding
+  read every remaining match before counting it a consumer; a hit inside a longer identifier is
+  noise until you have opened the line. Not the two-modules case above: no second definition here,
+  only a name that happens to be a substring. Reverse case matters too — a style rule left behind
+  in a file that no longer uses the component is itself dead code, so list it in the removal steps
+  instead of letting it scare you off the finding
 - **Command**:
 
   ```bash
@@ -190,11 +190,10 @@ do not cite issue numbers.
 ### 2026-08-19 — A test is not a consumer
 
 - **Trigger**: Exports kept alive in every reference count solely by their own unit tests
-- **Rule**: Static tools treat a test file as a legitimate importer, so this shape is never
-  surfaced automatically — look for it deliberately. Re-run the reference check excluding
-  `__tests__/`, `*.test.*` and `*.spec.*`, and confirm the remaining hits are zero. Report the
-  implementation and its test together as one removal; the test is part of the dead cluster, not
-  evidence against it
+- **Rule**: Static tools treat a test file as a legitimate importer, so this shape never surfaces
+  automatically — look for it deliberately. Re-run the reference check excluding `__tests__/`,
+  `*.test.*` and `*.spec.*`, confirm remaining hits are zero. Report implementation and test
+  together as one removal; the test is part of the dead cluster, not evidence against it
 - **Command**:
 
   ```bash
@@ -204,18 +203,18 @@ do not cite issue numbers.
   # shell/utils/__tests__/style.test.ts:2, :145 — the only importer
   ```
 
-  The same shape holds for `toBgColor` and `getHighestAlertColor` in the same file, and for
+  Same shape for `toBgColor` and `getHighestAlertColor` in that file, and for
   `shell/utils/poller-sequential.js`.
 
 ### 2026-08-19 — Formatters are registered by glob and referenced by string
 
-- **Trigger**: Formatter components reported as orphaned because nothing imports them — which is
-  true of every formatter, including the live ones
+- **Trigger**: Formatter components reported orphaned because nothing imports them — true of every
+  formatter, live ones included
 - **Rule**: Two `require.context` globs register every `[A-Z]\w+.vue` under
-  `shell/components/formatter/` automatically, so no formatter ever has an import. They are
-  invoked by string instead, as `formatter: 'Name'` in table configs. To rule one out, search for
-  the quoted name across `shell/config` and `pkg/*/config/`, and search the history for the same
-  string. Re-run the glob search rather than trusting this list — it changes
+  `shell/components/formatter/` automatically, so no formatter ever has an import. Invoked by
+  string instead, as `formatter: 'Name'` in table configs. To rule one out, search the quoted name
+  across `shell/config` and `pkg/*/config/`, and search history for the same string. Re-run the
+  glob search rather than trusting this list — it changes
 - **Command**:
 
   ```bash
@@ -229,13 +228,12 @@ do not cite issue numbers.
 
 ### 2026-08-19 — An unresolved question is not high confidence
 
-- **Trigger**: Re-exports from an extension API entry point filed as **Confidence: High** with
-  removal steps that opened "verify with the team whether this is an external extension API"
-- **Rule**: Those two statements cannot both stand. Any open question about whether code is
-  _meant_ to have no in-repo consumers caps confidence below the reporting threshold — resolve it
-  or drop the finding. Never file it anyway and leave the verification to the reader. A module
-  whose job is to expose an API has no in-repo importers by design; that is what it is for, not
-  evidence against it
+- **Trigger**: Re-exports from an extension API entry point filed as **Confidence: High**, removal
+  steps opening "verify with the team whether this is an external extension API"
+- **Rule**: Those two statements cannot both stand. Any open question about whether code is _meant_
+  to have no in-repo consumers caps confidence below the reporting threshold — resolve it or drop
+  the finding. Never file anyway and leave verification to the reader. A module whose job is to
+  expose an API has no in-repo importers by design; that is what it is for, not evidence against it
 - **Command**:
 
   ```bash
@@ -246,14 +244,14 @@ do not cite issue numbers.
 
 ### 2026-08-19 — One consumer does not exonerate a file
 
-- **Trigger**: A cluster reported at half its real size, with a "do NOT remove" note pointing at
-  dead code. Four components were reported and a fifth explicitly cleared, on the grounds that it
-  had a consumer — a consumer that turned out to have none of its own
+- **Trigger**: Cluster reported at half its real size, with a "do NOT remove" note pointing at dead
+  code. Four components reported, a fifth cleared on the grounds it had a consumer — a consumer
+  with none of its own
 - **Rule**: A consumer only exonerates a file if the consumer is itself reachable. Before
   concluding "X is still used by Y", run the reference check on Y, and keep walking up until you
   reach something reachable or the chain ends. Stopping at the first importer is the most common
-  way the closure check fails. Note that the chain crosses directory boundaries, so the cluster
-  can be larger than the directory it started in
+  way the closure check fails. Chain crosses directory boundaries, so the cluster can be larger
+  than the directory it started in
 - **Command**:
 
   ```bash
@@ -266,21 +264,21 @@ do not cite issue numbers.
 
 ### 2026-08-19 — Cluster boundaries drift between runs
 
-- **Trigger**: The same underlying findings split three ways on one run and bundled into a single
+- **Trigger**: Same underlying findings split three ways on one run, bundled into a single
   eighteen-component issue on the next
-- **Rule**: Apply a fixed boundary so it does not depend on the run. A cluster is one directory,
-  plus whatever its members transitively drag in. Never file one issue spanning several unrelated
+- **Rule**: Apply a fixed boundary so it never depends on the run. A cluster is one directory plus
+  whatever its members transitively drag in. Never file one issue spanning several unrelated
   directories merely because everything in it is an unreferenced component — that is a report, not
-  a cluster, and it cannot become a clean pull request. Do not split a single directory across
-  several issues either
-- **Command**: none — this is a reporting-boundary rule, not a search rule
+  a cluster, and it cannot become a clean pull request. Never split one directory across several
+  issues either
+- **Command**: none — reporting-boundary rule, not a search rule
 
 ### 2026-08-19 — Derive counts from the list you are publishing
 
-- **Trigger**: An issue that announced "9 files, ~1,870 lines" directly above a list of 11 files
-  totalling 2,014 lines
+- **Trigger**: Issue announcing "9 files, ~1,870 lines" directly above a list of 11 files totalling
+  2,014 lines
 - **Rule**: Every count and total in an issue comes from the list immediately below it, counted,
-  not estimated. A summary line that disagrees with its own list discredits the evidence under it
+  never estimated. A summary line disagreeing with its own list discredits the evidence under it
 - **Command**:
 
   ```bash
@@ -289,16 +287,17 @@ do not cite issue numbers.
 
 ### 2026-08-25 — Convention directories are loaded by a template-literal import
 
-- **Trigger**: Files under the resource-type directories reported as orphaned because nothing imports
-  them — which is true of every file in those directories, the live ones included
-- **Rule**: These directories are addressed by Kubernetes resource type at runtime, not by import.
-  `shell/utils/dynamic-importer.js` builds the path from a string, so no static import to the file will
-  ever exist and no reference search can find one. Never report a file in `shell/models/`,
-  `shell/detail/`, `shell/edit/`, `shell/list/`, `shell/chart/`, `shell/cloud-credential/`,
-  `shell/machine-config/`, `shell/promptRemove/`, `shell/dialog/` or their `pkg/*/` equivalents as
-  unreferenced. The same shape hides a reference anywhere a component is named by a computed string —
-  `defineAsyncComponent`, `resolveComponent`, `<component :is="...">`, and any `import()` containing a
-  template literal. Search for the bare name as a quoted string before concluding anything
+- **Trigger**: Files under resource-type directories reported orphaned because nothing imports them
+  — true of every file in those directories, live ones included
+- **Rule**: These directories are addressed by Kubernetes resource type at runtime, never by
+  import. `shell/utils/dynamic-importer.js` builds the path from a string, so no static import to
+  the file will ever exist and no reference search can find one. Never report a file in
+  `shell/models/`, `shell/detail/`, `shell/edit/`, `shell/list/`, `shell/chart/`,
+  `shell/cloud-credential/`, `shell/machine-config/`, `shell/promptRemove/`, `shell/dialog/` or
+  their `pkg/*/` equivalents as unreferenced. Same shape hides a reference anywhere a component is
+  named by a computed string — `defineAsyncComponent`, `resolveComponent`, `<component :is="...">`,
+  any `import()` containing a template literal. Search the bare name as a quoted string before
+  concluding anything
 - **Command**:
 
   ```bash
@@ -316,13 +315,13 @@ do not cite issue numbers.
 
 ### 2026-08-25 — Entry points have no importers by design
 
-- **Trigger**: Package entry points and API modules counted as dead because a repository-wide search
+- **Trigger**: Package entry points and API modules counted dead because a repository-wide search
   found nothing importing them
-- **Rule**: A module whose job is to be imported from outside the repository has no in-repo importer,
-  and that is what it is for rather than evidence against it. Never report `shell/apis/**`,
-  `pkg/*/index.ts`, `shell/initialize/entry.js`, `shell/config/router/routes.js`, store, plugin or
-  directive registration files, or anything named as a `main`, `types` or `exports` target in a
-  `package.json` or as an entry in build config
+- **Rule**: A module whose job is to be imported from outside the repository has no in-repo
+  importer, and that is what it is for rather than evidence against it. Never report
+  `shell/apis/**`, `pkg/*/index.ts`, `shell/initialize/entry.js`, `shell/config/router/routes.js`,
+  store, plugin or directive registration files, or anything named as a `main`, `types` or
+  `exports` target in a `package.json` or as an entry in build config
 - **Command**:
 
   ```bash

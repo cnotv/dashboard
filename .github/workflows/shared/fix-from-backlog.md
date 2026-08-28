@@ -1,34 +1,34 @@
 ## Remediation protocol
 
-This is how an open issue becomes a pull request that closes it: what may be picked up, how many at once, what has to be proven before a line is changed, and what the pull request has to say. It is the same protocol whoever filed the issue — an earlier run of this workflow, or a person.
+How an open issue becomes the pull request closing it: what may be picked up, how many at once, what must be proven before a line changes, what the body must say. Same protocol whoever filed the issue — earlier run of this workflow, or person.
 
-Two labels appear throughout, and the workflow-specific section below states both. Substitute them literally wherever this protocol writes them:
+Two labels run through it, both named in the workflow-specific section. Substitute literally:
 
-- `<bot-label>` — the label carried by the pull requests **this workflow opens**. It is how the workflow recognises its own work and how the budget is counted
-- `<candidate-labels>` — the label or labels whose open issues are candidates for fixing
+- `<bot-label>` — label on pull requests **this workflow opens**. How it recognises its own work and counts the budget
+- `<candidate-labels>` — label or labels whose open issues are candidates for fixing
 
-They may be the same label or entirely different ones.
+May be the same label, may be different ones.
 
-**A run must never end silently.** If the run produced nothing, call the `noop` tool and say in one sentence why. Ending with no output at all is indistinguishable from a crash, and the workflow files a failure issue for it. Being blocked is a legitimate result; not saying so is not.
+**A run never ends silently.** Produced nothing: call `noop`, one sentence why. No output is indistinguishable from a crash, and the workflow files a failure issue for it. Blocked is a legitimate result; not saying so is not.
 
-### The pull request budget
+### Pull request budget
 
-Only so many pull requests carrying `<bot-label>` may be open at a time; the workflow-specific section below states the number. Before doing anything else, call `list_pull_requests` with `state: "open"` and keep the ones carrying `<bot-label>`.
+Only so many pull requests carrying `<bot-label>` open at once; workflow-specific section states the number. First call of the run: `list_pull_requests` with `state: "open"`, keep the ones carrying `<bot-label>`.
 
-The budget counts pull requests **open**, not pull requests opened by this run: two already open leaves room for one more, not for three.
+Budget counts pull requests **open**, not opened by this run: two already open leaves room for one, not three.
 
-- **The budget is full** — open no pull request and change no code. A queue of unreviewed pull requests is exactly the backlog this shape exists to prevent. Spend the run on the work that costs no slot: re-checking the open pull requests, and commenting on candidates that do not hold up
-- **There is room** — carry the number of free slots through the rest of the run
+- **Full** — open none, change no code. Queue of unreviewed pull requests is the backlog this shape exists to prevent. Spend the run on work costing no slot: re-checking open pull requests, commenting on candidates that do not hold up
+- **Room left** — carry the free-slot count through the rest of the run
 
-### Keeping the open pull requests mergeable
+### Keeping open pull requests mergeable
 
-An open pull request that has fallen behind the base branch blocks its own merge, and an unreviewed one goes stale fast: the lines it touches get edited underneath it. So before opening anything new, check the ones already open. For each pull request from the list above, call `pull_request_read` with `method: "get"` and read `mergeable` and `mergeable_state`:
+Pull request behind its base blocks its own merge, and unreviewed goes stale fast — lines it touches get edited underneath it. Check open ones before opening anything new. For each, `pull_request_read` with `method: "get"`, read `mergeable` and `mergeable_state`:
 
-- `mergeable_state` of `clean` or `unstable` — nothing to do
-- `mergeable_state` of `behind` — it only needs the base branch merged in. Say so in the comment below; do not rebase it by hand
-- `mergeable` of `false`, or `mergeable_state` of `dirty` — it genuinely conflicts
+- `clean` or `unstable` — nothing to do
+- `behind` — needs only base branch merged in. Say so in the comment below; never rebase by hand
+- `mergeable` `false`, or `dirty` — genuinely conflicts
 
-Where a rebase is needed, **do not push to that branch.** Its patch was reviewed under the branch protections of the run that opened it, and re-driving it from here bypasses them. Instead add one comment to it, using an `add-comment` slot, naming the state and what has to happen:
+Rebase needed: **never push to that branch.** Its patch was reviewed under the branch protections of the run that opened it, and re-driving it from here bypasses them. One comment instead, one `add-comment` slot, naming state and what has to happen:
 
 ```markdown
 This pull request is `<mergeable_state>` against `<base branch>` as of <short sha>.
@@ -37,58 +37,58 @@ This pull request is `<mergeable_state>` against `<base branch>` as of <short sh
 <For `dirty`:> It conflicts in <files, from `get_files`>. <One line on whether the change still applies against current code: re-run the check and say so.>
 ```
 
-If re-checking a conflicted pull request shows its premise no longer holds — someone has since made the change by hand, or the code it targets is gone — say that in the same comment and recommend closing it. That is a more useful outcome than a rebase.
+Re-check shows premise gone — someone made the change by hand, or the target code no longer exists — say that in the same comment and recommend closing. More useful than a rebase.
 
-Each comment costs one `add-comment` slot out of the run's budget, so cap this at the oldest three that need attention and note in the run summary if more were skipped.
+Each comment costs one `add-comment` slot: cap at the oldest three needing attention, note in the run summary if more were skipped.
 
 ### Selecting from the backlog
 
-1. List open issues: `list_issues` with `labels: ["<candidate-labels>"], state: "OPEN"`, then `issue_read` each one for its body. Where the workflow-specific section names several candidate labels, they are drained in the order it gives them
-2. Discard any already covered by an open pull request. **Checking for a `Closes`/`Fixes` link is not enough** — get the changed files of every open pull request carrying `<bot-label>` with `pull_request_read` / `method: "get_files"`, and discard any issue whose files overlap that set at all. A partial overlap counts: two pull requests touching some of the same files will conflict on merge
-3. Discard anything a lessons entry has already ruled out
-4. Discard the duplicates. The same thing is routinely filed several times over, in different words. Pick the **oldest** issue describing it, and keep the numbers of its restatements — the fix resolves them all and the pull request has to close them all
-5. From what remains, order by how completely the issue specifies what it wants, and then by blast radius, and take as many as the budget allows. A three-file change is a better candidate than an eighteen-file grab bag
-6. Check the ones you took against each other. Two issues whose file sets overlap are one piece of work, not two — merge them into a single fix that closes both, and pull the next candidate up to fill the slot
+1. `list_issues` with `labels: ["<candidate-labels>"], state: "OPEN"`, then `issue_read` each for its body. Several candidate labels drain in the order the workflow-specific section gives
+2. Discard any already covered by an open pull request. **`Closes`/`Fixes` links are not enough** — get changed files of every open pull request carrying `<bot-label>` with `pull_request_read` / `method: "get_files"`, discard any issue whose files overlap that set at all. Partial overlap counts: two pull requests touching one file conflict on merge
+3. Discard anything a lessons entry rules out
+4. Discard duplicates. Same thing gets filed several times in different words. Take the **oldest**, keep the numbers of its restatements — the fix resolves them all and the pull request must close them all
+5. From what remains, order by how completely the issue specifies what it wants, then by blast radius, take as many as budget allows. Three-file change beats eighteen-file grab bag
+6. Check what you took against itself. Two issues with overlapping file sets are one piece of work — merge into a single fix closing both, pull the next candidate into the free slot
 
-**Re-verify from scratch.** The issue's own evidence does not count. A "Result: no matches" proves nothing on its own — the search that produced it may have matched nothing because it was malformed. Re-run every applicable check against the code as it exists now, including a control search proving the command returns hits when hits exist. The code may also have changed since the issue was filed.
+**Re-verify from scratch.** Issue's own evidence does not count. "Result: no matches" proves nothing alone — the search producing it may have matched nothing because it was malformed. Re-run every applicable check against current code, plus a control search proving the command returns hits when hits exist. Code may also have changed since filing.
 
 ### Acting on a candidate
 
-Work through candidates one at a time and finish each before starting the next — re-verify, change, gate, open the pull request, then move on. A run that half-finishes several delivers nothing. If the timeout is approaching, stop after the last completed pull request rather than leaving one unfinished.
+One candidate at a time, finished before the next starts — re-verify, change, gate, open pull request, move on. Half-finishing several delivers nothing. Timeout approaching: stop after the last completed pull request rather than leaving one unfinished.
 
 **Confirmed** — fix it:
 
 1. Make the change, and everything it transitively requires
-2. Run `yarn lint` and `yarn test:ci`. If either fails, fix the fallout or abandon the change — never open a pull request with a failing gate. **A gate that could not run has not passed.** If either command errors on a missing dependency, a runtime version, or anything other than your change, that is a failed gate: open no pull request, and say in the run summary exactly which command failed and what it printed. Do not reason about what the gate would have reported — the whole point of running it is that your reasoning is what is being checked
-3. If the change touches the UI, capture evidence — see "Capturing UI evidence"
-4. Open the pull request on a branch named `<branch-prefix><issue-number>-<slug>`, where the prefix is the one declared in this workflow's frontmatter, the number is the issue this fixes, and the slug is a short kebab-case name for the work. The number is not optional: `<branch-prefix>42-empty-state-copy`, never `<branch-prefix>empty-state-copy`. The name you pass is used verbatim, so a typo is permanent and a name that collides with an existing branch overwrites it
+2. Run `yarn lint` and `yarn test:ci`. Either fails: fix the fallout or abandon the change — never open a pull request on a failing gate. **A gate that could not run has not passed.** Errors on a missing dependency, a runtime version, anything other than your change: failed gate, open no pull request, say in the run summary which command failed and what it printed. Never reason about what the gate would have reported — running it is the point, because your reasoning is what is being checked
+3. Touches UI: capture evidence — see "Capturing UI evidence"
+4. Open the pull request on branch `<branch-prefix><issue-number>-<slug>`: prefix from this workflow's frontmatter, number of the issue this fixes, slug a short kebab-case name. Number not optional — `<branch-prefix>42-empty-state-copy`, never `<branch-prefix>empty-state-copy`. Name is used verbatim, so a typo is permanent and a collision with an existing branch overwrites it
 
-   **Never guess the number.** It has to come from a real issue you listed, not from adding one to the highest you saw: the safe-outputs machinery assigns numbers after this agent has exited, so any prediction you make is a race you will sometimes lose, and the branch would then be labelled with another issue's number. Where this workflow also files its own issues, a finding it filed on this same run has no number yet — use the literal `new` in that position, e.g. `<branch-prefix>new-<slug>`, and never a guess
+   **Never guess the number.** It comes from a real issue you listed, never from adding one to the highest you saw: safe-outputs assigns numbers after this agent exits, so any prediction is a race you sometimes lose and the branch ends up carrying another issue's number. Where this workflow also files issues, a finding filed this same run has no number yet — write the literal `new` there, e.g. `<branch-prefix>new-<slug>`, never a guess
 
-**Does not hold up** — open no pull request. Comment on the issue with the exact command or reading that contradicts it, its output, and a one-line statement of what the original analysis missed or which gate the issue fails. Then record it in the lessons file so later runs do not re-select it. This is a successful run, not a wasted one.
+**Does not hold up** — open no pull request. Comment on the issue with the exact command or reading contradicting it, its output, and one line on what the original analysis missed or which gate the issue fails. Record it in the lessons file so later runs do not re-select it. Successful run, not a wasted one.
 
 ### Closing the issues a pull request resolves
 
-- Never invent an issue number and never guess at the next one
-- Only GitHub's own closing keywords auto-close. End the pull request body with `Closes #N` and one more such line for **every** duplicate issue the same change resolves. Prose like "also resolves #A" leaves the issue open and it returns as a candidate on a later run
+- Never invent an issue number, never guess the next one
+- Only GitHub's closing keywords auto-close. End the body with `Closes #N`, one line per **every** duplicate the same change resolves. Prose like "also resolves #A" leaves the issue open and it returns as a candidate later
 
-Evidence is quoted once, where it is used: the pull request body carries the commands and their output, and the issue it closes is referenced by number rather than summarised back.
+Quote evidence once, where used: the body carries commands and output, the issue it closes is referenced by number rather than summarised back.
 
 ### Pull request body
 
-**Start from this repository's own pull request template.** Read `.github/pull_request_template.md` out of the workspace at the point you compose the body, and reproduce it section for section: same headings, same order, and the HTML comments under each one left in place. Do not reconstruct it from this prompt or from another pull request — the template is maintained by the repository and gains sections over time, and a body missing one reads as a body nobody filled in.
+**Start from this repository's own template.** Read `.github/pull_request_template.md` out of the workspace as you compose, reproduce it section for section: same headings, same order, HTML comments left in place. Never reconstruct it from this prompt or another pull request — the template is maintained by the repository and gains sections over time, and a body missing one reads as a body nobody filled in. Second reason to read the file: those comments are stripped out of this prompt before you see it, so a copy written here would be missing the guidance each section carries.
 
-Read it from the file for a second reason: the comments are stripped out of this prompt before you see it, so a copy written here would be missing exactly the guidance each section carries.
+Fill every section, add the three marked **added**. They carry the evidence this workflow is judged on, and the template has nowhere to put them.
 
-Fill every section, and add the three marked **added** below. Those carry the evidence this workflow is judged on and the template has nowhere to put them.
-
-- **Summary** — the template opens with `Fixes #`. Complete it with the issue number, then one sentence on what changed and why
-- **Occurred changes and/or fixed issues** — the file table
-- **Technical notes summary** — what a reviewer would otherwise have to reverse-engineer from the diff: a signature that had to change, a barrel export that had to be re-pointed, a test that moved rather than went
-- **Areas or cases that should be tested** — what to exercise to be satisfied the change is safe. Name the screens or commands; "regression test the app" is not an answer
+- **Summary** — template opens with `Fixes #`. Complete it with the issue number, then one sentence on what changed and why
+- **Occurred changes and/or fixed issues** — file table
+- **Technical notes summary** — what a reviewer would otherwise reverse-engineer from the diff: signature that had to change, barrel export re-pointed, test that moved rather than went
+- **Areas or cases that should be tested** — what to exercise to be satisfied the change is safe. Name screens or commands; "regression test the app" is not an answer
 - **Areas which could experience regressions** — what could still break, and why it was ruled out
 - **Screenshot/Video** — the assets, or one line saying why there are none
-- **Checklist** — tick a box only where this run genuinely satisfies it, and leave the rest unticked. An unticked box is a working signal that something still needs a human; ticking one you did not satisfy hides that work instead of reporting it. Several of them cannot be satisfied from inside a run at all — a milestone, an assigned reviewer, a self review — and those stay unticked
+- **Checklist** — tick only what this run genuinely satisfies, leave the rest unticked. Unticked box is a working signal that something needs a human; ticking one you did not satisfy hides that work. Several cannot be satisfied from inside a run at all — milestone, assigned reviewer, self review — and stay unticked
+
+Bodies are read by people: plain English, not the compression this prompt uses.
 
 ````markdown
 ### Summary
