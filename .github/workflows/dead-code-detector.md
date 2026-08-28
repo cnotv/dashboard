@@ -98,38 +98,38 @@ timeout-minutes: 75
 
 # Dead Code Detection
 
-Remove dead code from this repository, and report what cannot yet be removed.
+Remove dead code from this repository, report what cannot yet be removed.
 
-The sections above are the house rules — the runtime you are running in, how to capture UI evidence, how findings become issues and pull requests, and how lessons are recorded. This section is the part specific to dead code: what counts as a candidate, what may never be one, and how candidates group into the clusters that become issues.
+Sections above are house rules — runtime you run in, how to capture UI evidence, how findings become issues and pull requests, how lessons are recorded. This section is the dead-code part: what counts as a candidate, what never does, how candidates group into the clusters that become issues.
 
-Read them together. Wherever the shared protocol says "finding", it means a [**cluster**](#clusters), and wherever it writes `<bot-label>` or `<candidate-labels>`, substitute `bot/dead-code-detector` — for this workflow they are the same label, because the only issues it fixes are the ones it filed.
+Read them together. Wherever the shared protocol says "finding" it means a [**cluster**](#clusters); wherever it writes `<bot-label>` or `<candidate-labels>`, substitute `bot/dead-code-detector` — one label for both, because the only issues this workflow fixes are the ones it filed.
 
-Each run does **both** of these, in this order:
+Every run does **both**, in order:
 
-1. **Remediate the backlog** — take the open issues carrying the bot label that earlier runs filed, re-verify each from scratch, and either fix it and open a pull request that closes the issue, or, if re-verification disproves it, comment on it with the disproof. This is the "Remediation protocol" section
-2. **Find what is new** — look for what nobody has reported yet, and file an issue for each verified finding. Where the pull request budget still has room after step 1, fix the finding on this run too and open the pull request alongside its issue. This is the "Reporting protocol" section
+1. **Remediate the backlog** — open issues carrying the bot label from earlier runs: re-verify each from scratch, then either fix it and open the pull request closing it, or comment with the disproof where re-verification kills it. See "Remediation protocol"
+2. **Find what is new** — look for what nobody reported yet, file an issue per verified finding. Budget still has room after step 1: fix it this run too and open the pull request beside its issue. See "Reporting protocol"
 
-Neither phase is a fallback for the other. A full backlog does not excuse skipping detection, and an empty backlog does not turn detection into the whole run. Every finding gets an issue, and every issue that can be resolved gets a pull request that resolves it: the issue is the record, the pull request is the fix, and a run that produces one without the other has done half the job.
+Neither phase is a fallback for the other. Full backlog does not excuse skipping detection; empty backlog does not make detection the whole run. Every finding gets an issue, every resolvable issue gets the pull request resolving it: issue is the record, pull request is the fix, one without the other is half the job.
 
 - **Bot label**: `bot/dead-code-detector`
-- **Branch prefix**: `dead-code/` — a pull request on any other branch is rejected before it is opened
+- **Branch prefix**: `dead-code/` — pull request on any other branch is rejected before it opens
 - **Lessons file**: `.github/agents/lessons/dead-code.md`
-- **Budgets**: at most **three** open pull requests carrying the bot label at a time, at most **three** issues filed per run, and at most **six** comments — shared between refutations, corrections and the rebase notices in "Keeping the open pull requests mergeable"
+- **Budgets**: at most **three** open pull requests carrying the bot label at a time, **three** issues filed per run, **six** comments — shared between refutations, corrections and the rebase notices in "Keeping open pull requests mergeable"
 
-The lessons file holds the search idioms that have produced false findings here and the confidence rubric under "Provenance and confidence". It binds this run with the same force as this section, so nothing below repeats it. Read it before composing a search, not after.
+The lessons file holds the search idioms that produced false findings here, plus the confidence rubric under "Provenance and confidence". It binds this run as hard as this section, so nothing below repeats it. Read it before composing a search, not after.
 
 ## Context
 
 - **Repository**: ${{ github.repository }}
 - **Triggered by**: @${{ github.actor }}
-- **Commit**: run `git rev-parse --short HEAD` in the workspace and quote the result. Do not describe the commit any other way
+- **Commit**: run `git rev-parse --short HEAD` in the workspace, quote the result. Never describe the commit any other way
 
 ## What to look for
 
-Start from the files changed in recent commits (`git log`, `git diff`) under `shell/` and `pkg/`, then widen.
+Start from files changed in recent commits (`git log`, `git diff`) under `shell/` and `pkg/`, then widen.
 
 - **Unused exports** — `export` declarations never imported anywhere, accounting for re-exports and barrel files
-- **Orphaned Vue components** — components never referenced in any template, route definition, or dynamic import
+- **Orphaned Vue components** — never referenced in any template, route definition or dynamic import
 - **Unreferenced utility functions** — functions in `shell/utils/` and equivalents with no callers
 - **Test-only code** — modules whose only importers are their own tests
 - **Dead routes** — route definitions pointing at components that no longer exist
@@ -138,34 +138,34 @@ Start from the files changed in recent commits (`git log`, `git diff`) under `sh
 
 ## Never reported
 
-- **A test file on its own.** The runner finds tests by glob, so nothing imports one and "unreferenced" says nothing about it. A test is never a finding by itself — but it is not exempt from removal either: when the code it covers is dead, the test is part of that cluster and is verified to the same standard as the rest of it
+- **A test file on its own.** The runner finds tests by glob, so nothing imports one and "unreferenced" says nothing about it. Never a finding by itself — but not exempt from removal either: when the code it covers is dead, the test joins that cluster and is verified to the same standard
 - **All workflow files** — anything under `.github/workflows/`
-- Generated code, vendored dependencies, and type declarations required for compilation
+- Generated code, vendored dependencies, type declarations required for compilation
 
-The lessons file adds two more categories, under "Convention directories are loaded by a template-literal import" and "Entry points have no importers by design". Read both before deciding anything is unreferenced.
+The lessons file adds two more categories, under "Convention directories are loaded by a template-literal import" and "Entry points have no importers by design". Read both before calling anything unreferenced.
 
 ## Clusters
 
-A cluster is one directory plus whatever its members transitively drag in. Build it by following imports in both directions:
+A cluster is one directory plus whatever its members transitively drag in. Build it by following imports both ways:
 
 1. Read the imports of each confirmed-dead file
-2. For every in-repo module it imports, re-run the reference check while treating the already-confirmed-dead files as if they had been deleted
+2. For every in-repo module it imports, re-run the reference check treating already-confirmed-dead files as deleted
 3. Anything whose only remaining consumers are dead joins the cluster; repeat until the set stops growing
-4. Work upwards too: if a candidate's only importer is itself unreferenced, that importer joins the cluster
-5. Add the tests. A test file joins the cluster when the code it covers does — but read its imports first and confirm every one of them is already in the cluster. A test that also exercises live code is not dead, and finding one means the cluster is smaller than it looked
+4. Work upwards too: a candidate's only importer, itself unreferenced, joins the cluster
+5. Add the tests. A test joins when the code it covers does — but read its imports first and confirm every one is already in the cluster. A test also exercising live code is not dead, and finding one means the cluster is smaller than it looked
 
-**There is no minimum size.** Report every cluster you can verify, however small: a single unused constant is still dead code. When more clusters are verified than the issue budget allows, file the largest first and leave the rest for the next run.
+**No minimum size.** Report every cluster you can verify, however small: one unused constant is still dead code. More clusters verified than the issue budget allows: file the largest first, leave the rest for the next run.
 
 ## What the issue and the pull request must say
 
-On top of the shared templates, the evidence sections here carry:
+On top of the shared templates, evidence sections here carry:
 
-- **Control search** — the same command run against a symbol known to be live, with its hit count
-- **Dynamic resolution ruled out** — which `require.context` globs were re-grepped and which convention directories were checked
-- **What the dead files drag in** — the extra files the cluster walk added by following their imports, or "none — everything they import is still used elsewhere"
+- **Control search** — same command against a symbol known to be live, with hit count
+- **Dynamic resolution ruled out** — which `require.context` globs were re-grepped, which convention directories were checked
+- **What the dead files drag in** — extra files the cluster walk added by following their imports, or "none — everything they import is still used elsewhere"
 - **Tests removed** — each test file in the cluster and the code it covers, or "none"
-- **Provenance shape** — which of the three in the lessons file this is, with the git output establishing it. State the shape; do not restate the rubric
+- **Provenance shape** — which of the three in the lessons file this is, with the git output establishing it. State the shape; never restate the rubric
 
-A removal touches the UI, and therefore needs evidence, whenever it deletes or edits a `.vue`, `.scss` or translation file — see "Capturing UI evidence" for the full boundary and the capture steps.
+A removal touches the UI, and so needs evidence, whenever it deletes or edits a `.vue`, `.scss` or translation file — see "Capturing UI evidence" for the boundary and the capture steps.
 
-**Objective**: reduce the codebase and the backlog together. A run succeeds when it files what it found and removes what it can — deleting verified-dead code, disproving a wrong report, or recording a lesson that stops the next run repeating a mistake. Not when it produces the most output.
+**Objective**: shrink codebase and backlog together. A run succeeds when it files what it found and removes what it can — deleting verified-dead code, disproving a wrong report, or recording a lesson that stops the next run repeating a mistake. Not when it produces the most output.

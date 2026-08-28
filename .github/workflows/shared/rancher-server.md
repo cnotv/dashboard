@@ -94,9 +94,9 @@ steps:
 
 ## Runtime environment
 
-The setup steps have already prepared the following. They cost several minutes each; do not restart or duplicate them.
+Setup steps already prepared the following. Several minutes each: never restart or duplicate them.
 
-- **A Rancher backend** in a container, published on the runner's port 9443. Credentials: `admin` / `password`. It is bootstrapped — server URL set, EULA accepted, first-login cleared — so the dashboard is usable straight away. Which address reaches it depends on how this agent is sandboxed, so establish that once, before you need it:
+- **Rancher backend** in a container on runner port 9443. Credentials `admin` / `password`. Bootstrapped — server URL set, EULA accepted, first-login cleared — so the dashboard is usable straight away. Which address reaches it depends on how this agent is sandboxed, so settle that once, before you need it:
 
   ```bash
   for host in 172.30.0.1 172.17.0.1 host.docker.internal 127.0.0.1; do
@@ -104,17 +104,17 @@ The setup steps have already prepared the following. They cost several minutes e
   done
   ```
 
-  Wherever this prompt writes `<rancher-host>`, substitute the first host that answered `200`. Shell variables do not survive between bash calls — write the address out literally each time rather than exporting it. If none of them answers, the backend is unreachable: skip every step that needs it and say so in the run summary
+  Wherever this prompt writes `<rancher-host>`, substitute the first host answering `200`. Shell variables do not survive between bash calls — write the address out literally each time rather than exporting it. None answers: backend unreachable, skip every step needing it and say so in the run summary
 
-  `172.30.0.1` is first because the sandbox puts this agent on its own Docker network and that is the gateway back to the runner. `172.17.0.1` is the default bridge gateway and only reaches the host when the agent is unsandboxed.
-- **Node, and `yarn install` already run.** `yarn lint` and `yarn test:ci` can be invoked directly
-- **The Playwright CLI**, invoked as `playwright-cli` from bash
+  `172.30.0.1` first because the sandbox puts this agent on its own Docker network and that is the gateway back to the runner. `172.17.0.1` is the default bridge gateway, reaching the host only when the agent is unsandboxed.
+- **Node, `yarn install` already run.** `yarn lint` and `yarn test:ci` run directly
+- **Playwright CLI**, invoked as `playwright-cli` from bash
 
-The Docker socket is **not** available to this agent. Do not run `docker ps`, `docker logs` or any other docker command — they fail, and nothing here needs them.
+Docker socket is **not** available. Never run `docker ps`, `docker logs` or any other docker command — they fail, and nothing here needs them.
 
 ### Reading GitHub state
 
-**The `gh` CLI is not authenticated here.** Every `gh issue list`, `gh pr list` and `gh pr diff` returns nothing and exits non-zero. Piped through `2>/dev/null` that is indistinguishable from an empty backlog, and a run that believes the backlog is empty skips the half of its job that produces pull requests. Do not use `gh` for anything. Read GitHub state through the MCP tools:
+**`gh` CLI is not authenticated here.** Every `gh issue list`, `gh pr list`, `gh pr diff` returns nothing and exits non-zero. Piped through `2>/dev/null` that is indistinguishable from an empty backlog, and a run believing the backlog is empty skips the half of its job that produces pull requests. Never use `gh`. Read GitHub state through MCP tools:
 
 | Instead of | Use |
 | --- | --- |
@@ -124,11 +124,11 @@ The Docker socket is **not** available to this agent. Do not run `docker ps`, `d
 | `gh pr view <n>` | `pull_request_read` with `method: "get"` |
 | `gh issue view <n>` | `issue_read` |
 
-Two details these tools will not warn you about:
+Two details these tools will not warn about:
 
-- **`state` is spelled differently between them.** `list_issues` takes `OPEN`/`CLOSED` in capitals; `list_pull_requests` takes `open`/`closed`/`all` in lower case. The wrong case is a schema error, not a silent empty result — but do not copy one call's spelling into the other
-- **`list_pull_requests` has no label parameter.** There is no server-side filter; list them all and match `<bot-label>` against each one's labels yourself
+- **`state` is spelled differently between them.** `list_issues` takes `OPEN`/`CLOSED` capitalised; `list_pull_requests` takes `open`/`closed`/`all` lower case. Wrong case is a schema error, not a silent empty result — but never copy one call's spelling into the other
+- **`list_pull_requests` has no label parameter.** No server-side filter: list them all, match `<bot-label>` yourself
 
-Prefer these `list_*` and `*_read` tools over the `search_*` tools. Search is rate limited to 30 requests an hour across every workflow on the repository and is often already spent before this run starts; the listing tools are plain REST calls under a far higher limit. A `403 API rate limit` from a search tool means you used the wrong tool, not that the run is blocked.
+Prefer `list_*` and `*_read` over `search_*`. Search is rate limited to 30 requests an hour across every workflow on the repository and is often spent before this run starts; listing tools are plain REST calls under a far higher limit. `403 API rate limit` from a search tool means wrong tool, not blocked run.
 
-An empty result from a listing tool is a real result — but prove it is real before acting on it. Call `list_issues` once with no label filter as a control: if that also comes back empty on a repository that visibly has issues, the tool is failing rather than the backlog being clear, and you should say so in the run summary instead of proceeding as though there is nothing to remediate.
+Empty result from a listing tool is a real result — prove it before acting. Call `list_issues` once with no label filter as control: also empty on a repository that visibly has issues means the tool is failing rather than the backlog being clear, and the run summary says so instead of proceeding as though there is nothing to remediate.
