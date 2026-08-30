@@ -1,12 +1,9 @@
 import {
-  ALL_STATE_COLORS,
   BLANK_IMAGE,
   StateColor,
-  getHighestAlertColor,
   isHigherAlert,
   isTruncated,
   stateColorCssVar,
-  toBgColor,
 } from '@shell/utils/style';
 
 describe('stateColorCssVar', () => {
@@ -18,22 +15,6 @@ describe('stateColorCssVar', () => {
     ['disabled', 'var(--disabled)'],
   ] as [StateColor, string][])('returns css var for %s', (color, expected) => {
     expect(stateColorCssVar(color)).toBe(expected);
-  });
-});
-
-describe('toBgColor', () => {
-  it('returns bg-info when no color provided', () => {
-    expect(toBgColor(undefined)).toBe('bg-info');
-  });
-
-  it.each([
-    ['success', 'bg-success'],
-    ['warning', 'bg-warning'],
-    ['error', 'bg-error'],
-    ['info', 'bg-info'],
-    ['disabled', 'bg-disabled'],
-  ] as [StateColor, string][])('returns bg-%s for color %s', (color, expected) => {
-    expect(toBgColor(color)).toBe(expected);
   });
 });
 
@@ -60,37 +41,6 @@ describe('isHigherAlert', () => {
     ['error', 'disabled', true],
   ] as [StateColor, StateColor, boolean][])('%s vs %s → %s', (a, b, expected) => {
     expect(isHigherAlert(a, b)).toBe(expected);
-  });
-});
-
-describe('getHighestAlertColor', () => {
-  it.each([
-    {
-      desc: 'info for an empty array', colors: [], expected: 'info'
-    },
-    {
-      desc: 'error when single error element', colors: ['error'], expected: 'error'
-    },
-    {
-      desc: 'warning when single warning element', colors: ['warning'], expected: 'warning'
-    },
-    {
-      desc: 'error when present among mixed levels', colors: ['info', 'warning', 'error', 'success'], expected: 'error'
-    },
-    {
-      desc: 'warning when no error is present', colors: ['info', 'success', 'warning'], expected: 'warning'
-    },
-    {
-      desc: 'success when only info and success are present', colors: ['info', 'success'], expected: 'success'
-    },
-    {
-      desc: 'info when all colors are info', colors: ['info', 'info', 'info'], expected: 'info'
-    },
-    {
-      desc: 'info (default) when all colors are disabled', colors: ['disabled', 'disabled'], expected: 'info'
-    },
-  ])('returns $desc', ({ colors, expected }) => {
-    expect(getHighestAlertColor(colors as StateColor[])).toBe(expected);
   });
 });
 
@@ -137,12 +87,6 @@ describe('isTruncated', () => {
     },
   ])('returns $desc', ({ el, expected }) => {
     expect(isTruncated(el as HTMLElement)).toBe(expected);
-  });
-});
-
-describe('all state colors constant', () => {
-  it('contains all expected state colors', () => {
-    expect(ALL_STATE_COLORS).toStrictEqual(['success', 'warning', 'error', 'info', 'disabled']);
   });
 });
 
