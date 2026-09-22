@@ -1,39 +1,41 @@
 ## Reporting protocol
 
-This is how something this workflow found becomes an issue: what to check before filing, how to pair the issue with the pull request that fixes it, and what the issue body has to say. It applies only to findings this workflow discovered itself — an issue a person filed is a candidate to fix, not a finding to report, and it is handled under "Selecting from the backlog".
+How a finding becomes an issue: what to check before filing, how to pair issue with the pull request fixing it, what body must say. Applies only to findings this workflow discovered itself — issue a person filed is a candidate to fix, handled under "Selecting from the backlog".
 
 ### Filing a new issue
 
-**Check what has already been reported first.** This workflow runs daily against a codebase that changes slowly, so on any given run most of what you find has already been filed — and an issue nobody has acted on yet is still open, still accurate, and still waiting. List the open issues carrying `<bot-label>` and read their titles and bodies. Then, for each finding:
+**Check what is already reported first.** Daily run, slow-moving codebase: most of what you find is already filed, and an issue nobody acted on is still open, still accurate, still waiting. List open issues carrying `<bot-label>`, read titles and bodies. Then per finding:
 
-- **Already covered** — do not file it again. Partial overlap counts: if an open issue lists three of your four files, that is the same finding, not a new one
-- **Covered but wrong or incomplete** — do not file a corrected duplicate. Comment on the existing issue with the correction, or refute it
-- **Genuinely new** — file it, and name in the body which existing issues you checked against
+- **Already covered** — never file again. Partial overlap counts: open issue listing three of your four files is the same finding
+- **Covered but wrong or incomplete** — never file a corrected duplicate. Comment on the existing issue with the correction, or refute it
+- **Genuinely new** — file it, naming in the body which existing issues you checked against
 
-File one issue per distinct finding; never bundle unrelated findings into one. Limit the run to the most significant findings the issue budget allows — the workflow-specific section below states it.
+One issue per distinct finding, never bundled. Cap the run at the most significant findings the issue budget allows — workflow-specific section states it.
 
-### Linking an issue to the pull request that fixes it
+### Linking issue to pull request
 
-Both `create_issue` and `create_pull_request` accept a `temporary_id`. Set one on the issue, then write `#aw_<that id>` anywhere in the pull request body: it is replaced with the real issue number once both exist. This works in the same run, and it works in both directions.
+`create_issue` and `create_pull_request` both accept `temporary_id`. Set one on the issue, write `#aw_<that id>` anywhere in the pull request body: replaced with the real number once both exist. Works same run, both directions.
 
 ```text
 create_issue          → temporary_id: "dc1"
 create_pull_request   → body contains "Closes #aw_dc1"
 ```
 
-The substitution happens before the body is posted, so `Closes #aw_dc1` becomes a real `Closes #123` and GitHub auto-closes the issue on merge. Use it for every same-run pair.
+Substitution happens before body is posted, so `Closes #aw_dc1` becomes real `Closes #123` and GitHub auto-closes on merge. Use for every same-run pair.
 
-**Call `create_pull_request` before `create_issue`.** Substitution is order-independent — `#aw_<id>` resolves whichever way round the two are emitted — but the runtime is not. A watchdog starts counting from the first safe output of the run and terminates the agent after a short idle period, and `create_pull_request` is by far the slower of the two calls: it stages a branch and pushes it, and produces no output while it does. Emitted second, it is the call that gets killed, and the issue it was paired with is left advertising a pull request that does not exist. Emitted first, it completes before the clock starts.
+**Call `create_pull_request` before `create_issue`.** Substitution is order-independent; runtime is not. Watchdog starts at run's first safe output and kills agent after short idle. `create_pull_request` is much slower — stages and pushes branch, printing nothing meanwhile. Emitted second it gets killed, leaving its issue advertising a pull request that does not exist. Emitted first it finishes before the clock starts.
 
-The same applies to a run that opens several pairs: emit every pull request first, then the issues, then any comments. Cheap calls last.
+Run opening several pairs: every pull request first, then issues, then comments. Cheap calls last.
 
 Rules:
 
-- Never invent an issue number and never guess at the next one. Either use the real number of a backlog issue, or use `#aw_<id>`
-- **Do not pair a finding you could not fix.** If the change failed a gate, exceeded the budget, or turned out larger than the issue describes, file the issue alone and say in it why no pull request came with it. An issue claiming a fix that does not exist is worse than an issue on its own
-- **Write the "Fixed by" line only after the pull request call has returned.** Because the pull request goes first, you always know before composing the issue whether it exists. If `create_pull_request` returned an error, or you never called it, the issue's Fix section takes the "no pull request accompanies this issue" form — never `#aw_<id>` pointing at a call that did not succeed. An unresolved `#aw_` marker left in a posted body is the visible symptom of getting this wrong
+- Never invent issue number, never guess next one. Real backlog number, or `#aw_<id>`
+- **Never pair a finding you could not fix.** Failed gate, blown budget, larger than the issue describes: file issue alone, say why no pull request came with it. Issue claiming a fix that does not exist is worse than issue alone
+- **Write "Fixed by" line only after the pull request call returns.** Pull request goes first, so you always know before composing the issue whether it exists. Call errored, or never made: Fix section takes "no pull request accompanies this issue" form — never `#aw_<id>` pointing at a failed call. Unresolved `#aw_` marker in a posted body is the visible symptom
 
 ### Issue body
+
+Written for people: plain English, not the compression this prompt uses.
 
 ````markdown
 # <emoji> <Finding title>
