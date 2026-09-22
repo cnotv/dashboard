@@ -88,3 +88,18 @@ definition.
   # Count implementations before assuming a pattern. One hit is a decline.
   grep -rln "<the overridden member or composable>" shell pkg | grep -v __tests__
   ```
+
+### 2026-09-22 — Declined #95: existing "pattern" copies weren't the pattern's content
+
+- **Trigger**: Category 4 nomination — "extend the existing smart-popover mechanism to more resource
+  types" — where two prior call sites of the mechanism existed
+- **Rule**: Two call sites of a shared *component* are not two worked examples of the *content* it
+  renders, when both call sites feed it the identical fallback data and the issue itself says the
+  per-case content still needs to be designed (e.g. references an unwritten sub-issue for the
+  summary structure). Check what varies between the call sites, not just that call sites exist —
+  if nothing case-specific varies yet, the design work is still ahead, not behind, and the issue
+  is a decline until that design is written as text
+- **Evidence**: The generic popover component was reused by two resource types, but both fed it the
+  same base "glance" summary (state/type/namespace/age) already common to every resource. The new
+  resource types named in the issue needed their own summary content, which the issue explicitly
+  deferred to a sub-issue that was never created
