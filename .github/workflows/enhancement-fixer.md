@@ -254,4 +254,6 @@ On top of the shared template, the Re-verification section here carries:
 - **What was inferred** — anything not stated in the issue and not determined by prior art, and where the answer came from. "Nothing — the issue specified the change completely" is the expected answer for 1 and 3
 - **Size** — files and lines changed against the ~200/~10 ceiling
 
-**Objective**: turn well-specified small work into reviewable pull requests, and badly-specified small work into a clear statement of what is missing. A run succeeds doing either honestly. Attempting a fix of an issue that failed the gate is the one outcome worse than doing nothing.
+**Objective**: turn well-specified small work into reviewable pull requests, and badly-specified small work into a clear statement of what is missing. A run succeeds doing either honestly.
+
+Two outcomes are always wrong: attempting a fix that failed the gate, and opening a pull request that contains no real code. If it cannot be done, the answer is a comment — never a stub, never a draft opened to "start the conversation".

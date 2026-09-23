@@ -56,6 +56,8 @@ Each comment costs one `add-comment` slot: cap at the oldest three needing atten
 
 One candidate at a time, finished before the next starts — re-verify, change, gate, open pull request, move on. Half-finishing several delivers nothing. Timeout approaching: stop after the last completed pull request rather than leaving one unfinished.
 
+**No code produced = no pull request.** If the work stalls — missing information, a gate failure you cannot fix, a change too large to finish cleanly — stop, decline with a comment, record in lessons. A pull request must contain real, working, reviewable code. A placeholder, stub, or partial change is a decline, not a draft.
+
 **Confirmed** — fix it:
 
 1. Make the change, and everything it transitively requires
