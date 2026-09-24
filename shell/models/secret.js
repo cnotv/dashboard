@@ -147,8 +147,10 @@ export default class Secret extends SteveModel {
   get details() {
     const out = [
       {
+        // typeDisplay resolves to the root resource Kind ("Secret"), which is not what this
+        // "Type" field is meant to show - subTypeDisplay is the actual secret type (e.g. Opaque).
         label:   this.t('secret.type'),
-        content: this.typeDisplay
+        content: this.subTypeDisplay
       }
     ];
 
