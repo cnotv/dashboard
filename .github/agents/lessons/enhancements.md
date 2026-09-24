@@ -88,3 +88,15 @@ definition.
   # Count implementations before assuming a pattern. One hit is a decline.
   grep -rln "<the overridden member or composable>" shell pkg | grep -v __tests__
   ```
+
+### 2026-09-24 — Re-declining without re-deriving
+
+- **Trigger**: Manual-dispatch re-assessment of an issue already declined once before, where the
+  repository state (sub-issue, worked examples, written spec) had not changed
+- **Rule**: Before re-running the full category analysis on a repeat nomination, check whether
+  anything cited in the prior decline has changed (new sub-issue, new worked example, new written
+  field list). Nothing changed: state "still declined, nothing changed since the prior decline"
+  and point at the earlier decline comment, rather than re-deriving the same reasoning from scratch
+- **Evidence**: Re-checked call sites, sub-issues and the Figma-only-spec status for issue #95 a
+  second time — identical to the first pass, confirming the shortcut above is safe when the same
+  checks return the same results
