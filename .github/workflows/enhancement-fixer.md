@@ -103,6 +103,28 @@ safe-outputs:
   add-comment:
     target: "*"
     max: 4
+# Figma design data via the Figma REST API. The `figma-developer-mcp` server
+# takes a Figma URL, calls the API, and returns simplified layout/text/style
+# JSON — enough to derive field names and content from a design node.
+#
+# Requires the `FIGMA_API_KEY` Actions secret to be set (a Figma personal
+# access token; read-only scope is sufficient). Without it the tool starts
+# but every call returns a 403, and the agent must treat that as an
+# image-only issue and decline with the reason.
+mcp-servers:
+  figma:
+    command: npx
+    args: ["-y", "figma-developer-mcp", "--stdio"]
+    env:
+      FIGMA_API_KEY: ${{ secrets.FIGMA_API_KEY }}
+
+# api.figma.com is a public HTTPS endpoint. `defaults` covers it; this block
+# is explicit so it stays reachable even if the default preset changes.
+network:
+  allowed:
+    - defaults
+    - api.figma.com
+
 tools:
   # Unrestricted, and it has to be: resolving an issue shells out to yarn, git,
   # node and docker, unpredictably. An allowlist fails a run halfway through on
@@ -188,7 +210,10 @@ A candidate lands squarely in one of these four categories. "Roughly like catego
 
 Whatever the category, whoever nominated it:
 
-- **Specification exists only as a Figma link or image.** You can read neither. A body that is a screenshot and a link has not told you what to build. Exception: a category 4 issue satisfying its four conditions *independently* of the missing specification — where the pattern determines the answer, the picture only illustrated it
+- **Image only (no Figma link).** You cannot read embedded screenshots. A body that is only an image has not told you what to build — decline.
+- **Figma link present — use it.** Call the `figma` MCP tool with the URL from the issue body. It returns the node's text layers, component names, layout and style as structured data. Treat that as the written specification and proceed from there. If the tool returns a 403 (token missing or file private) or a 404 (node not found), treat it the same as image-only and decline, naming the failure.
+
+  A category 4 issue satisfying all four conditions independently of the Figma content still qualifies without calling Figma — the pattern determines the answer. Say so in the pull request body.
 - Anything needing a backend, API, schema or database migration change
 - Anything adding a dependency
 - Anything whose diff would exceed roughly **200 lines** or **10 files**. Estimate before starting, stop if the real change overruns it
@@ -232,18 +257,30 @@ Say it is an estimate and say what it assumes: it is made against a specificatio
 
 **XL is a decline on its own.** Over the ceiling, no amount of specification rescues it: the answer is to split the issue, and the comment says so and says where the seam is.
 
-Then record it in the lessons file so later runs do not re-select it. Never attempt a partial fix, never open a draft pull request to "start the conversation": an unreviewable pull request costs a reviewer more than a comment does.
+**Always record a decline entry for the specific issue number**, even when a general lessons rule already covers the reasoning. A general rule stops you from accepting the same class of issue; it does not stop you from re-selecting this specific issue number next run and re-deriving the same answer. Both are needed. The entry is short:
+
+```markdown
+### YYYY-MM-DD — Declined #NNNN: short reason
+
+- **Trigger**: which label nominated it, which category it came closest to
+- **Rule**: do not re-select #NNNN unless <the specific thing that would have to change>
+- **Evidence**: what settled it (one line)
+```
+
+Never attempt a partial fix, never open a draft pull request to "start the conversation": an unreviewable pull request costs a reviewer more than a comment does.
 
 The label deliberately stays — this workflow cannot remove it. Whether a declined nomination stands is a person's call, and silently un-nominating one hides the disagreement.
 
 ## Evidence
 
-Every category changes what a user sees, so unlike the other workflows here the evidence path in "Capturing UI evidence" is **not conditional**. Every pull request carries:
+Every category changes what a user sees. The evidence path in "Capturing UI evidence" is **not conditional for this workflow** — every pull request carries screenshots, including category 1 (string changes are still user-visible).
 
-- A **before and after** pair per affected screen. Before is captured from base branch state — take it before the change, never after, never reconstructed from the issue's own screenshots
-- **Dark mode as well as light** for any category 3 change, and for any change touching an `.scss` file at all
+Every pull request must include:
 
-A pull request with no evidence is not "pending screenshots"; it is one that should not have been opened.
+- A **before and after** screenshot pair per affected screen. Take "before" from base branch state before making the change — never reconstructed from the issue's screenshots, never taken after
+- **Dark mode as well as light mode** for any category 3 change, and for any change touching an `.scss` file at all
+
+**A pull request with no screenshots must not be opened.** Missing evidence is not a "pending" state — it means the PR is not ready and should not exist yet.
 
 ## What the pull request must say
 

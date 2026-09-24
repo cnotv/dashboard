@@ -8,32 +8,43 @@ Run that gets surprised leaves next run better equipped. Every workflow here kee
 
 Entries bind this run as hard as this prompt — they exist because the prompt alone still produced a wrong answer. Entry from another workflow's file binds the same. One plainly tied to that workflow's own job: skip it, no need to say which.
 
-### Qualifies
+### Qualifies — general patterns only
 
-- Mechanism this prompt does not describe, that made analysis wrong
-- Search idiom returning misleading result: command that silently matched nothing, form the search missed, name collision hiding real attribution
-- Repository convention that changes what a result means
-- Open issue whose stated evidence did not reproduce, plus what original analysis missed
-- Change that broke `yarn lint` or `yarn test:ci` in way analysis did not predict
+A lesson qualifies when it captures a **transferable rule**: something true about this codebase or this kind of work that the prompt does not already say, and that will catch the same trap the next time around.
 
-### Does not qualify
+✅ Qualifies:
+- A codebase pattern or convention that changes what a result means
+- A search idiom that silently missed real references, with the working form beside it
+- A type of change that broke `yarn lint` or `yarn test:ci` in a way analysis did not predict
 
-- Restatement of rule already in this prompt. Entry earns place only if following prompt as written still produced wrong answer
-- One-off observation about one file, no general rule behind it
-- Anything not hit on this run. Never speculate
-- Problem with workflow itself — missing dependency, wrong runtime version, gate that will not start. Run summary, not here
+❌ Does not qualify:
+- Retelling what happened in one specific issue — issue numbers and filenames are not the lesson
+- Restating a rule already in this prompt
+- Observations that will not apply again (one-off edge cases)
+- Problems with the workflow itself (missing dependency, wrong runtime) — those go in the run summary
 
-**Repository-agnostic.** Describe pattern, not where filed — never name repository or fork, never cite issue numbers. File travels with workflow, so number resolving elsewhere is worse than no reference.
+**Test before writing:** Ask "if I read this entry next run, would it change what I check?" If yes, write it. If not, skip it.
 
-**Resembling existing entry is not being covered by it.** Read the entry you mean, check its **Rule** would have caught this case. Two failures share symptom, need different checks: write new entry, say in it how the two differ.
+### How to write an entry
 
-### Recording
+Lead with the **Rule** — one line, one instruction, starts with a verb. The Trigger and Evidence back it up but the Rule is what gets read.
 
-1. Append at end of file's `## Lessons` section, exact shape from "Format for lessons": dated `###` heading, then **Trigger**, **Rule**, **Command**
-2. **Rule** is instruction for future run, not description of what happened
-3. **Command** is one you ran, real output — broken form beside working form where that makes the point
-4. Never edit or delete existing entries. File only grows
-5. Terse: no articles, no filler, no restating prompt. Commands and output verbatim
+**Don't write:**
+> The two call sites of the popover component both used the base glance summary, so the content was not yet designed for the new resource types referenced in the issue.
+
+**Do write:**
+> **Rule**: Before accepting a category 4 candidate, check what actually *varies* between the two worked examples — not just that both exist. If both feed the same data to the shared component, the per-case content design is still open and the issue is a decline.
+
+Format:
+```markdown
+### YYYY-MM-DD — Short title (the pattern, not the issue)
+
+- **Trigger**: what kind of task surfaces this trap
+- **Rule**: what to check from now on — one line, starts with a verb
+- **Command**: the command that shows it, with real output. Broken form beside working form where that helps
+```
+
+**Repository-agnostic.** Never name a repository, a fork, or an issue number. The file travels with the workflow; an issue number from one repo means nothing in another.
 
 **Where entry ships**, given pull request budget:
 
