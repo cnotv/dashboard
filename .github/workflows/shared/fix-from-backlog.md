@@ -62,8 +62,17 @@ One candidate at a time, finished before the next starts — re-verify, change, 
 
 1. Make the change, and everything it transitively requires
 2. Run `yarn lint` and `yarn test:ci`. Either fails: fix the fallout or abandon the change — never open a pull request on a failing gate. **A gate that could not run has not passed.** Errors on a missing dependency, a runtime version, anything other than your change: failed gate, open no pull request, say in the run summary which command failed and what it printed. Never reason about what the gate would have reported — running it is the point, because your reasoning is what is being checked
-3. Touches UI: capture evidence — see "Capturing UI evidence"
-4. Open the pull request on branch `<branch-prefix><issue-number>-<slug>`: prefix from this workflow's frontmatter, number of the issue this fixes, slug a short kebab-case name. Number not optional — `<branch-prefix>42-empty-state-copy`, never `<branch-prefix>empty-state-copy`. Name is used verbatim, so a typo is permanent and a collision with an existing branch overwrites it
+3. Touches UI: capture evidence — see "Capturing UI evidence". Screenshots are **mandatory for every UI change** — a pull request body that says "no screenshots" for a change touching `.vue`, `.scss`, or translation files is not ready and must not be opened. Take "before" from the base branch before making the change; take "after" from the built dev server. Both must be present.
+4. Rebase onto the latest base branch before opening the pull request:
+
+   ```bash
+   git fetch origin
+   git rebase origin/<base-branch>
+   ```
+
+   A rebase that conflicts must be resolved before opening the pull request. Do not force-push an unresolved merge.
+
+5. Open the pull request on branch `<branch-prefix><issue-number>-<slug>`: prefix from this workflow's frontmatter, number of the issue this fixes, slug a short kebab-case name. Number not optional — `<branch-prefix>42-empty-state-copy`, never `<branch-prefix>empty-state-copy`. Name is used verbatim, so a typo is permanent and a collision with an existing branch overwrites it
 
    **Never guess the number.** It comes from a real issue you listed, never from adding one to the highest you saw: safe-outputs assigns numbers after this agent exits, so any prediction is a race you sometimes lose and the branch ends up carrying another issue's number. Where this workflow also files issues, a finding filed this same run has no number yet — write the literal `new` there, e.g. `<branch-prefix>new-<slug>`, never a guess
 

@@ -282,6 +282,8 @@ Every pull request must include:
 
 **A pull request with no screenshots must not be opened.** Missing evidence is not a "pending" state — it means the PR is not ready and should not exist yet.
 
+The shared "Capturing UI evidence" section mentions opening a pull request without video when the dev server does not compile in time — **that exception does not apply here.** For this workflow, a screenshot (not video) is the minimum bar and the Rancher backend being unreachable is not an excuse to skip it: if the backend cannot be reached and therefore a screenshot cannot be taken, **decline the issue with a comment** explaining that evidence could not be captured. Do not open a pull request.
+
 ## What the pull request must say
 
 On top of the shared template, the Re-verification section here carries:
