@@ -88,3 +88,16 @@ definition.
   # Count implementations before assuming a pattern. One hit is a decline.
   grep -rln "<the overridden member or composable>" shell pkg | grep -v __tests__
   ```
+
+### 2026-09-25 — Declined #93: already fixed by a later commit
+
+- **Trigger**: Manual-dispatch target, category 1 (translation key) — issue's own screenshots
+  showed the bug, but the repository had since moved
+- **Rule**: do not re-select #93 unless the fix is reverted. Before treating any issue as unfixed,
+  search history for the exact strings it complains about (`git log --all -S "<key phrase>" --
+  <affected file>`) rather than only the current working tree — a commit landed after the issue was
+  filed can already have resolved it, and the issue carries no signal that this happened
+- **Evidence**: `shell/assets/translations/en-us.yaml:7407` already read `subType: Type`, and
+  `shell/models/secret.js` `details` already returned `this._type` (the sub-type). Both traced to
+  commit `029005dd9d2eab88304eb9e6708bb8d888cc94e0`, already an ancestor of `HEAD`
+  (`git merge-base --is-ancestor 029005dd9 HEAD` → true)
