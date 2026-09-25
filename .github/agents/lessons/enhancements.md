@@ -88,3 +88,20 @@ definition.
   # Count implementations before assuming a pattern. One hit is a decline.
   grep -rln "<the overridden member or composable>" shell pkg | grep -v __tests__
   ```
+
+### 2026-09-25 — Declined #95: category 4, summary content undesigned
+
+- **Trigger**: `bot/enhancement-fixer/ready` label, category 4 ("extend smart popover to
+  pods/nodes/replicaSets"; already implemented for namespaces/projects)
+- **Rule**: do not re-select #95 unless a written (non-Figma) field list and order for each of
+  pod/node/replicaSet's popover content lands in the issue body or a linked sub-issue
+- **Evidence**: The two existing call sites (`useNamespace`/`useProject` in
+  `shell/components/Resource/Detail/Metadata/IdentifyingInformation/identifying-fields.ts`) both
+  feed the popover the same generic base `glance` summary every resource class already has
+  (`shell/plugins/dashboard-store/resource-class.js` `_glance` getter). `grep -rln "glance" shell/models pkg | grep -v __tests__`
+  still returns only `namespace.js` and `management.cattle.io.project.js` — no per-resource-type
+  override exists to transpose. The issue's own text defers the summary shape to
+  "I'll create a sub-issue to detail out the proposed summary structure" — `get_sub_issues` on #95
+  returns none. The linked Figma file returns `403 Invalid token` from the `figma` tool, so it
+  cannot substitute for that text either. Nothing case-specific varies between the two call sites
+  yet, so the design work is still ahead, not a mechanical transposition
