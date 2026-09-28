@@ -88,3 +88,39 @@ definition.
   # Count implementations before assuming a pattern. One hit is a decline.
   grep -rln "<the overridden member or composable>" shell pkg | grep -v __tests__
   ```
+
+### 2026-09-28 — Check history before treating an issue as unfixed
+
+- **Trigger**: Candidate issue with a clear symptom and screenshot, filed against an older version
+- **Rule**: Before assessing scope, search history for a commit already matching the issue's
+  symptom: `git log --all -S "<key phrase or field from the issue>" -- <affected file>`, then
+  `git merge-base --is-ancestor <that commit> HEAD`. An issue carries no signal that it was already
+  resolved — filing predates fixing as often as the reverse — and treating it as open re-derives a
+  fix (or a decline) for something already on `master`
+- **Command**:
+
+  ```bash
+  git log --oneline -1 80123fa7a
+  # 80123fa7a Fix ConsumptionGauge to show units on both used and total values (#18360)
+  git merge-base --is-ancestor 80123fa7a HEAD && echo yes
+  # yes — the node-detail memory-card units symptom this commit fixes predates the issue
+  ```
+
+### 2026-09-28 — Declined #92: "deployed date" column has no single derivable field
+
+- **Trigger**: `good-first-issue` nomination, category 4 candidate ("add a column like `AGE`, but
+  for last redeploy")
+- **Rule**: Do not re-select #92 unless a written field/getter is specified per workload kind (or
+  the issue is narrowed to one kind) — `Deployment`, `DaemonSet`, `StatefulSet`, `Job`, `CronJob`
+  and `ReplicaSet` have no common "last deployed" field. Only `Deployment` exposes a
+  `status.conditions[].lastUpdateTime` (`Progressing`/`Available`); `DaemonSet` status has only
+  scheduling counts, `StatefulSet` status has only replica counts — neither carries any timestamp.
+  `AGE`'s single `creationTimestamp` getter (`shell/config/table-headers.js`) is not a worked
+  example of a second timestamp column, it is the *only* timestamp column that exists for these
+  kinds, so this is category 4 with one example, not two
+- **Evidence**: `grep -n "status:" cypress/e2e/blueprints/explorer/workloads/daemonsets/daemonsets-get.ts`
+  → `currentNumberScheduled`, `desiredNumberScheduled`, `numberReady` only, no timestamp.
+  `cypress/e2e/blueprints/explorer/workloads/statefulsets/statefulsets-get.ts` → `replicas`,
+  `readyReplicas`, `currentReplicas`, `updatedReplicas` only, no timestamp. Deciding which field
+  means "deployed" per kind, and whether to show the column at all where no such field exists, is
+  the design work the gate exists to keep out
