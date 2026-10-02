@@ -16,9 +16,6 @@ on:
   # open-issue count would stop the only thing that closes them: three issues
   # would wedge the workflow until someone closed them by hand. Issue cap is
   # `create-issue.max` below, plus "Filing when the backlog is full".
-  skip-if-match:
-    query: "is:pr is:open label:bot/dead-code-detector"
-    max: 3
 
 if: (github.repository_owner == 'rancher' || vars.ENABLE_AGENTIC_WORKFLOWS == 'true') && vars.DISABLE_AW_DEAD_CODE_DETECTOR != 'true'
 
