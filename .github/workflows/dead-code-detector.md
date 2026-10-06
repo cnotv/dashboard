@@ -29,6 +29,16 @@ imports:
   - shared/report-and-fix.md
   - shared/lessons.md
 
+# The default sandbox runtime has no route from the agent to anything on the
+# runner, whatever the network allowlist says. This runtime is the only one
+# that can open a host port, and 9443 is the only one opened: the Rancher
+# backend that shared/rancher-server.md forwards there. gh-aw does not merge
+# `sandbox:` from imports, so it has to live here.
+sandbox:
+  agent:
+    runtime: docker-sudo-iptables
+    allow-host-ports: [9443]
+
 permissions:
   contents: read
   issues: read
