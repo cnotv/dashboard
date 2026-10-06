@@ -43,8 +43,10 @@ Capture only **after** `yarn lint`, `yarn type-check:ci` and `yarn test:ci` have
    ```bash
    # <rancher-host> is whichever address the probe under "Runtime environment" showed
    # answering 200 — substitute it literally, do not assume which one it was.
-   API=https://<rancher-host>:9443 yarn dev > /tmp/gh-aw/agent/dashboard-dev.log 2>&1 &
+   API=https://<rancher-host>:9443 yarn dev > /tmp/gh-aw/agent/dashboard-dev.log 2>&1
    ```
+
+   **No trailing `&`.** Copilot CLI denies it. Without it the shell tool returns after its initial wait and leaves the server running.
 
    vue-cli-service prints `Compiled successfully` once the app is servable. That takes several minutes, so poll the log rather than guessing at a sleep. This waits up to five minutes and prints `ready`, `failed` or `waiting`:
 
@@ -58,7 +60,9 @@ Capture only **after** `yarn lint`, `yarn type-check:ci` and `yarn test:ci` have
 
    **A compile that does not finish inside the timeout is not.** Open the pull request without a video and say which of the two happened.
 
-2. Record the walkthrough and take at least one still. The dev server's certificate is self-signed, so the browser has to be told to accept it — before the session is opened:
+2. Record the walkthrough and take at least one still. The dev server's certificate is self-signed, so the browser has to be told to accept it — before the session is opened.
+
+   **Run each `playwright-cli` command as its own bash call.** A chain of them joined with `;` or `&&` is denied.
 
    ```bash
    export PLAYWRIGHT_MCP_IGNORE_HTTPS_ERRORS=true
@@ -69,7 +73,8 @@ Capture only **after** `yarn lint`, `yarn type-check:ci` and `yarn test:ci` have
    playwright-cli video-chapter "<screen name>" --duration=2000
    # ... snapshot / click / goto for each screen ...
    playwright-cli video-stop
-   playwright-cli screenshot /tmp/gh-aw/agent/<branch-suffix>.png
+   # The path needs --filename=; a bare path is parsed as an element ref and fails.
+   playwright-cli screenshot --filename=/tmp/gh-aw/agent/<branch-suffix>.png
    playwright-cli close
    ```
 

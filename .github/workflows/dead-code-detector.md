@@ -127,6 +127,10 @@ env:
   # the call is aborted and the run ends with an issue but no pull request.
   # Ten minutes covers a push on a repository this size.
   GH_AW_HARNESS_WATCHDOG_TIMEOUT_MS: "600000"
+  # The dashboard dev server started for UI evidence is still running when the
+  # agent finishes, and Copilot CLI then waits for it — 600s by default — before
+  # exiting. Nothing it would wait for matters once the safe outputs are written.
+  COPILOT_TASK_WAIT_TIMEOUT_SECONDS: "30"
 # Remediation runs `yarn lint` and `yarn test:ci` before opening a pull request,
 # and a UI removal additionally builds and records the dashboard, so the budget
 # has to cover a dependency install, a full unit test run and a dev build.
