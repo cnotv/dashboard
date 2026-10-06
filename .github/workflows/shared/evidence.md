@@ -42,12 +42,17 @@ Capture only **after** `yarn lint`, `yarn type-check:ci` and `yarn test:ci` have
 
    ```bash
    # <rancher-host> is whichever address the probe under "Runtime environment" showed
-   # answering 200 — substitute it literally, do not assume which of the three it was.
-   API=https://<rancher-host>:9443 nohup yarn dev > /tmp/gh-aw/agent/dashboard-dev.log 2>&1 &
-   # vue-cli-service prints "Compiled successfully" once the app is servable. This takes
-   # several minutes; poll the log rather than guessing at a sleep.
-   timeout 900 bash -c 'until grep -q "Compiled successfully" /tmp/gh-aw/agent/dashboard-dev.log; do sleep 10; done'
+   # answering 200 — substitute it literally, do not assume which one it was.
+   API=https://<rancher-host>:9443 yarn dev > /tmp/gh-aw/agent/dashboard-dev.log 2>&1 &
    ```
+
+   vue-cli-service prints `Compiled successfully` once the app is servable. That takes several minutes, so poll the log rather than guessing at a sleep. This waits up to five minutes and prints `ready`, `failed` or `waiting`:
+
+   ```bash
+   node -e 'const fs=require("fs"),f="/tmp/gh-aw/agent/dashboard-dev.log",t=Date.now();(function w(){const l=fs.existsSync(f)?fs.readFileSync(f,"utf8"):"";if(/Compiled successfully/.test(l))return console.log("ready");if(/Failed to compile/.test(l))return console.log("failed\n"+l.slice(-3000));if(Date.now()-t>300000)return console.log("waiting\n"+l.slice(-1000));setTimeout(w,10000)})()'
+   ```
+
+   On `waiting`, run it again — up to three times, fifteen minutes in all. `nohup`, `timeout` and `bash -c` are not in the tool allowlist, so none of them appear here.
 
    **A compile failure is a failed gate.** Quote what it printed and open no pull request.
 

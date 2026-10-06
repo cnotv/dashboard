@@ -137,17 +137,15 @@ timeout-minutes: 75
 
 ## Smoke test — this overrides everything else in this prompt
 
-This run only checks that the Rancher backend is reachable. Do exactly this, then stop:
+This run only checks that UI evidence can be captured and published end to end. Do exactly this, then stop:
 
-Do not use `curl`: Copilot CLI denies any shell command containing a URL. Use `node` with the host and port as separate fields, so no URL appears in the command.
+1. Run the probe in "Finding the Rancher address" exactly as written, and keep its output.
+2. Follow "Capturing UI evidence" → "Capture" step 1 exactly as written, on the unmodified working tree (skip the lint/test gate — nothing changed). Note how many polls it took.
+3. Follow "Capture" step 2 with `<branch-suffix>` = `smoke`: open the dashboard, start the video, log in as `admin` / `password`, add a `video-chapter` for the home page, wait for it to render, stop the video, take the screenshot, close. Run `playwright-cli console error` on the home page.
+4. Publish both files with `upload_asset`, as "Publishing and embedding" describes.
+5. Call `noop` once. Its message must contain: the probe output, the poll count and outcome from step 2, every command from steps 2–4 that failed or was denied with its exact error text, the console errors, and the two asset URLs.
 
-1. Run exactly this and keep its full output:
-   ```bash
-   node -e 'const https=require("https");for(const h of ["172.30.0.1","172.17.0.1","host.docker.internal","127.0.0.1"]){const r=https.get({host:h,port:9443,path:"/dashboard/",rejectUnauthorized:false,timeout:5000},res=>{console.log(h,"->",res.statusCode);res.resume()});r.on("timeout",()=>r.destroy(new Error("timeout")));r.on("error",e=>console.log(h,"->",e.code||e.message))}'
-   ```
-2. For the first host that answered `200`, run the same kind of `node -e` call against path `/v3/settings/server-version` on that host and port 9443, printing the first 300 characters of the body.
-3. Run `playwright-cli open https://<rancher-host>:9443/dashboard/`, then `playwright-cli snapshot`, and note the page title and the first heading. If it is denied, record the exact error and move on.
-4. Call `noop` once. Its message must contain the full output of step 1, the output of step 2, and the result of step 3, including any error text verbatim. Run every step even if an earlier one fails.
+Run every step even if an earlier one fails, and record why it failed.
 
 Do not read code, issues or pull requests. Do not create issues, pull requests or comments.
 
