@@ -56,6 +56,7 @@ engine:
   env:
     COPILOT_PROVIDER_BASE_URL: ${{ inputs.provider == 'anthropic' && 'https://api.anthropic.com' || '' }}
     COPILOT_PROVIDER_TYPE: anthropic
+    COPILOT_GITHUB_TOKEN: ${{ inputs.provider == 'anthropic' && '' || github.token }}
     COPILOT_PROVIDER_API_KEY: ${{ inputs.provider == 'anthropic' && secrets.ANTHROPIC_API_KEY || '' }}
 
 # The base URL above is an expression, so gh-aw cannot derive its host for the
