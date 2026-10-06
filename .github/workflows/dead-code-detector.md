@@ -105,6 +105,8 @@ tools:
     - git
     - yarn
     - node
+    - curl
+    - playwright-cli
   github:
     min-integrity: none
 env:
