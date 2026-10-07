@@ -54,8 +54,9 @@ sandbox:
 engine:
   id: copilot
   env:
-    COPILOT_PROVIDER_BASE_URL: ${{ inputs.provider == 'anthropic' && 'https://api.anthropic.com' || '' }}
+    COPILOT_PROVIDER_BASE_URL: ${{ inputs.provider == 'anthropic' && 'https://api.anthropic.com/v1' || '' }}
     COPILOT_PROVIDER_TYPE: anthropic
+    COPILOT_MODEL: ${{ inputs.provider == 'anthropic' && 'claude-sonnet-5-5' || '' }}
     COPILOT_GITHUB_TOKEN: ${{ inputs.provider == 'anthropic' && '' || github.token }}
     COPILOT_PROVIDER_API_KEY: ${{ inputs.provider == 'anthropic' && secrets.ANTHROPIC_API_KEY || '' }}
 
