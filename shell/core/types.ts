@@ -129,12 +129,24 @@ export type Action = {
   labelKey?: string;
   tooltipKey?: string;
   tooltip?: string;
+  /** Header actions: the tooltip while the action is disabled, saying why. */
+  disabledTooltipKey?: string;
+  disabledTooltip?: string;
   shortcut?: string | ShortCutKey;
   svg?: Function;
   icon?: string;
   multiple?: boolean;
+  /**
+   * Whether the action can be used. For a header action, a function returning a boolean is asked
+   * again whenever the reactive state it reads changes; one returning a promise, on navigation.
+   */
   enabled?: Function | boolean;
   ariaExpanded?: boolean | (() => boolean);
+  /**
+   * Header actions: no button, only the `shortcut` - for an action that is a keyboard shortcut and
+   * nothing else. Defaults to false: the action is a button.
+   */
+  hidden?: boolean;
   invoke: (opts: ActionOpts, resources: any[], globals?: any) => void | boolean | Promise<boolean>;
 };
 
@@ -212,6 +224,12 @@ export interface HeaderOptions {
   name?: string;
 
   /**
+   * `false` for a column that isn't data, eg a button: table views leaves it out of Columns, Group
+   * By, the query and exports
+   */
+  tableViews?: boolean;
+
+  /**
    * A string that will show in the table column as a header
    */
   label?: string;
@@ -222,9 +240,11 @@ export interface HeaderOptions {
   labelKey?: string;
 
   /**
-   * A string which represents the path to access the value from the row object i.e. `row.meta.value`.
+   * How the cell's value is resolved: either a string path into the row (i.e. `metadata.name`), or
+   * a function given the row that returns the value to display. Under server-side pagination a
+   * function is display-only - `sort`/`search` must still be string paths to indexed fields.
    */
-  value?: string;
+  value?: string | ((row: any) => any);
 
   /**
    * A string which represents the path to access the value from the row object which we'll use to sort i.e. `row.meta.value`
@@ -233,14 +253,30 @@ export interface HeaderOptions {
 
   /**
    * A string which represents the path to access the value from the row object which we'll use to search i.e. `row.meta.value`.
-   * It can be false to disable searching on this field
+   * A column can name more than one path, as `sort` can. It can be false to disable searching on this field
    */
-  search?: string | boolean;
+  search?: string | boolean | string[];
 
   /**
    * Number of pixels the column should be in the table
    */
   width?: number;
+
+  /**
+   * Number of pixels the column's cells narrow to at most, however little room the table has
+   */
+  minWidth?: number;
+
+  /**
+   * Number of pixels the column's cells widen to at most. Longer text wraps
+   */
+  maxWidth?: number;
+
+  /**
+   * Number of lines a cell shows at most. Text that needs more ends in an ellipsis, and the whole
+   * text is offered as a tooltip
+   */
+  lineClamp?: number;
 
   /**
    * The name of a custom formatter. The available formatters can bee seen in `@rancher/shell/components/formatter`

@@ -4,12 +4,12 @@ import debounce from 'lodash/debounce';
 import { MANAGEMENT, NORMAN, STEVE } from '@shell/config/types';
 import { HARVESTER_NAME as HARVESTER } from '@shell/config/features';
 import { ucFirst } from '@shell/utils/string';
-import { isAlternate, isMac, shortcutLabel } from '@shell/utils/platform';
+import { isAlternate } from '@shell/utils/platform';
 import BrandImage from '@shell/components/BrandImage';
 import { getProduct, getVendor } from '@shell/config/private-label';
 import ClusterProviderIcon from '@shell/components/ClusterProviderIcon';
 import ClusterBadge from '@shell/components/ClusterBadge';
-import Pinned from '@shell/components/nav/Pinned.vue';
+import ClusterPinControl from '@shell/components/ClusterPinControl.vue';
 import AppModal from '@shell/components/AppModal';
 import { LOGGED_OUT, IS_SSO } from '@shell/config/query-params';
 import NamespaceFilter from './NamespaceFilter';
@@ -42,7 +42,7 @@ export default {
     BrandImage,
     ClusterBadge,
     ClusterProviderIcon,
-    Pinned,
+    ClusterPinControl,
     IconOrSvg,
     AppModal,
     NotificationCenter,
@@ -70,9 +70,6 @@ export default {
 
     return {
       authInfo:                {},
-      // The pin shortcut fires from anywhere on the page, so the toggle usually happens with focus
-      // elsewhere and its `aria-pressed` change is never spoken. This says what happened.
-      pinAnnouncement:         '',
       show:                    false,
       showTooltip:             false,
       isUserMenuOpen:          false,
@@ -245,48 +242,6 @@ export default {
       return this.currentCluster?.spec?.displayName || '';
     },
 
-    // The current cluster as the pin control wants it (`TopLevelMenuCluster`-shaped), or null when there is
-    // nothing to pin. `local` is excluded: it holds a fixed slot in the nav and is filtered out of PINNED,
-    // so a pin here would be an affordance with no effect.
-    pinnableCluster() {
-      const cluster = this.currentCluster;
-
-      if (!cluster || cluster.isLocal) {
-        return null;
-      }
-
-      return {
-        pinned: cluster.pinned,
-        label:  cluster.nameDisplay,
-        pin:    () => cluster.pin(),
-        unpin:  () => cluster.unpin(),
-      };
-    },
-
-    // Cmd+Shift+P on a Mac, Alt+P elsewhere.
-    pinShortcutKeys() {
-      return { windows: ['alt', 'p'], mac: ['meta', 'shift', 'p'] };
-    },
-
-    pinShortcutLabel() {
-      return shortcutLabel(isMac ? ['⌘', 'Shift', 'P'] : ['Alt', 'P']);
-    },
-
-    // The same shortcut in the form `aria-keyshortcuts` is defined to take.
-    pinAriaShortcut() {
-      return isMac ? 'Meta+Shift+P' : 'Alt+P';
-    },
-
-    pinTooltip() {
-      if (!this.pinnableCluster) {
-        return null;
-      }
-
-      const key = this.pinnableCluster.pinned ? 'nav.header.unpinCluster' : 'nav.header.pinCluster';
-
-      return this.t(key, { shortcut: this.pinShortcutLabel });
-    },
-
     nameTooltip() {
       return !this.showTooltip ? {} : {
         content: this.currentCluster?.nameDisplay,
@@ -332,6 +287,27 @@ export default {
     // This is to enforce the logo display on certain routes like home, about, prefs, account, etc
     isLogoRoute() {
       return !this.$route.name.includes('c-cluster');
+    },
+
+    /**
+     * Whether each extension action is enabled now. A synchronous `enabled` is asked again whenever
+     * what it reads changes, so a button can follow the page's state; an async one is settled on
+     * navigation, by updateExtensionActionsEnabled.
+     */
+    extensionHeaderActionsEnabled() {
+      return this.extensionHeaderActions.map((action, i) => {
+        if (typeof action.enabled === 'function') {
+          const now = action.enabled(this.ctx);
+
+          if (typeof now === 'boolean') {
+            return now;
+          }
+        } else if (typeof action.enabled === 'boolean') {
+          return action.enabled;
+        }
+
+        return !!this.extensionActionsEnabled[i];
+      });
     },
 
     extensionHeaderActionsAriaExpanded() {
@@ -422,40 +398,6 @@ export default {
         product.style.width = `${ w }px`;
       }
     },
-    /**
-     * Pin or unpin the cluster being explored — the shortcut the switcher flyout binds to the row under
-     * its cursor, here bound to the one the page is already showing.
-     *
-     * Toggling THROUGH the control rather than writing the pref keeps the write, the growl and the pop
-     * animation on one path, so the shortcut and a click are the same action.
-     *
-     * `.anywhere`, so it works from a text field as well — a filter box holding the caret is no reason not
-     * to pin the cluster you are looking at.
-     *
-     * Nothing here has to know about the flyout: it is registered as a shortcut-silencing container, and
-     * it takes this combo at the window besides, so while it is open the key never reaches this binding.
-     */
-    onPinShortcut() {
-      this.$refs.clusterPin?.toggle();
-    },
-
-    /**
-     * Only when the pin does NOT have focus: a focused toggle reports itself through `aria-pressed`, and
-     * announcing as well would say it twice. Clearing first lets the same message repeat.
-     */
-    announcePin(cluster, pinned) {
-      if (this.$refs.clusterPin?.$el === document.activeElement) {
-        return;
-      }
-
-      const message = this.t(pinned ? 'nav.switcher.aria.pinnedCluster' : 'nav.switcher.aria.unpinnedCluster', { cluster: cluster.label });
-
-      this.pinAnnouncement = '';
-      this.$nextTick(() => {
-        this.pinAnnouncement = message;
-      });
-    },
-
     showMenu(show) {
       this.isUserMenuOpen = show;
     },
@@ -510,7 +452,8 @@ export default {
         event,
         action,
         isAlt:   isAlternate(event),
-        product: this.currentProduct.name,
+        // A global action (a shortcut, say) can run on a page with no product
+        product: this.currentProduct?.name,
         cluster: this.currentCluster,
       };
       const enabled = await this.isActionEnabled(action);
@@ -520,7 +463,12 @@ export default {
       }
     },
 
-    handleExtensionTooltip(action) {
+    handleExtensionTooltip(action, enabled = true) {
+      // A disabled button says why, when the action gives a reason
+      if (!enabled && (action.disabledTooltipKey || action.disabledTooltip)) {
+        return action.disabledTooltipKey ? this.t(action.disabledTooltipKey) : action.disabledTooltip;
+      }
+
       if (action.tooltipKey || action.tooltip) {
         const tooltip = action.tooltipKey ? this.t(action.tooltipKey) : action.tooltip;
         const shortcut = action.shortcutLabel ? action.shortcutLabel() : '';
@@ -622,34 +570,13 @@ export default {
           >
             {{ clusterDisplayName }}
           </div>
-          <!-- Pin/unpin the cluster being explored, without going back to the nav for it. The control is
-               the nav's own, so the write, the failure growl and the pop animation are shared. -->
-          <Pinned
-            v-if="pinnableCluster"
-            ref="clusterPin"
-            v-clean-tooltip="pinTooltip"
-            v-shortkey.anywhere="pinShortcutKeys"
-            :cluster="pinnableCluster"
-            :tab-order="0"
-            class="cluster-pin"
-            :aria-keyshortcuts="pinAriaShortcut"
-            @shortkey="onPinShortcut"
-            @pinned="announcePin($event, true)"
-            @unpinned="announcePin($event, false)"
-          />
-          <div
-            class="sr-only"
-            role="status"
-            aria-live="polite"
-          >
-            {{ pinAnnouncement }}
-          </div>
           <ClusterBadge
             v-if="currentCluster"
             :cluster="currentCluster"
             class="ml-10"
             :alt="t('branding.logos.label')"
           />
+          <ClusterPinControl :cluster="currentCluster" />
           <div
             v-if="!currentCluster && !$route.path.startsWith('/c/')"
             class="simple-title"
@@ -806,30 +733,42 @@ export default {
         v-if="extensionHeaderActions.length"
         class="header-buttons"
       >
-        <button
+        <template
           v-for="action, i in extensionHeaderActions"
           :key="`${action.label}${i}`"
-          v-clean-tooltip="handleExtensionTooltip(action)"
-          v-shortkey="action.shortcutKey"
-          :disabled="!extensionActionsEnabled[i]"
-          type="button"
-          class="btn header-btn role-tertiary"
-          :data-testid="`extension-header-action-${ action.labelKey || action.label }`"
-          role="button"
-          tabindex="0"
-          :aria-label="action.labelKey ? t(action.labelKey) : action.label"
-          :aria-expanded="extensionHeaderActionsAriaExpanded[i]"
-          @shortkey="handleExtensionAction(action, $event)"
-          @click="handleExtensionAction(action, $event)"
         >
-          <IconOrSvg
-            class="icon icon-lg"
-            :icon="action.icon"
-            :src="action.svg"
-            :img-alt="action.tooltipKey ? t(action.tooltipKey) : action.labelKey ? t(action.labelKey) : action.label ? action.label : t('generic.imageAlt')"
-            color="header"
+          <!-- A hidden action is only its shortcut: no button, nothing to see or tab to -->
+          <span
+            v-if="action.hidden"
+            v-shortkey="action.shortcutKey"
+            class="hide"
+            :data-testid="`extension-header-shortcut-${ action.labelKey || action.label }`"
+            @shortkey="handleExtensionAction(action, $event)"
           />
-        </button>
+          <button
+            v-else
+            v-clean-tooltip="handleExtensionTooltip(action, extensionHeaderActionsEnabled[i])"
+            v-shortkey="action.shortcutKey"
+            :disabled="!extensionHeaderActionsEnabled[i]"
+            type="button"
+            class="btn header-btn role-tertiary"
+            :data-testid="`extension-header-action-${ action.labelKey || action.label }`"
+            role="button"
+            tabindex="0"
+            :aria-label="action.labelKey ? t(action.labelKey) : action.label"
+            :aria-expanded="extensionHeaderActionsAriaExpanded[i]"
+            @shortkey="handleExtensionAction(action, $event)"
+            @click="handleExtensionAction(action, $event)"
+          >
+            <IconOrSvg
+              class="icon icon-lg"
+              :icon="action.icon"
+              :src="action.svg"
+              :img-alt="action.tooltipKey ? t(action.tooltipKey) : action.labelKey ? t(action.labelKey) : action.label ? action.label : t('generic.imageAlt')"
+              color="header"
+            />
+          </button>
+        </template>
       </div>
 
       <div class="center-self">
@@ -991,15 +930,6 @@ export default {
       }
 
       // The pin keeps its size while the name gives way, so a long name is what gets clipped.
-      .cluster-pin {
-        flex: 0 0 auto;
-        margin-left: 12px;
-        color: var(--muted);
-
-        &.is-pinned {
-          color: var(--primary);
-        }
-      }
       &.cluster-clipped {
         overflow: hidden;
       }

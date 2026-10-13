@@ -330,6 +330,31 @@ describe('class ProvCluster', () => {
     );
   });
 
+  describe('isK3s', () => {
+    it.each([
+      ['a k3s management cluster', { status: { provider: 'k3s' } }, 'v1.35.0+rke2r1', true],
+      ['an rke2 management cluster', { status: { provider: 'rke2' } }, 'v1.35.0+k3s1', false],
+    ])('should use the management cluster when there is one (%s)', (_, mgmtData, kubernetesVersion, expected) => {
+      const cluster = new ProvCluster({ spec: { kubernetesVersion, rkeConfig: {} } });
+
+      jest.spyOn(cluster, 'mgmt', 'get').mockReturnValue(new MgmtCluster(mgmtData));
+
+      expect(cluster.isK3s).toBe(expected);
+    });
+
+    it.each([
+      ['v1.35.0+k3s1', true],
+      ['v1.35.0+rke2r1', false],
+      [undefined, false],
+    ])('without a management cluster (e.g. when creating), should use kubernetes version %p', (kubernetesVersion, expected) => {
+      const cluster = new ProvCluster({ spec: { kubernetesVersion, rkeConfig: {} } });
+
+      jest.spyOn(cluster, 'mgmt', 'get').mockReturnValue(null);
+
+      expect(cluster.isK3s).toBe(expected);
+    });
+  });
+
   describe('supportsWindows', () => {
     const testCases = [
       {
@@ -652,6 +677,115 @@ describe('class ProvCluster', () => {
       const cluster = new ProvCluster({ metadata: { namespace: 'fleet-default' } });
 
       expect(cluster.namespaceLocation).toBeNull();
+    });
+  });
+
+  describe('pin / unpin', () => {
+    const dispatch = jest.fn();
+
+    const provCluster = (mgmt: any) => {
+      mgmt = {
+        links: {}, hasAction: () => false, ...mgmt
+      };
+
+      const cluster = new ProvCluster({}, {
+        getters:     { schemaFor: jest.fn(() => ({})) },
+        rootGetters: { 'i18n/t': (key: string) => key },
+        dispatch,
+      });
+
+      jest.spyOn(cluster, 'mgmt', 'get').mockReturnValue(mgmt);
+
+      return cluster;
+    };
+
+    beforeEach(() => dispatch.mockClear());
+
+    const actionsOf = (cluster: any) => {
+      jest.spyOn(Object.getPrototypeOf(Object.getPrototypeOf(cluster)), '_availableActions', 'get').mockReturnValue([]);
+      jest.spyOn(cluster, 'customProvisionerHelper', 'get').mockReturnValue(undefined);
+
+      return cluster._availableActions;
+    };
+
+    const pinAction = (cluster: any, action: string) => actionsOf(cluster).find((a: any) => a.action === action);
+
+    it.each([
+      ['pinCluster', 'pin'],
+      ['unpinCluster', 'unpin'],
+    ])('%s delegates to the management cluster', (action, method) => {
+      const mgmt = { [method]: jest.fn() };
+
+      (provCluster(mgmt) as any)[action]();
+
+      expect(mgmt[method]).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['pinClusterBulk', 'pinBulk'],
+      ['unpinClusterBulk', 'unpinBulk'],
+    ])('%s hands the whole selection to the management cluster, for one write', (action, method) => {
+      const mgmt = { [method]: jest.fn() };
+      const items = [{ id: 'cluster-1' }, { id: 'cluster-2' }];
+
+      (provCluster(mgmt) as any)[action](items);
+
+      expect(mgmt[method]).toHaveBeenCalledWith(items);
+    });
+
+    it('offers the pin only while the cluster is unpinned, and the unpin only while it is pinned', () => {
+      const unpinned = provCluster({ pinned: false, isLocal: false });
+      const pinned = provCluster({ pinned: true, isLocal: false });
+
+      expect(pinAction(unpinned, 'pinCluster').enabled).toBe(true);
+      expect(pinAction(unpinned, 'unpinCluster').enabled).toBe(false);
+      expect(pinAction(pinned, 'pinCluster').enabled).toBe(false);
+      expect(pinAction(pinned, 'unpinCluster').enabled).toBe(true);
+    });
+
+    it('offers neither for local', () => {
+      const local = provCluster({ pinned: false, isLocal: true });
+
+      expect(pinAction(local, 'pinCluster').enabled).toBe(false);
+      expect(pinAction(local, 'unpinCluster').enabled).toBe(false);
+    });
+
+    it.each([
+      ['pinCluster', 'pin'],
+      ['unpinCluster', 'unpin'],
+      ['pinClusterBulk', 'pinBulk'],
+      ['unpinClusterBulk', 'unpinBulk'],
+    ])('%s growls when the preference write is rejected', async(action, method) => {
+      const mgmt = { [method]: jest.fn(() => Promise.resolve({ type: 'error', status: 500 })) };
+
+      await (provCluster(mgmt) as any)[action]([]);
+
+      expect(dispatch).toHaveBeenCalledWith('growl/fromError', expect.objectContaining({ title: 'nav.pinClusterError' }), { root: true });
+    });
+
+    it('stays quiet when the preference write lands', async() => {
+      const mgmt = { pin: jest.fn(() => Promise.resolve({})) };
+
+      await (provCluster(mgmt) as any).pinCluster();
+
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it('leads the bulk actions, pin before unpin', () => {
+      const bulk = actionsOf(provCluster({ pinned: false, isLocal: false }))
+        .filter((a: any) => a.bulkable)
+        .sort((a: any, b: any) => (b.weight || 0) - (a.weight || 0))
+        .map((a: any) => a.action);
+
+      expect(bulk.slice(0, 2)).toStrictEqual(['pinCluster', 'unpinCluster']);
+    });
+
+    it('keeps the pin on an RKE1 cluster, which cannot take most other actions', () => {
+      const cluster = provCluster({ pinned: false, isLocal: false });
+
+      jest.spyOn(cluster, 'isRke1', 'get').mockReturnValue(true);
+
+      expect(pinAction(cluster, 'pinCluster').enabled).toBe(true);
     });
   });
 

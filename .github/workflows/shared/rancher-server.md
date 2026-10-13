@@ -6,8 +6,9 @@
 #
 # Provides the setup `steps:` and the Playwright CLI. The importing workflow
 # supplies its own `on:`, `permissions:`, `timeout-minutes:` and safe outputs.
-# Budget several minutes of the importing workflow's timeout for these steps: a
-# dependency install plus a Rancher cold start is routinely eight to ten minutes.
+# Budget for these steps in the importing workflow's timeout: the k3s and Rancher
+# start alone is about five minutes, nearer twenty when the script has to rebuild
+# the cluster, and has taken close to forty when every rebuild hung.
 tools:
   # CLI mode, not the deprecated MCP mode: it is the only one that can record
   # video (`video-start`/`video-stop`), and it reaches a dev server on localhost
@@ -30,31 +31,30 @@ steps:
       node-version-file: '.nvmrc'
   - name: Install dependencies
     run: yarn install --frozen-lockfile --ignore-engines
-  # Started directly rather than through `yarn e2e:docker`: this needs a server to
-  # point a browser at, not a test harness, a built UI mounted into the container
-  # or the feature flags a test run needs.
+  # Same provisioning as the e2e suite (k3s + Helm), so CI has one way to stand
+  # up Rancher. OVERRIDE_UIS=false keeps Rancher's bundled UI: the agent runs
+  # its own `yarn dev` against this backend. GITHUB_BASE_REF pins the branch
+  # metadata to master, so a manual run from a fork branch still resolves an image.
   - name: Run Rancher
+    run: GITHUB_BASE_REF=master OVERRIDE_UIS=false ./scripts/e2e-k3s-start.sh
+  # The script publishes Rancher through the k3s ingress on 443, matched by
+  # hostname. The agent's sandbox reaches the runner by gateway IP instead, so
+  # forward the Rancher service onto a plain port. The loop restarts the forward
+  # if it drops; the runner reaps it at the end of the job.
+  - name: Publish Rancher on port 9443
     run: |
-      # 80/443 and 8080 are taken on the runner, so Rancher is published on 9080/9443.
-      # CATTLE_SERVER_URL uses the default bridge gateway rather than
-      # host.docker.internal, which does not resolve on Docker Engine for Linux.
-      docker run -d --restart=unless-stopped --privileged --name rancher \
-        -p 9080:80 -p 9443:443 \
-        -e CATTLE_UI_OFFLINE_PREFERRED=true \
-        -e CATTLE_BOOTSTRAP_PASSWORD=password \
-        -e CATTLE_PASSWORD_MIN_LENGTH=3 \
-        -e CATTLE_SERVER_URL="https://172.17.0.1:9443" \
-        rancher/rancher:head
+      nohup bash -c 'while true; do kubectl -n cattle-system port-forward --address 0.0.0.0 svc/rancher 9443:443; sleep 1; done' \
+        > /tmp/rancher-port-forward.log 2>&1 &
 
-      echo "Waiting for Rancher to answer on https://127.0.0.1:9443/ ..."
-      for i in $(seq 1 60); do
+      for i in $(seq 1 30); do
         STATUS=$(curl --silent --head -k https://127.0.0.1:9443/dashboard/ | awk '/^HTTP/{print $2}')
-        echo "Status: ${STATUS:-none} (try ${i}/60)"
+        echo "Status: ${STATUS:-none} (try ${i}/30)"
         [ "$STATUS" = "200" ] && break
-        sleep 5
+        sleep 2
       done
       if [ "$STATUS" != "200" ]; then
-        echo "Rancher did not become available in five minutes"
+        echo "Rancher did not answer on port 9443"
+        cat /tmp/rancher-port-forward.log
         exit 1
       fi
   - name: Bootstrap Rancher (first-login setup)
@@ -94,27 +94,37 @@ steps:
 
 ## Runtime environment
 
-Setup steps already prepared the following. Several minutes each: never restart or duplicate them.
+The setup steps have already prepared the following. They cost several minutes each. Never restart or duplicate them.
 
-- **Rancher backend** in a container on runner port 9443. Credentials `admin` / `password`. Bootstrapped — server URL set, EULA accepted, first-login cleared — so the dashboard is usable straight away. Which address reaches it depends on how this agent is sandboxed, so settle that once, before you need it:
+- **A Rancher backend** on k3s, forwarded to the runner's port 9443. Credentials `admin` / `password`. Already bootstrapped — server URL set, EULA accepted, first-login cleared — so the dashboard is usable straight away
+- **Node, with `yarn install` already run.** `yarn lint` and `yarn test:ci` can be invoked directly
+- **The Playwright CLI**, invoked as `playwright-cli` from bash
 
-  ```bash
-  for host in 172.30.0.1 172.17.0.1 host.docker.internal 127.0.0.1; do
-    echo "$host -> $(curl -sk -o /dev/null -w '%{http_code}' --max-time 5 https://$host:9443/dashboard/)"
-  done
-  ```
+**The Docker socket is not available.** `docker ps`, `docker logs` and every other docker command fail. Nothing here needs them.
 
-  Wherever this prompt writes `<rancher-host>`, substitute the first host answering `200`. Shell variables do not survive between bash calls — write the address out literally each time rather than exporting it. None answers: backend unreachable, skip every step needing it and say so in the run summary
+### Finding the Rancher address
 
-  `172.30.0.1` first because the sandbox puts this agent on its own Docker network and that is the gateway back to the runner. `172.17.0.1` is the default bridge gateway, reaching the host only when the agent is unsandboxed.
-- **Node, `yarn install` already run.** `yarn lint` and `yarn test:ci` run directly
-- **Playwright CLI**, invoked as `playwright-cli` from bash
+Which address reaches the backend depends on how this agent is sandboxed. Establish it once, before you need it:
 
-Docker socket is **not** available. Never run `docker ps`, `docker logs` or any other docker command — they fail, and nothing here needs them.
+```bash
+node -e 'const https=require("https");for(const h of ["172.30.0.1","172.17.0.1","host.docker.internal"]){const r=https.get({host:h,port:9443,path:"/dashboard/",rejectUnauthorized:false,timeout:5000},res=>{console.log(h,"->",res.statusCode);res.resume()});r.on("timeout",()=>r.destroy(new Error("timeout")));r.on("error",e=>console.log(h,"->",e.code||e.message))}'
+```
+
+Wherever this prompt writes `<rancher-host>`, substitute the first host that answered `200`.
+
+**Never use `curl` against it.** Copilot CLI denies any `curl` command with a URL in it, whatever the tool allowlist says. Use `node` with the host and port as separate fields, as above.
+
+**Write the address out literally each time.** Shell variables do not survive between bash calls, so exporting it does not work.
+
+**None of them answers:** the backend is unreachable. Skip every step that needs it and say so in the run summary.
+
+`172.30.0.1` is first because the sandbox puts this agent on its own Docker network and that is the gateway back to the runner. The workflow opens runner port 9443 to the sandbox for this.
 
 ### Reading GitHub state
 
-**`gh` CLI is not authenticated here.** Every `gh issue list`, `gh pr list`, `gh pr diff` returns nothing and exits non-zero. Piped through `2>/dev/null` that is indistinguishable from an empty backlog, and a run believing the backlog is empty skips the half of its job that produces pull requests. Never use `gh`. Read GitHub state through MCP tools:
+**Never use `gh`. It is not authenticated here.** Every `gh issue list`, `gh pr list` and `gh pr diff` returns nothing and exits non-zero. Piped through `2>/dev/null`, that is indistinguishable from an empty backlog — and a run believing the backlog is empty skips the half of its job that produces pull requests.
+
+Read GitHub state through the MCP tools:
 
 | Instead of | Use |
 | --- | --- |
@@ -124,11 +134,11 @@ Docker socket is **not** available. Never run `docker ps`, `docker logs` or any 
 | `gh pr view <n>` | `pull_request_read` with `method: "get"` |
 | `gh issue view <n>` | `issue_read` |
 
-Two details these tools will not warn about:
+Two details these tools will not warn you about:
 
-- **`state` is spelled differently between them.** `list_issues` takes `OPEN`/`CLOSED` capitalised; `list_pull_requests` takes `open`/`closed`/`all` lower case. Wrong case is a schema error, not a silent empty result — but never copy one call's spelling into the other
-- **`list_pull_requests` has no label parameter.** No server-side filter: list them all, match `<bot-label>` yourself
+- **`state` is spelled differently between them.** `list_issues` takes `OPEN`/`CLOSED` in capitals. `list_pull_requests` takes `open`/`closed`/`all` in lower case. Wrong case is a schema error, not a silent empty result — but never copy one call's spelling into the other
+- **`list_pull_requests` has no label parameter.** No server-side filter exists. List them all and match `<bot-label>` yourself
 
-Prefer `list_*` and `*_read` over `search_*`. Search is rate limited to 30 requests an hour across every workflow on the repository and is often spent before this run starts; listing tools are plain REST calls under a far higher limit. `403 API rate limit` from a search tool means wrong tool, not blocked run.
+**Prefer `list_*` and `*_read` over the `search_*` tools.** Search is rate limited to 30 requests an hour across every workflow on the repository, and is often already spent before this run starts. The listing tools are plain REST calls under a far higher limit. A `403 API rate limit` from a search tool means you used the wrong tool, not that the run is blocked.
 
-Empty result from a listing tool is a real result — prove it before acting. Call `list_issues` once with no label filter as control: also empty on a repository that visibly has issues means the tool is failing rather than the backlog being clear, and the run summary says so instead of proceeding as though there is nothing to remediate.
+**Prove an empty result before acting on it.** Call `list_issues` once with no label filter as a control. If that also comes back empty on a repository that visibly has issues, the tool is failing rather than the backlog being clear — say so in the run summary instead of proceeding as though there is nothing to remediate.

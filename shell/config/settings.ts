@@ -20,6 +20,11 @@ interface GlobalSetting {
     customFormatter?: string,
     from?: string,
     kind?: string,
+    /**
+     * How an `enum` setting is edited: a select (the default) or radio buttons. Only radio buttons support an empty
+     * option (`''`), labelled by the `none` key in `advancedSettings.enum.<id>`.
+     */
+    display?: 'radio',
     options?: string[]
     readOnly?: boolean,
     agent?: typeof AGENT_CONFIGURATION_TYPES.CLUSTER | typeof AGENT_CONFIGURATION_TYPES.FLEET,
@@ -127,6 +132,16 @@ export const SETTING = {
   DYNAMIC_CONTENT_ENDPOINT:                      'ui-content-endpoint',
   IMPORTED_CLUSTER_DAY2_OPS_DEFAULT:             'imported-cluster-day2-ops-enabled',
   DELETE_MACHINE_ON_FAILURE_AFTER:               'delete-machine-on-failure-after',
+  /**
+   * Rancher's catalog mode (`CATTLE_SYSTEM_CATALOG`), either `external` or `bundled`. `bundled` means Rancher only
+   * serves bundled/airgap charts. Read-only (set by the backend), so not in ALLOWED_SETTINGS.
+   */
+  SYSTEM_CATALOG:                                'system-catalog',
+  /**
+   * Controls the SUSE Application Collection features in the UI: `true` always shows them, `false` never does and
+   * empty (the default) falls back to SYSTEM_CATALOG, showing them unless it is `bundled`.
+   */
+  UI_APPCO_ENABLED:                              'ui-appco-enabled',
 } as const;
 
 // These are the settings that are allowed to be edited via the UI
@@ -171,6 +186,12 @@ export const ALLOWED_SETTINGS: GlobalSetting = {
   [SETTING.UI_OFFLINE_PREFERRED]:                 {
     kind:    'enum',
     options: ['dynamic', 'true', 'false']
+  },
+  [SETTING.UI_APPCO_ENABLED]: {
+    kind:     'enum',
+    display:  'radio',
+    options:  ['true', 'false', ''],
+    canReset: true,
   },
   [SETTING.BRAND]:              { canReset: true },
   [SETTING.HIDE_LOCAL_CLUSTER]: { kind: 'boolean' },

@@ -5,27 +5,9 @@ import { mapGetters } from 'vuex';
 import { ResourceListComponentName } from '../components/ResourceList/resource-list.config';
 import paginationUtils from '@shell/utils/pagination-utils';
 import debounce from 'lodash/debounce';
-import { PaginationParamFilter, PaginationFilterField, PaginationFilterEquality, PaginationArgs } from '@shell/types/store/pagination.types';
+import { PaginationParamFilter, PaginationFilterField, PaginationArgs } from '@shell/types/store/pagination.types';
 import stevePaginationUtils from '@shell/plugins/steve/steve-pagination-utils';
 import { STEVE_WATCH_MODE } from '@shell/types/store/subscribe.types';
-
-export function parseStateFilter(stateFilter) {
-  if (!stateFilter) {
-    return null;
-  }
-
-  const states = stateFilter.split(',').filter(Boolean);
-
-  if (!states.length) {
-    return null;
-  }
-
-  return [new PaginationFilterField({
-    field:    'metadata.state.name',
-    value:    states.join(','),
-    equality: PaginationFilterEquality.IN,
-  })];
-}
 
 /**
  * Companion mixin used with `resource-fetch` for `ResourceList` to determine if the user needs to filter the list by a single namespace
@@ -91,9 +73,8 @@ export default {
 
       this.paginationFromList = event;
       const {
-        page, perPage, filter, sort, descending
+        page, perPage, filter, sort, descending, viewFilters
       } = event;
-      const stateFilters = parseStateFilter(this.$route?.query?.stateFilter) || [];
       const searchFilters = filter.searchQuery ? filter.searchFields.map((field) => new PaginationFilterField({
         field,
         value: filter.searchQuery,
@@ -110,8 +91,8 @@ export default {
         projectsOrNamespaces: this.requestFilters.projectsOrNamespaces,
         filters:              [
           new PaginationParamFilter({ fields: searchFilters }),
-          new PaginationParamFilter({ fields: stateFilters }),
           ...this.requestFilters.filters, // Apply the additional filters. these aren't from the user but from ns filtering
+          ...(viewFilters || []), // Table views toolbar filters (AND'd with everything else)
         ]
       });
 
@@ -194,6 +175,25 @@ export default {
       }
 
       return this.canPaginate ? this.pPagination : '';
+    },
+
+    /**
+     * The list's scope without the query. Not `pagination` minus the view's filters: that is
+     * debounced, so it lags the query being typed
+     *
+     * @returns {{page: number, sort: object[], filters: PaginationParamFilter[], projectsOrNamespaces: string[]}}
+     */
+    paginationScope() {
+      // A copy, because `apiFilter` appends to it; shaped like a full request for the same reason
+      const scope = {
+        page:                 1,
+        sort:                 [],
+        filters:              [...this.requestFilters.filters],
+        projectsOrNamespaces: this.requestFilters.projectsOrNamespaces,
+      };
+
+      // Eg the cluster list's, which keeps harvester clusters out
+      return this.apiFilter ? this.apiFilter(scope) : scope;
     },
 
     /**

@@ -14,30 +14,55 @@ safe-outputs:
     # stop a runaway recording being committed to the assets branch.
     max-size: 20480
     max: 6
+    # NOTE: gh-aw does not support `expires` on upload-asset (only on issues/PRs).
+    # Assets accumulate on the assets branch indefinitely. Target retention is six
+    # months; prune the assets branch manually or via a scheduled cleanup workflow
+    # when it grows large. See shared/maintenance-notes.md for details.
 ---
 
 ## Capturing UI evidence
 
-A change to what the dashboard renders needs a recording of the dashboard still rendering. Passing tests are not that evidence: they never touched the screen.
+A change to what the dashboard renders needs a recording of the dashboard still rendering. A passing test suite is not that evidence: it never touched the screen.
 
-**A change touches the UI** if it adds, deletes or edits any `.vue` or `.scss` file, anything under `shell/pages/`, `shell/components/`, `shell/detail/`, `shell/edit/`, `shell/list/`, `shell/dialog/`, `shell/promptRemove/`, `shell/chart/`, `shell/cloud-credential/`, `shell/machine-config/` or the `pkg/*/` equivalents, or any translation key. Confined to `.ts`/`.js` under `shell/utils/` or `shell/config/`, or to `cypress/`, `storybook/`, `docusaurus/` or `creators/`: it does not — say so in the body's Evidence section rather than attaching nothing without explanation.
+### Does the change touch the UI?
 
-Capture only **after** `yarn lint` and `yarn test:ci` pass. Recording of a broken build shows nothing worth reviewing.
+**Yes** if it adds, deletes or edits any of:
 
-1. Serve the dashboard from the working tree, against the Rancher under "Runtime environment", and wait for first compile:
+- a `.vue` or `.scss` file
+- anything under `shell/pages/`, `shell/components/`, `shell/detail/`, `shell/edit/`, `shell/list/`, `shell/dialog/`, `shell/promptRemove/`, `shell/chart/`, `shell/cloud-credential/`, `shell/machine-config/`, or the `pkg/*/` equivalents
+- any translation key
+
+**No** if it is confined to `.ts`/`.js` under `shell/utils/` or `shell/config/`, or to `cypress/`, `storybook/`, `docusaurus/` or `creators/`. Say so in the Evidence section rather than attaching nothing without explanation.
+
+### Capture
+
+Capture only **after** `yarn lint`, `yarn type-check:ci` and `yarn test:ci` have passed. A recording of a broken build shows nothing worth reviewing.
+
+1. Serve the dashboard from the working tree, against the Rancher described under "Runtime environment", and wait for the first compile:
 
    ```bash
    # <rancher-host> is whichever address the probe under "Runtime environment" showed
-   # answering 200 — substitute it literally, do not assume which of the three it was.
-   API=https://<rancher-host>:9443 nohup yarn dev > /tmp/gh-aw/agent/dashboard-dev.log 2>&1 &
-   # vue-cli-service prints "Compiled successfully" once the app is servable. This takes
-   # several minutes; poll the log rather than guessing at a sleep.
-   timeout 900 bash -c 'until grep -q "Compiled successfully" /tmp/gh-aw/agent/dashboard-dev.log; do sleep 10; done'
+   # answering 200 — substitute it literally, do not assume which one it was.
+   API=https://<rancher-host>:9443 yarn dev > /tmp/gh-aw/agent/dashboard-dev.log 2>&1
    ```
 
-   Compile failure is a failed gate — quote what it printed, open no pull request. Compile not finishing inside the timeout is not a failed gate: open the pull request without video, saying which of the two happened.
+   **No trailing `&`.** Copilot CLI denies it. Without it the shell tool returns after its initial wait and leaves the server running.
 
-2. Record the walkthrough, take at least one still. Dev server certificate is self-signed, so the browser must be told to accept it before the session opens:
+   vue-cli-service prints `Compiled successfully` once the app is servable. That takes several minutes, so poll the log rather than guessing at a sleep. This waits up to five minutes and prints `ready`, `failed` or `waiting`:
+
+   ```bash
+   node -e 'const fs=require("fs"),f="/tmp/gh-aw/agent/dashboard-dev.log",t=Date.now();(function w(){const l=fs.existsSync(f)?fs.readFileSync(f,"utf8"):"";if(/Compiled successfully/.test(l))return console.log("ready");if(/Failed to compile/.test(l))return console.log("failed\n"+l.slice(-3000));if(Date.now()-t>300000)return console.log("waiting\n"+l.slice(-1000));setTimeout(w,10000)})()'
+   ```
+
+   On `waiting`, run it again — up to three times, fifteen minutes in all. `nohup`, `timeout` and `bash -c` are not in the tool allowlist, so none of them appear here.
+
+   **A compile failure is a failed gate.** Quote what it printed and open no pull request.
+
+   **A compile that does not finish inside the timeout is not.** Open the pull request without a video and say which of the two happened.
+
+2. Record the walkthrough and take at least one still. The dev server's certificate is self-signed, so the browser has to be told to accept it — before the session is opened.
+
+   **Run each `playwright-cli` command as its own bash call.** A chain of them joined with `;` or `&&` is denied, and so is `sleep`.
 
    ```bash
    export PLAYWRIGHT_MCP_IGNORE_HTTPS_ERRORS=true
@@ -48,23 +73,28 @@ Capture only **after** `yarn lint` and `yarn test:ci` pass. Recording of a broke
    playwright-cli video-chapter "<screen name>" --duration=2000
    # ... snapshot / click / goto for each screen ...
    playwright-cli video-stop
-   playwright-cli screenshot /tmp/gh-aw/agent/<branch-suffix>.png
+   # The path needs --filename=; a bare path is parsed as an element ref and fails.
+   playwright-cli screenshot --filename=/tmp/gh-aw/agent/<branch-suffix>.png
    playwright-cli close
    ```
 
-3. Visit **every** screen the change affects, plus the screen reaching it. Mark each with `video-chapter` so a reviewer finds it without scrubbing
+3. Visit **every** screen the change affects, plus the screen that reaches it. Mark each with a `video-chapter` so a reviewer can find it without scrubbing
 4. Run `playwright-cli console error` on each screen. An error the change introduced is a failed change, not a caveat for the body — abandon it
-5. Keep video under a minute. Recording nobody watches is worse than a screenshot somebody does — walkthrough will not fit, cut to the one screen that matters
+5. Keep the video under a minute. A recording nobody watches is worse than a screenshot somebody does. If the walkthrough will not fit, cut it to the one screen that matters
 
 ### Publishing and embedding
 
-Call `upload_asset` with the file path. Returns a URL **immediately**, before the run ends, shaped `https://github.com/<owner>/<repo>/blob/assets/<workflow>/<sha256>.<ext>?raw=true`. Paste it into bodies you write; never construct it yourself, never wait.
+Call the `upload_asset` tool with the file path. It returns a URL **immediately**, before the run ends, of the form `https://github.com/<owner>/<repo>/blob/assets/<workflow>/<sha256>.<ext>?raw=true`.
 
-One asset serves several bodies. Upload once, same URL in the issue **and** in the pull request fixing it.
+Paste that URL into the bodies you write. Never construct it yourself, and never wait for anything.
 
-- **`.png` renders inline** in an issue or pull request body: `![<what the screen shows>](<url>)`
-- **`.webm` does not render inline** from this URL — GitHub auto-embeds video only from its own attachment host. Plain markdown link, `[Walkthrough recording (webm)](<url>)`, with an inline `.png` still above it. A `<video src>` tag pointing here renders as nothing, so never use one
+One asset can be referenced from more than one body. Upload once, and put the same URL in the issue **and** in the pull request that fixes it.
 
-Assets are pushed to their branch by a job running **in parallel** with the one creating issues and pull requests, so a URL can 404 for seconds after the body posts. Expected, self-correcting, never a reason to retry the upload.
+How to embed each kind:
 
-No recording possible: `playwright-cli screenshot` of the affected screen, publish that, say in the body why there is no video.
+- **`.png` renders inline.** Write it as `![<what the screen shows>](<url>)`
+- **`.webm` does not render inline** from this kind of URL — GitHub only auto-embeds video for its own attachment host. Write it as a plain link, `[Walkthrough recording (webm)](<url>)`, with an inline `.png` still above it. A `<video src>` tag pointing at this URL renders as nothing at all, so never use one
+
+**A URL can 404 for a few seconds after the body is posted.** The assets are pushed to their branch by a job running in parallel with the one that creates issues and pull requests. Expected, self-correcting, and not a reason to retry the upload.
+
+No recording possible at all: take a `playwright-cli screenshot` of the affected screen instead, publish that, and say in the body why there is no video.
