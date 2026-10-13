@@ -46,6 +46,15 @@ imports:
   - shared/lessons.md
   - shared/writing.md
 
+# shared/rancher-server.md forwards Rancher to runner port 9443, and the default
+# sandbox runtime has no route from the agent to anything on the runner. This
+# runtime is the only one that can open host ports. gh-aw does not merge
+# `sandbox:` from imports, so it has to live here.
+sandbox:
+  agent:
+    runtime: docker-sudo-iptables
+    allow-host-ports: [9443]
+
 permissions:
   contents: read
   issues: read
@@ -140,6 +149,10 @@ env:
   # nothing while it runs and takes longer than that, so the call is aborted and
   # the run ends with no pull request. Ten minutes covers a push on this repo.
   GH_AW_HARNESS_WATCHDOG_TIMEOUT_MS: "600000"
+  # The dashboard dev server started for UI evidence is still running when the
+  # agent finishes, and Copilot CLI then waits for it — 600s by default — before
+  # exiting. Nothing it would wait for matters once the safe outputs are written.
+  COPILOT_TASK_WAIT_TIMEOUT_SECONDS: "30"
 # Every change is user-visible, so every pull request needs a dev build and a
 # recorded walkthrough on top of an install and a full unit test run.
 timeout-minutes: 75
