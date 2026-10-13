@@ -1,54 +1,67 @@
 ## Lessons protocol
 
-Run that gets surprised leaves next run better equipped. Every workflow here keeps **its own** lessons file, and all of them live together in `.github/agents/lessons/`. Workflow-specific section names yours: the one you append to, and the only one you may write.
+A run that gets surprised leaves the next run better equipped. This workflow keeps a lessons file under `.github/agents/lessons/` — the workflow-specific section below names it.
 
-### Read them all first
+### Read it first
 
-**Before anything else**, read **every** file in `.github/agents/lessons/`, not only your own. Same repository, same conventions, same traps — an entry another workflow recorded still applies to you. Directory missing or empty: say so, continue.
+**Read the lessons file before anything else.** It does not exist: note that and continue.
 
-Entries bind this run as hard as this prompt — they exist because the prompt alone still produced a wrong answer. Entry from another workflow's file binds the same. One plainly tied to that workflow's own job: skip it, no need to say which.
+Everything in it binds this run as hard as the checks in this prompt. The entries exist precisely because following the prompt alone still produced a wrong answer.
 
-### Qualifies — general patterns only
+### What qualifies as a lesson
 
-A lesson qualifies when it captures a **transferable rule**: something true about this codebase or this kind of work that the prompt does not already say, and that will catch the same trap the next time around.
+- A mechanism this prompt does not describe that made the analysis wrong
+- A search idiom that returned a misleading result: a command that silently matched nothing, a form the search missed, a name collision that hid the real attribution
+- A repository convention that changes what a result means
+- An open issue whose stated evidence did not reproduce, along with what the original analysis missed
+- A change that broke `yarn lint` or `yarn test:ci` in a way the analysis did not predict
 
-✅ Qualifies:
-- A codebase pattern or convention that changes what a result means
-- A search idiom that silently missed real references, with the working form beside it
-- A type of change that broke `yarn lint` or `yarn test:ci` in a way analysis did not predict
+### What does not qualify
 
-❌ Does not qualify:
-- Retelling what happened in one specific issue — issue numbers and filenames are not the lesson
-- Restating a rule already in this prompt
-- Observations that will not apply again (one-off edge cases)
-- Problems with the workflow itself (missing dependency, wrong runtime) — those go in the run summary
+- A restatement of a rule already in this prompt. An entry earns its place only where following this prompt as written would still have produced the wrong answer
+- A one-off observation about one file, with no general rule behind it
+- Anything you did not run into on this run. Never speculate about failure modes
+- A problem with the workflow itself — a missing dependency, a wrong runtime version, a gate that will not start. That goes in the run summary
 
-**Test before writing:** Ask "if I read this entry next run, would it change what I check?" If yes, write it. If not, skip it.
+**Write the entry repository-agnostically.** Describe the pattern, not where it was filed: never name a repository or a fork, never cite issue numbers. The file travels with the workflow, and a number resolving somewhere else is worse than no reference at all.
 
-### How to write an entry
+**Resembling an existing entry is not the same as being covered by it.** Before dismissing something as already recorded, read the entry you have in mind and check its **Rule** would have caught this case. Two failures can share a symptom and still need different checks. The existing rule would have let this one through: write a new entry, saying in it how the two differ.
 
-Lead with the **Rule** — one line, one instruction, starts with a verb. The Trigger and Evidence back it up but the Rule is what gets read.
+### How to record it
 
-**Don't write:**
-> The two call sites of the popover component both used the base glance summary, so the content was not yet designed for the new resource types referenced in the issue.
+1. Append to the end of the file's `## Lessons` section, in the exact format the file specifies under "Format for lessons": a dated `###` heading, then **Trigger**, **Rule** and **Command**
+2. **Rule** is an instruction for a future run, never a description of what happened
+3. **Command** is one you actually ran, with its real output — including the broken form alongside the working form where that makes the point
+4. Below the entry cap, append and change nothing else. Never edit or delete an existing entry
 
-**Do write:**
-> **Rule**: Before accepting a category 4 candidate, check what actually *varies* between the two worked examples — not just that both exist. If both feed the same data to the shared component, the per-case content design is still open and the issue is a decline.
+### Keeping the file small
 
-Format:
-```markdown
-### YYYY-MM-DD — Short title (the pattern, not the issue)
+The file is read in full at the start of every run, so its length costs every run. Two limits.
 
-- **Trigger**: what kind of task surfaces this trap
-- **Rule**: what to check from now on — one line, starts with a verb
-- **Command**: the command that shows it, with real output. Broken form beside working form where that helps
-```
+**Per entry.** **Trigger** is one sentence. **Rule** at most two. **Command** at most fifteen lines: the broken form, the working form, and only the output lines that make the point. Never paste a whole run.
 
-**Repository-agnostic.** Never name a repository, a fork, or an issue number. The file travels with the workflow; an issue number from one repo means nothing in another.
+**Per file.** At most **twenty-five** entries under `## Lessons`. Count before appending.
 
-**Where entry ships**, given pull request budget:
+At the cap, the run that wants to add an entry makes room first, in the same pull request:
 
-- **Run opens pull requests** — lessons change goes in **first** one, described in that body's Lessons section. Never its own pull request while another can carry it, never duplicated across two
-- **Run opens none** — write entry, open pull request for it alone, keeping only Lessons section of body template
+1. Find two entries one rule would have caught — the same mechanism showing up as two symptoms. Entries about genuinely different mechanisms never qualify, however similar they read
+2. Replace both with one entry, dated the later of the two, whose **Rule** covers both cases and whose **Command** keeps the more convincing of the two pairs
+3. Consolidate exactly as many pairs as needed to get back under the cap. Never more
+4. Name every consolidation in the pull request body's Lessons section: the headings folded together, the heading replacing them, one line on why one rule catches both
 
-**Your own lessons file is the only file under `.github/` you may touch.** Never another workflow's — read them all, append to yours alone. Never anything else there, never workflow or lock file. Proposals to change this prompt go in your lessons file, read at start of every run, so they take effect without workflow edit.
+No two entries qualify: say so in the run summary, append anyway, leave the file one over the cap. Losing a lesson costs more than a long file. Consolidation is never the point of a run — only the price of adding an entry, reviewed like any other change in the pull request carrying it.
+
+### Where the entry ships
+
+A lessons change is not filed or committed separately. It is an ordinary edit in the working tree, picked up by the same `create-pull-request` safe output as everything else in the run — which is why the workflow's `allowed-files` lists the lessons file beside the product directories. There is no second mechanism.
+
+Which pull request carries it, given the pull request budget:
+
+- **This run is opening one or more pull requests** — include the lessons change in the **first** one and describe it in that body's Lessons section. A lessons entry never gets a pull request of its own while another is available to carry it, and it must not be duplicated across several
+- **This run is opening no pull request** — write the entry into the file and open the pull request for it alone, keeping only the Lessons section of the body template
+
+That Lessons section names each heading added, and each consolidation made under "Keeping the file small". A pull request that touches the lessons file and says nothing about it in the body is incomplete.
+
+**Two open pull requests that both append to the lessons file will conflict**, because both add lines at the same end of the same section. Expected, and not yours to pre-empt: never rewrite your entry to dodge it, never push to a branch you did not open. The conflict surfaces as `dirty` in "Keeping the open pull requests mergeable" and resolves like any other conflict there — by comment, keeping both entries. Reordering or dropping one to ease the merge loses a lesson.
+
+**The lessons file is the only file under `.github/` you may touch.** Never modify anything else there, and never a workflow or its lock file. Proposals to change this prompt go in the lessons file, which is read at the start of every run and therefore takes effect immediately without a workflow edit.
